@@ -18,6 +18,8 @@ import EventDetail from './pages/EventDetail'
 import CreateEvent from './pages/CreateEvent'
 import SignUp from './pages/SignUp'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import CategoryView from './pages/CategoryView'
 
@@ -42,7 +44,7 @@ function ScrollToTop() {
 
 function Layout() {
   const { pathname } = useLocation()
-  const hideNavFooter = pathname === '/signup' || pathname === '/login'
+  const hideNavFooter = ['/signup', '/login', '/forgot-password', '/reset-password'].includes(pathname)
 
   return (
     <div style={{ minHeight: '100vh', background: '#08080f' }}>
@@ -54,6 +56,8 @@ function Layout() {
         <Route path="/create" element={<CreateEvent />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/category/:name" element={<CategoryView />} />
       </Routes>

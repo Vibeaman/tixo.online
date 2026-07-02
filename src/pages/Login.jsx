@@ -55,6 +55,11 @@ export default function Login() {
               </button>
             </div>
           </div>
+          <div className="flex justify-end">
+            <Link to="/forgot-password" className="text-sm text-purple-400 hover:text-purple-300 font-medium">
+              Forgot password?
+            </Link>
+          </div>
           <button type="submit" disabled={loading}
             className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
             {loading ? 'Logging in...' : <><span>Log In</span><ArrowRight className="w-5 h-5" /></>}

@@ -32,6 +32,18 @@ const AuthService = {
     return user
   },
 
+  async resetPassword(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`
+    })
+    if (error) throw error
+  },
+
+  async updatePassword(newPassword) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw error
+  },
+
   onAuthStateChange(callback) {
     return supabase.auth.onAuthStateChange((_event, session) => {
       callback(session?.user || null)
