@@ -16,6 +16,7 @@ import HostBanner from './components/HostBanner'
 import BrowseEvents from './pages/BrowseEvents'
 import EventDetail from './pages/EventDetail'
 import CreateEvent from './pages/CreateEvent'
+import EditEvent from './pages/EditEvent'
 import SignUp from './pages/SignUp'
 import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
@@ -54,6 +55,7 @@ function Layout() {
         <Route path="/events" element={<BrowseEvents />} />
         <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/create" element={<CreateEvent />} />
+        <Route path="/edit-event/:id" element={<EditEvent />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
@@ -13,12 +13,14 @@ const EVENT_TYPES = [
   { value: 'hybrid', label: 'Hybrid', icon: Globe, desc: 'Both in person & online' },
 ]
 
-export default function CreateEvent() {
+export default function EditEvent() {
+  const { id } = useParams()
   const navigate = useNavigate()
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
-  const [imageMode, setImageMode] = useState('upload')
+  const [imageMode, setImageMode] = useState('url')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -31,6 +33,41 @@ export default function CreateEvent() {
     image: '', tags: '',
     tiers: [{ name: 'General', price: 0, available: 100 }]
   })
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const ev = await EventService.getById(id)
+        if (!user || ev.organizer_id !== user.id) {
+          toast.error('You can only edit your own events')
+          navigate('/dashboard')
+          return
+        }
+        setForm({
+          title: ev.title || '',
+          description: ev.description || '',
+          date: ev.date || '',
+          time: ev.time || '',
+          end_date: ev.end_date || '',
+          end_time: ev.end_time || '',
+          location: ev.location || '',
+          category: ev.category || 'Music',
+          event_type: ev.event_type || 'in-person',
+          virtual_link: ev.virtual_link || '',
+          image: ev.image || '',
+          tags: ev.tags?.join(', ') || '',
+          tiers: ev.ticket_tiers?.length ? ev.ticket_tiers : [{ name: 'General', price: 0, available: 100 }]
+        })
+        if (ev.image) setImagePreview(ev.image)
+      } catch (e) {
+        toast.error('Event not found')
+        navigate('/dashboard')
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (user) load()
+  }, [id, user])
 
   function update(e) { setForm(f => ({ ...f, [e.target.name]: e.target.value })) }
   function updateTier(i, field, val) {
@@ -61,26 +98,24 @@ export default function CreateEvent() {
   function validateStep1() {
     if (!form.title) { toast.error('Event title is required'); return false }
     if (!form.date) { toast.error('Start date is required'); return false }
-    if (form.event_type !== 'virtual' && !form.location) { toast.error('Location is required for in-person events'); return false }
+    if (form.event_type !== 'virtual' && !form.location) { toast.error('Location is required'); return false }
     if ((form.event_type === 'virtual' || form.event_type === 'hybrid') && !form.virtual_link) { toast.error('Virtual link is required'); return false }
     if (form.end_date && form.end_date < form.date) { toast.error('End date cannot be before start date'); return false }
     return true
   }
 
   async function handleSubmit() {
-    if (!user) { toast.error('Please log in first'); navigate('/login'); return }
-    if (!form.title || !form.date) { toast.error('Fill in all required fields'); return }
     setSubmitting(true)
     try {
       let finalImage = form.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800'
       if (imageFile) {
         setUploading(true)
         try { finalImage = await uploadEventImage(imageFile) }
-        catch (err) { toast.error('Image upload failed: ' + (err.message || 'Unknown error')); setSubmitting(false); setUploading(false); return }
+        catch (err) { toast.error('Image upload failed'); setSubmitting(false); setUploading(false); return }
         setUploading(false)
       }
 
-      const eventData = {
+      const updates = {
         title: form.title,
         description: form.description,
         date: form.date,
@@ -92,30 +127,28 @@ export default function CreateEvent() {
         event_type: form.event_type,
         virtual_link: form.virtual_link || null,
         image: finalImage,
-        organizer_id: user.id,
-        organizer_name: profile?.full_name || user.email,
         ticket_tiers: form.tiers.map(t => ({ name: t.name, price: Number(t.price), available: Number(t.available) })),
         tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        watchers: 0, demand: 0
       }
-      await EventService.create(eventData)
-      toast.success('🎉 Event published!')
+      await EventService.update(id, updates)
+      toast.success('✅ Event updated!')
       navigate('/dashboard')
     } catch (e) {
-      toast.error(e.message || 'Failed to create event')
+      toast.error(e.message || 'Failed to update event')
     } finally {
       setSubmitting(false)
       setUploading(false)
     }
   }
 
+  if (loading) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-2 text-center">Create Event</h1>
-        <p className="text-gray-400 text-center mb-8">Fill in the details to publish your event</p>
+        <h1 className="text-3xl font-bold text-white mb-2 text-center">Edit Event</h1>
+        <p className="text-gray-400 text-center mb-8">Update your event details</p>
 
-        {/* Progress */}
         <div className="flex items-center justify-center gap-4 mb-10">
           {[1, 2, 3].map(s => (
             <React.Fragment key={s}>
@@ -148,8 +181,6 @@ export default function CreateEvent() {
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-
-              {/* Event Type Toggle */}
               <div>
                 <label className="text-sm text-gray-300 mb-2 block">Event Type *</label>
                 <div className="grid grid-cols-3 gap-3">
@@ -158,56 +189,30 @@ export default function CreateEvent() {
                       className={`p-3 rounded-xl border text-center transition-all ${form.event_type === et.value ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
                       <et.icon className={`w-5 h-5 mx-auto mb-1 ${form.event_type === et.value ? 'text-purple-400' : 'text-gray-500'}`} />
                       <p className={`text-sm font-medium ${form.event_type === et.value ? 'text-white' : 'text-gray-400'}`}>{et.label}</p>
-                      <p className="text-[10px] text-gray-500 mt-0.5">{et.desc}</p>
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* Date range */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">Start Date *</label>
-                  <input name="date" type="date" value={form.date} onChange={update}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">Start Time</label>
-                  <input name="time" type="time" value={form.time} onChange={update}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-                </div>
+                <div><label className="text-sm text-gray-300 mb-1 block">Start Date *</label>
+                  <input name="date" type="date" value={form.date} onChange={update} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" /></div>
+                <div><label className="text-sm text-gray-300 mb-1 block">Start Time</label>
+                  <input name="time" type="time" value={form.time} onChange={update} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">End Date</label>
-                  <input name="end_date" type="date" value={form.end_date} onChange={update} min={form.date}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">End Time</label>
-                  <input name="end_time" type="time" value={form.end_time} onChange={update}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-                </div>
+                <div><label className="text-sm text-gray-300 mb-1 block">End Date</label>
+                  <input name="end_date" type="date" value={form.end_date} onChange={update} min={form.date} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" /></div>
+                <div><label className="text-sm text-gray-300 mb-1 block">End Time</label>
+                  <input name="end_time" type="time" value={form.end_time} onChange={update} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" /></div>
               </div>
-
-              {/* Location — only for in-person/hybrid */}
               {form.event_type !== 'virtual' && (
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">Location *</label>
-                  <input name="location" value={form.location} onChange={update} placeholder="Venue, City"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
-                </div>
+                <div><label className="text-sm text-gray-300 mb-1 block">Location *</label>
+                  <input name="location" value={form.location} onChange={update} placeholder="Venue, City" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" /></div>
               )}
-
-              {/* Virtual link — for virtual/hybrid */}
               {(form.event_type === 'virtual' || form.event_type === 'hybrid') && (
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">Virtual Meeting Link *</label>
-                  <input name="virtual_link" value={form.virtual_link} onChange={update} placeholder="https://zoom.us/... or https://meet.google.com/..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
-                </div>
+                <div><label className="text-sm text-gray-300 mb-1 block">Virtual Meeting Link *</label>
+                  <input name="virtual_link" value={form.virtual_link} onChange={update} placeholder="https://zoom.us/..." className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" /></div>
               )}
-
               <button onClick={() => { if (validateStep1()) setStep(2) }}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
                 Next <ArrowRight className="w-5 h-5" />
@@ -224,12 +229,12 @@ export default function CreateEvent() {
                     <span className="text-white font-medium">Tier {i + 1}</span>
                     {form.tiers.length > 1 && <button onClick={() => removeTier(i)} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></button>}
                   </div>
-                  <input value={tier.name} onChange={e => updateTier(i, 'name', e.target.value)} placeholder="Tier name (e.g. VIP)"
+                  <input value={tier.name} onChange={e => updateTier(i, 'name', e.target.value)} placeholder="Tier name"
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm" />
                   <div className="grid grid-cols-2 gap-3">
                     <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (₦)"
                       className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm" />
-                    <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
+                    <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty"
                       className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm" />
                   </div>
                 </div>
@@ -238,12 +243,8 @@ export default function CreateEvent() {
                 <Plus className="w-4 h-4" /> Add Tier
               </button>
               <div className="flex gap-3">
-                <button onClick={() => setStep(1)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
-                  <ArrowLeft className="w-5 h-5" /> Back
-                </button>
-                <button onClick={() => setStep(3)} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
-                  Next <ArrowRight className="w-5 h-5" />
-                </button>
+                <button onClick={() => setStep(1)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2"><ArrowLeft className="w-5 h-5" /> Back</button>
+                <button onClick={() => setStep(3)} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">Next <ArrowRight className="w-5 h-5" /></button>
               </div>
             </div>
           )}
@@ -258,7 +259,7 @@ export default function CreateEvent() {
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${imageMode === 'upload' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
                     <Upload className="w-4 h-4" /> Upload
                   </button>
-                  <button onClick={() => { setImageMode('url'); clearImage() }}
+                  <button onClick={() => { setImageMode('url'); setImageFile(null) }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${imageMode === 'url' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
                     <Link className="w-4 h-4" /> URL
                   </button>
@@ -269,14 +270,13 @@ export default function CreateEvent() {
                       <div onClick={() => fileInputRef.current?.click()}
                         className="w-full border-2 border-dashed border-white/20 rounded-xl p-8 text-center cursor-pointer hover:border-purple-500/50 hover:bg-white/5 transition-all">
                         <Upload className="w-10 h-10 text-gray-500 mx-auto mb-3" />
-                        <p className="text-gray-400 text-sm">Click to upload an image</p>
+                        <p className="text-gray-400 text-sm">Click to upload a new image</p>
                         <p className="text-gray-600 text-xs mt-1">JPG, PNG, WebP — Max 5MB</p>
                       </div>
                     ) : (
                       <div className="relative">
                         <img src={imagePreview} alt="preview" className="rounded-xl h-48 w-full object-cover" />
                         <button onClick={clearImage} className="absolute top-2 right-2 bg-black/70 hover:bg-red-600 text-white p-1.5 rounded-full transition-colors"><X className="w-4 h-4" /></button>
-                        <p className="text-gray-400 text-xs mt-2">{imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(1)}MB)</p>
                       </div>
                     )}
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
@@ -294,26 +294,11 @@ export default function CreateEvent() {
                 <input name="tags" value={form.tags} onChange={update} placeholder="music, lagos, nightlife"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <h3 className="text-white font-medium mb-2">Summary</h3>
-                <div className="text-sm text-gray-400 space-y-1">
-                  <p><span className="text-gray-500">Title:</span> {form.title}</p>
-                  <p><span className="text-gray-500">Type:</span> {EVENT_TYPES.find(t => t.value === form.event_type)?.label}</p>
-                  <p><span className="text-gray-500">Starts:</span> {form.date} {form.time}</p>
-                  {form.end_date && <p><span className="text-gray-500">Ends:</span> {form.end_date} {form.end_time}</p>}
-                  <p><span className="text-gray-500">Location:</span> {form.event_type === 'virtual' ? 'Online' : form.location}</p>
-                  <p><span className="text-gray-500">Category:</span> {form.category}</p>
-                  <p><span className="text-gray-500">Image:</span> {imageFile ? `📎 ${imageFile.name}` : (form.image ? '🔗 URL provided' : '📷 Default')}</p>
-                  <p><span className="text-gray-500">Tiers:</span> {form.tiers.map(t => `${t.name} (₦${Number(t.price).toLocaleString()})`).join(', ')}</p>
-                </div>
-              </div>
               <div className="flex gap-3">
-                <button onClick={() => setStep(2)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
-                  <ArrowLeft className="w-5 h-5" /> Back
-                </button>
+                <button onClick={() => setStep(2)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2"><ArrowLeft className="w-5 h-5" /> Back</button>
                 <button onClick={handleSubmit} disabled={submitting}
                   className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-                  {uploading ? '📤 Uploading image...' : submitting ? 'Publishing...' : '🎉 Publish Event'}
+                  {uploading ? '📤 Uploading...' : submitting ? 'Saving...' : '✅ Save Changes'}
                 </button>
               </div>
             </div>

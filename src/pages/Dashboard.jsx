@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2 } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import AuthService from '../services/AuthService'
@@ -13,6 +13,12 @@ const TABS = [
   { id: 'events', label: 'My Events', icon: Calendar },
   { id: 'profile', label: 'Profile', icon: User },
 ]
+
+function EventTypeBadge({ type }) {
+  if (type === 'virtual') return <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>
+  if (type === 'hybrid') return <span className="text-[10px] font-bold bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded-full">Hybrid</span>
+  return null
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -48,7 +54,7 @@ export default function Dashboard() {
   }
 
   async function handleDeleteEvent(id) {
-    if (!confirm('Delete this event?')) return
+    if (!confirm('Delete this event? This cannot be undone.')) return
     try {
       await EventService.delete(id)
       setMyEvents(ev => ev.filter(e => e.id !== id))
@@ -69,7 +75,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">Dashboard</h1>
@@ -80,7 +85,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-2 mb-8 overflow-x-auto">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -138,15 +142,30 @@ export default function Dashboard() {
               <div className="space-y-4">
                 {myEvents.map(ev => (
                   <div key={ev.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/events/${ev.id}`)}>
-                      {ev.image && <img src={ev.image} alt="" className="w-16 h-16 rounded-lg object-cover hidden sm:block" />}
-                      <div>
-                        <h3 className="text-white font-bold">{ev.title}</h3>
-                        <p className="text-gray-400 text-sm flex items-center gap-1"><Calendar className="w-3 h-3" />{ev.date}</p>
-                        <p className="text-gray-500 text-sm flex items-center gap-1"><MapPin className="w-3 h-3" />{ev.location}</p>
+                    <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => navigate(`/events/${ev.id}`)}>
+                      {ev.image && <img src={ev.image} alt="" className="w-16 h-16 rounded-lg object-cover hidden sm:block flex-shrink-0" />}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-white font-bold truncate">{ev.title}</h3>
+                          <EventTypeBadge type={ev.event_type} />
+                        </div>
+                        <p className="text-gray-400 text-sm flex items-center gap-1"><Calendar className="w-3 h-3" />{ev.date}{ev.end_date && ev.end_date !== ev.date ? ` – ${ev.end_date}` : ''}</p>
+                        <p className="text-gray-500 text-sm flex items-center gap-1">
+                          {ev.event_type === 'virtual' ? <Video className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                          {ev.location}
+                        </p>
                       </div>
                     </div>
-                    <button onClick={() => handleDeleteEvent(ev.id)} className="text-red-400 hover:text-red-300 p-2"><Trash2 className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                      <button onClick={() => navigate(`/edit-event/${ev.id}`)}
+                        className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition" title="Edit event">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteEvent(ev.id)}
+                        className="text-red-400 hover:text-red-300 p-2 hover:bg-white/5 rounded-lg transition" title="Delete event">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

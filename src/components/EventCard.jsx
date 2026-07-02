@@ -1,14 +1,26 @@
 import React from 'react'
-import { MapPin, Ticket, ArrowRight } from 'lucide-react'
+import { MapPin, Ticket, ArrowRight, Video, Globe } from 'lucide-react'
 
 export default function EventCard({ event }) {
-  const lowestPrice = event.tickets?.length > 0 ? Math.min(...event.tickets.map(t => t.price)) : null
-  const priceLabel = lowestPrice === 0 ? 'FREE' : lowestPrice != null ? `₦${lowestPrice.toLocaleString()}` : (event.price || '')
+  const lowestPrice = event.ticket_tiers?.length > 0 ? Math.min(...event.ticket_tiers.map(t => t.price)) : null
+  const fallbackPrice = event.tickets?.length > 0 ? Math.min(...event.tickets.map(t => t.price)) : null
+  const price = lowestPrice ?? fallbackPrice
+  const priceLabel = price === 0 ? 'FREE' : price != null ? `₦${price.toLocaleString()}` : (event.price || '')
+
+  const isVirtual = event.event_type === 'virtual'
+  const isHybrid = event.event_type === 'hybrid'
+
+  // Format date range
+  let dateDisplay = event.date || ''
+  if (event.end_date && event.end_date !== event.date) {
+    dateDisplay = `${event.date} – ${event.end_date}`
+  }
 
   return (
     <div style={{
       background: 'rgba(255,255,255,0.04)',
       border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 16,
       overflow: 'hidden',
       transition: 'transform 0.25s, border-color 0.25s',
       cursor: 'pointer'
@@ -22,21 +34,38 @@ export default function EventCard({ event }) {
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%, rgba(18,13,53,0.8))' }} />
+        
+        {/* Event type badge */}
+        {(isVirtual || isHybrid) && (
+          <span style={{
+            position: 'absolute', top: 12, left: 12,
+            display: 'flex', alignItems: 'center', gap: 4,
+            background: isVirtual ? 'rgba(59,130,246,0.25)' : 'rgba(20,184,166,0.25)',
+            color: isVirtual ? '#60a5fa' : '#2dd4bf',
+            padding: '4px 10px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 800,
+            backdropFilter: 'blur(8px)'
+          }}>
+            {isVirtual ? <Video size={10} /> : <Globe size={10} />}
+            {isVirtual ? 'VIRTUAL' : 'HYBRID'}
+          </span>
+        )}
+
         {event.hot && (
           <span style={{
             position: 'absolute', top: 12, right: 12,
             background: 'var(--purple)', color: 'white',
-            padding: '4px 10px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em'
+            padding: '4px 10px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em',
+            borderRadius: 999
           }}>HOT 🔥</span>
         )}
-        {event.viewers > 0 && (
+        {event.watchers > 0 && (
           <div style={{
             position: 'absolute', bottom: 12, left: 12,
             display: 'flex', alignItems: 'center', gap: 6,
             background: 'rgba(0,0,0,0.5)', padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem'
           }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
-            {event.viewers?.toLocaleString()} watching
+            {event.watchers?.toLocaleString()} watching
           </div>
         )}
       </div>
@@ -45,9 +74,10 @@ export default function EventCard({ event }) {
       <div style={{ padding: '16px 18px 18px' }}>
         <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: 8, letterSpacing: '-0.01em' }}>{event.title}</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>
-          <span>{event.date}</span>
+          <span>{dateDisplay}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <MapPin size={12} /> {event.location}
+            {isVirtual ? <Video size={12} /> : <MapPin size={12} />}
+            {isVirtual ? 'Online Event' : event.location}
           </span>
         </div>
 
@@ -58,8 +88,8 @@ export default function EventCard({ event }) {
               <span style={{ color: 'rgba(255,255,255,0.4)' }}>Ticket Demand</span>
               <span style={{ color: 'var(--purple-light)', fontWeight: 700 }}>{event.demand}%</span>
             </div>
-            <div style={{ height: 3, background: 'rgba(255,255,255,0.08)' }}>
-              <div style={{ height: '100%', width: `${event.demand}%`, background: 'linear-gradient(90deg, var(--purple), var(--purple-light))' }} />
+            <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
+              <div style={{ height: '100%', width: `${event.demand}%`, background: 'linear-gradient(90deg, var(--purple), var(--purple-light))', borderRadius: 2 }} />
             </div>
           </div>
         )}
