@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import AuthService from '../services/AuthService'
@@ -28,6 +28,8 @@ export default function Dashboard() {
   const [myEvents, setMyEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [profileForm, setProfileForm] = useState({ full_name: '', email: '' })
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarInputRef = useRef(null)
 
   useEffect(() => {
     if (!authLoading && !user) { navigate('/login'); return }
@@ -70,15 +72,69 @@ export default function Dashboard() {
     } catch (e) { toast.error(e.message) }
   }
 
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be under 2MB')
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      const avatarUrl = await UserService.uploadAvatar(user.id, file)
+      setProfile(prev => ({ ...prev, avatar_url: avatarUrl }))
+      toast.success('Profile picture updated!')
+    } catch (e) {
+      toast.error(e.message || 'Failed to upload avatar')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
   if (authLoading || loading) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+
+  const avatarUrl = profile?.avatar_url
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
+        {/* Header with avatar */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-            <p className="text-gray-400">Welcome back, {profile?.full_name || user?.email}</p>
+          <div className="flex items-center gap-4">
+            <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+              <div className="w-14 h-14 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-xl font-bold overflow-hidden border-2 border-purple-500/30">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  (profile?.full_name || user?.email || 'U')[0].toUpperCase()
+                )}
+              </div>
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploadingAvatar ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera className="w-5 h-5 text-white" />
+                )}
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+              <p className="text-gray-400">Welcome back, {profile?.full_name || user?.email}</p>
+            </div>
           </div>
           <button onClick={handleLogout} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-gray-300 px-4 py-2 rounded-xl transition-colors">
             <LogOut className="w-4 h-4" /> Log out
@@ -177,6 +233,31 @@ export default function Dashboard() {
         {tab === 'profile' && (
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 max-w-lg">
             <h2 className="text-xl font-bold text-white mb-6">Your Profile</h2>
+
+            {/* Avatar upload */}
+            <div className="flex items-center gap-5 mb-8">
+              <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+                <div className="w-20 h-20 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-2xl font-bold overflow-hidden border-2 border-purple-500/30">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    (profile?.full_name || user?.email || 'U')[0].toUpperCase()
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  {uploadingAvatar ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-white" />
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="text-white font-semibold">Profile Picture</p>
+                <p className="text-gray-500 text-sm">Click to upload · JPG, PNG · Max 2MB</p>
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Full Name</label>

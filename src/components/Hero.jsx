@@ -78,13 +78,9 @@ export default function Hero() {
           ))}
         </div>
 
-        {/* CTAs */}
+        {/* CTA — Create Event only */}
         <div style={{ marginTop: 40, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button className="btn btn-purple" onClick={() => navigate('/events')}>
-            <span className="btn-label">BROWSE EVENTS</span>
-            <span className="btn-arrow"><ArrowRight size={16} /></span>
-          </button>
-          <button className="btn btn-outline" onClick={() => navigate('/create')}>
+          <button className="btn btn-purple" onClick={() => navigate('/create')}>
             <span className="btn-label">CREATE EVENT</span>
             <span className="btn-arrow"><ArrowRight size={16} /></span>
           </button>

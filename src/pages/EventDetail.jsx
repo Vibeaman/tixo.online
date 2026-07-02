@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users } from 'lucide-react'
+import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
+import CommentService from '../services/CommentService'
 import { useAuth } from '../context/AuthContext'
 
 function formatDate(dateStr) {
@@ -24,6 +25,18 @@ function formatTime(t) {
   return `${hr % 12 || 12}:${m} ${ampm}`
 }
 
+function timeAgo(dateStr) {
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return new Date(dateStr).toLocaleDateString()
+}
+
 function getEventTypeBadge(type) {
   if (type === 'virtual') return { label: 'Virtual', icon: Video, color: 'bg-blue-500/20 text-blue-400' }
   if (type === 'hybrid') return { label: 'Hybrid', icon: Globe, color: 'bg-teal-500/20 text-teal-400' }
@@ -33,13 +46,19 @@ function getEventTypeBadge(type) {
 export default function EventDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedTier, setSelectedTier] = useState(null)
   const [qty, setQty] = useState(1)
   const [buying, setBuying] = useState(false)
   const [liked, setLiked] = useState(false)
+
+  // Comments state
+  const [comments, setComments] = useState([])
+  const [commentText, setCommentText] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [loadingComments, setLoadingComments] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -55,6 +74,17 @@ export default function EventDetail() {
       }
     }
     load()
+  }, [id])
+
+  useEffect(() => {
+    async function loadComments() {
+      try {
+        const data = await CommentService.getByEvent(id)
+        setComments(data)
+      } catch (e) { console.error(e) }
+      finally { setLoadingComments(false) }
+    }
+    loadComments()
   }, [id])
 
   async function handleBuy() {
@@ -76,6 +106,39 @@ export default function EventDetail() {
       toast.error(e.message || 'Purchase failed')
     } finally {
       setBuying(false)
+    }
+  }
+
+  async function handlePostComment(e) {
+    e.preventDefault()
+    if (!commentText.trim()) return
+    if (!user) { toast.error('Please log in to comment'); navigate('/login'); return }
+    setPosting(true)
+    try {
+      const newComment = await CommentService.add({
+        eventId: id,
+        userId: user.id,
+        userName: profile?.full_name || user.email.split('@')[0],
+        userAvatar: profile?.avatar_url || null,
+        content: commentText.trim()
+      })
+      setComments(prev => [newComment, ...prev])
+      setCommentText('')
+      toast.success('Comment posted!')
+    } catch (e) {
+      toast.error(e.message || 'Failed to post comment')
+    } finally {
+      setPosting(false)
+    }
+  }
+
+  async function handleDeleteComment(commentId) {
+    try {
+      await CommentService.delete(commentId)
+      setComments(prev => prev.filter(c => c.id !== commentId))
+      toast.success('Comment deleted')
+    } catch (e) {
+      toast.error('Failed to delete comment')
     }
   }
 
@@ -132,8 +195,12 @@ export default function EventDetail() {
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">{event.title}</h1>
           <p className="text-gray-400 flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-sm font-bold">
-              {(event.organizer_name || 'U')[0].toUpperCase()}
+            <span className="w-8 h-8 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-sm font-bold overflow-hidden">
+              {event.organizer_avatar ? (
+                <img src={event.organizer_avatar} alt="" className="w-full h-full object-cover" />
+              ) : (
+                (event.organizer_name || 'U')[0].toUpperCase()
+              )}
             </span>
             Hosted by <span className="text-white font-medium">{event.organizer_name || 'Unknown'}</span>
           </p>
@@ -243,6 +310,91 @@ export default function EventDetail() {
                 <ShoppingCart className="w-5 h-5" />
                 {buying ? 'Processing...' : `Get Ticket${qty > 1 ? 's' : ''}`}
               </button>
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-white/10 my-8" />
+
+        {/* Comments Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-purple-400" /> 
+            Comments {comments.length > 0 && <span className="text-sm font-normal text-gray-500">({comments.length})</span>}
+          </h2>
+
+          {/* Comment input */}
+          <form onSubmit={handlePostComment} className="mb-8">
+            <div className="flex gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-sm font-bold flex-shrink-0 overflow-hidden">
+                {user && profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <MessageCircle className="w-4 h-4" />
+                )}
+              </div>
+              <div className="flex-1">
+                <textarea
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  placeholder={user ? "Share your thoughts about this event..." : "Log in to comment..."}
+                  disabled={!user}
+                  rows={3}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none text-sm disabled:opacity-50"
+                />
+                {user && commentText.trim() && (
+                  <div className="flex justify-end mt-2">
+                    <button type="submit" disabled={posting}
+                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors">
+                      <Send className="w-3.5 h-3.5" />
+                      {posting ? 'Posting...' : 'Post Comment'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </form>
+
+          {/* Comments list */}
+          {loadingComments ? (
+            <div className="text-center py-8">
+              <div className="inline-block w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="text-center py-10 bg-white/[0.02] border border-white/5 rounded-2xl">
+              <MessageCircle className="w-10 h-10 text-gray-700 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm">No comments yet. Be the first to share your thoughts!</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {comments.map(comment => (
+                <div key={comment.id} className="group flex gap-3 py-4 border-b border-white/5 last:border-0">
+                  {/* Avatar */}
+                  <div className="w-9 h-9 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-xs font-bold flex-shrink-0 overflow-hidden">
+                    {comment.user_avatar ? (
+                      <img src={comment.user_avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      comment.user_name[0].toUpperCase()
+                    )}
+                  </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white font-semibold text-sm">{comment.user_name}</span>
+                      <span className="text-gray-600 text-xs">{timeAgo(comment.created_at)}</span>
+                    </div>
+                    <p className="text-gray-300 text-sm leading-relaxed">{comment.content}</p>
+                  </div>
+                  {/* Delete button (own comments only) */}
+                  {user && user.id === comment.user_id && (
+                    <button onClick={() => handleDeleteComment(comment.id)}
+                      className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 p-1 transition-all flex-shrink-0 self-start mt-1">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

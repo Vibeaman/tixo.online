@@ -20,6 +20,29 @@ const UserService = {
       .single()
     if (error) throw error
     return data
+  },
+
+  async uploadAvatar(userId, file) {
+    const ext = file.name.split('.').pop()
+    const filePath = `${userId}/avatar.${ext}`
+
+    // Upload (upsert to replace existing)
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true })
+    if (uploadError) throw uploadError
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath)
+
+    // Add cache buster
+    const url = `${publicUrl}?t=${Date.now()}`
+
+    // Save to profile
+    await UserService.updateProfile(userId, { avatar_url: url })
+    return url
   }
 }
 

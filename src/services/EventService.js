@@ -17,6 +17,19 @@ const EventService = {
       .eq('id', id)
       .single()
     if (error) throw error
+
+    // Fetch organizer avatar
+    if (data?.organizer_id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', data.organizer_id)
+        .single()
+      if (profile?.avatar_url) {
+        data.organizer_avatar = profile.avatar_url
+      }
+    }
+
     return data
   },
 
