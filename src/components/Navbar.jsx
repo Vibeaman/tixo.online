@@ -1,77 +1,65 @@
 import React, { useState, useEffect } from 'react'
-import { Menu, X, Search, ChevronDown } from 'lucide-react'
+import { Menu, X, ArrowRight } from 'lucide-react'
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
-  const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 30)
-    window.addEventListener('scroll', fn)
-    return () => window.removeEventListener('scroll', fn)
+    const onScroll = () => setScrolled(window.scrollY > 40)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  const links = ['Discover', 'Host Event', 'Pricing', 'About']
+
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between transition-all duration-300"
-      style={{
-        background: scrolled ? 'rgba(8,8,15,0.92)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none',
-      }}
-    >
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 cursor-pointer">
-        <div style={{ width: 32, height: 32, background: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ color: 'white', fontWeight: 900, fontSize: 14, fontFamily: 'Inter, sans-serif' }}>P</span>
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+      background: scrolled ? 'rgba(18,13,53,0.92)' : 'transparent',
+      backdropFilter: scrolled ? 'blur(16px)' : 'none',
+      borderBottom: scrolled ? '1px solid rgba(123,78,247,0.15)' : 'none',
+      transition: 'all 0.3s'
+    }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 72 }}>
+        {/* Logo */}
+        <img src="/logo-white.svg" alt="planam.io" style={{ height: 34 }} />
+
+        {/* Desktop links */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }} className="hidden md:flex">
+          {links.map(l => (
+            <a key={l} href="#" style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.88rem', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.target.style.color = 'white'}
+              onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.75)'}
+            >{l}</a>
+          ))}
         </div>
-        <span style={{ color: 'white', fontWeight: 900, fontSize: 18, fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em' }}>PlanAm</span>
-      </div>
 
-      {/* Desktop links */}
-      <div className="hidden md:flex items-center gap-8">
-        {[['Discover', true], ['Host Event', false], ['Pricing', false], ['About', false]].map(([label, hasDropdown]) => (
-          <button
-            key={label}
-            className="flex items-center gap-1 text-white/70 hover:text-white transition-colors text-sm font-semibold"
-          >
-            {label}
-            {hasDropdown && <ChevronDown size={13} className="opacity-60" />}
+        {/* CTA */}
+        <div className="hidden md:flex" style={{ alignItems: 'center', gap: 12 }}>
+          <a href="#" style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>Sign In</a>
+          <button className="btn btn-purple">
+            <span className="btn-label">GET STARTED</span>
+            <span className="btn-arrow"><ArrowRight size={16} /></span>
           </button>
-        ))}
-      </div>
+        </div>
 
-      {/* Desktop actions */}
-      <div className="hidden md:flex items-center gap-3">
-        <button className="text-white/60 hover:text-white transition-colors p-2">
-          <Search size={17} />
-        </button>
-        <button className="text-white/70 hover:text-white text-sm font-bold px-4 py-2 transition-colors">
-          Log in
-        </button>
-        <button className="btn-primary">
-          <span className="btn-label">GET STARTED</span>
+        {/* Mobile toggle */}
+        <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
+          {menuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
-
-      {/* Mobile toggle */}
-      <button className="md:hidden text-white p-2" onClick={() => setOpen(!open)}>
-        {open ? <X size={22} /> : <Menu size={22} />}
-      </button>
 
       {/* Mobile menu */}
-      {open && (
-        <div
-          className="absolute top-full left-0 right-0 px-6 py-6 flex flex-col gap-4"
-          style={{ background: 'rgba(8,8,15,0.98)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          {['Discover', 'Host Event', 'Pricing', 'About'].map(l => (
-            <button key={l} className="text-white/80 hover:text-white font-semibold text-left text-sm py-1">{l}</button>
+      {menuOpen && (
+        <div className="md:hidden" style={{ background: 'rgba(18,13,53,0.97)', backdropFilter: 'blur(20px)', padding: '16px 24px 24px', borderTop: '1px solid rgba(123,78,247,0.15)' }}>
+          {links.map(l => (
+            <a key={l} href="#" style={{ display: 'block', padding: '12px 0', color: 'rgba(255,255,255,0.8)', fontSize: '1rem', fontWeight: 500, textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{l}</a>
           ))}
-          <div className="flex gap-3 pt-2 border-t border-white/10">
-            <button className="text-white/70 text-sm font-bold flex-1 py-2">Log in</button>
-            <button className="btn-primary flex-1 justify-center"><span className="btn-label">GET STARTED</span></button>
-          </div>
+          <button className="btn btn-purple" style={{ marginTop: 16, width: '100%' }}>
+            <span className="btn-label" style={{ flex: 1, justifyContent: 'center' }}>GET STARTED</span>
+            <span className="btn-arrow"><ArrowRight size={16} /></span>
+          </button>
         </div>
       )}
     </nav>

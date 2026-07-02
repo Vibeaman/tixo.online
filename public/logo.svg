@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none">
+  <!-- P icon -->
+  <g transform="translate(0,3)">
+    <!-- Pixel sparkles -->
+    <rect x="8" y="2" width="4" height="4" rx="0.5" fill="#7B4EF7" opacity="0.6"/>
+    <rect x="14" y="0" width="3" height="3" rx="0.5" fill="#7B4EF7" opacity="0.4"/>
+    <rect x="5" y="8" width="3" height="3" rx="0.5" fill="#7B4EF7" opacity="0.5"/>
+    <rect x="13" y="5" width="2.5" height="2.5" rx="0.5" fill="#7B4EF7" opacity="0.3"/>
+    <!-- P letter body -->
+    <path d="M20 8 C20 8, 30 4, 36 10 C42 16, 38 26, 28 26 L24 26 L22 40 C22 42, 20 44, 18 42 L18 14 C18 10, 20 8, 20 8Z" fill="url(#pGrad)"/>
+    <!-- Inner cutout circle -->
+    <circle cx="28" cy="16" r="5" fill="white"/>
+    <!-- Dot accent -->
+    <circle cx="32" cy="8" r="2.5" fill="#9D7AFA"/>
+  </g>
+  <!-- Text: planam -->
+  <text x="48" y="35" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-weight="800" font-size="28" letter-spacing="-0.5" fill="#10093D">planam</text>
+  <!-- Text: .io -->
+  <text x="152" y="35" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-weight="800" font-size="28" letter-spacing="-0.5" fill="#7B4EF7">.io</text>
+  <defs>
+    <linearGradient id="pGrad" x1="18" y1="8" x2="26" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7B4EF7"/>
+      <stop offset="1" stop-color="#5B2ED4"/>
+    </linearGradient>
+  </defs>
+</svg>

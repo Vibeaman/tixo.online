@@ -1,116 +1,75 @@
 import React from 'react'
-import { ArrowRight, Ticket, Mic2, Users, Star } from 'lucide-react'
+import { ArrowRight, Ticket, Mic2, Users, Store } from 'lucide-react'
 
 const roles = [
   {
-    icon: Ticket,
-    tag: 'For Attendees',
-    title: 'Discover & experience amazing events',
-    desc: 'Find parties, concerts, tech summits, sports events and everything in between. Book tickets in seconds, collect rewards, and build your event life.',
-    cta: 'FIND EVENTS',
-    color: '#7c3aed',
-    bg: '#f0ecff',
-    textDark: true,
+    icon: Ticket, title: 'Attendees',
+    desc: 'Discover events, buy tickets instantly, and earn rewards for attending.',
+    color: 'var(--purple)',
   },
   {
-    icon: Mic2,
-    tag: 'For Organizers',
-    title: 'Host sell-out events with ease',
-    desc: 'Create events, sell tickets & merch, manage check-ins, and access real-time analytics. Everything you need to run world-class events.',
-    cta: 'START HOSTING',
-    color: '#7c3aed',
-    bg: '#08080f',
-    textDark: false,
-    featured: true,
+    icon: Mic2, title: 'Organizers',
+    desc: 'Create, manage, and sell out your events with powerful tools.',
+    color: 'var(--purple-dark)',
   },
   {
-    icon: Users,
-    tag: 'For Communities',
-    title: 'Build your Tribe, grow together',
-    desc: 'Launch membership clubs, reward loyal fans, manage communities, and keep your people engaged 365 days a year — not just event days.',
-    cta: 'BUILD A TRIBE',
-    color: '#f97316',
-    bg: '#f0ecff',
-    textDark: true,
+    icon: Users, title: 'Communities',
+    desc: 'Build tribes around shared passions. Grow together, event after event.',
+    color: 'var(--purple)',
   },
   {
-    icon: Star,
-    tag: 'For Vendors',
-    title: 'Sell merch & services at events',
-    desc: 'Set up your vendor profile, get discovered by event organizers, and sell your products or services at premium events across Nigeria.',
-    cta: 'JOIN AS VENDOR',
-    color: '#f97316',
-    bg: '#08080f',
-    textDark: false,
+    icon: Store, title: 'Vendors',
+    desc: 'Showcase your brand at top events. Connect with thousands of attendees.',
+    color: 'var(--purple-dark)',
   },
 ]
 
 export default function RoleCards() {
   return (
-    <section className="px-6 py-24" style={{ background: 'var(--lavender)' }}>
-      <div className="max-w-7xl mx-auto">
+    <section className="section-lavender" style={{ padding: 'clamp(60px, 8vw, 100px) 24px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <span className="section-tag section-tag-purple" style={{ marginBottom: 16 }}>
+          👥 Built for Everyone
+        </span>
+        <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--text-dark)', marginTop: 12 }}>
+          One platform,{' '}
+          <span style={{ color: 'var(--purple)', fontStyle: 'italic' }}>every role.</span>
+        </h2>
 
-        <div className="text-center mb-16">
-          <div
-            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest px-4 py-2 mb-4"
-            style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)', color: '#7c3aed' }}
-          >
-            Built For Everyone
-          </div>
-          <h2
-            className="font-black uppercase leading-none"
-            style={{ fontSize: 'clamp(2.5rem, 7vw, 6rem)', letterSpacing: '-0.03em', color: '#08080f' }}
-          >
-            One platform,{' '}
-            <span style={{ color: '#7c3aed', fontStyle: 'italic' }}>every role.</span>
-          </h2>
-          <p className="text-black/50 text-lg mt-4 max-w-xl mx-auto font-medium">
-            Whether you're attending, hosting, building a community, or selling — PlanAm has you covered.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {roles.map(({ icon: Icon, tag, title, desc, cta, color, bg, textDark, featured }) => (
-            <div
-              key={tag}
-              className="card-hover p-8 md:p-10 flex flex-col gap-6"
-              style={{
-                background: bg,
-                border: featured ? `2px solid ${color}` : '1px solid rgba(0,0,0,0.08)',
-              }}
+        <div style={{
+          marginTop: 48,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+          gap: 24
+        }}>
+          {roles.map((r, i) => (
+            <div key={i} style={{
+              background: 'white',
+              border: '1px solid rgba(123,78,247,0.1)',
+              padding: 32,
+              transition: 'transform 0.25s, box-shadow 0.25s',
+              cursor: 'pointer'
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(123,78,247,0.12)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
             >
-              <div
-                className="w-14 h-14 flex items-center justify-center flex-shrink-0"
-                style={{ background: textDark ? `${color}15` : 'rgba(255,255,255,0.08)', border: `1px solid ${color}30` }}
-              >
-                <Icon size={24} style={{ color }} />
+              <div style={{
+                width: 48, height: 48,
+                background: 'var(--lavender)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 20
+              }}>
+                <r.icon size={22} style={{ color: r.color }} />
               </div>
-
-              <div>
-                <div
-                  className="text-xs font-black uppercase tracking-widest mb-3"
-                  style={{ color }}
-                >
-                  {tag}
-                </div>
-                <h3
-                  className="font-black text-2xl uppercase leading-tight mb-3"
-                  style={{ color: textDark ? '#08080f' : 'white', letterSpacing: '-0.02em' }}
-                >
-                  {title}
-                </h3>
-                <p style={{ color: textDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.55)', fontSize: '0.9rem', lineHeight: 1.7 }}>
-                  {desc}
-                </p>
-              </div>
-
-              <button
-                className="self-start btn-primary"
-                style={{ background: color }}
-              >
-                <span className="btn-label">{cta}</span>
-                <span className="btn-arrow"><ArrowRight size={13} /></span>
-              </button>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-dark)', marginBottom: 8 }}>{r.title}</h3>
+              <p style={{ fontSize: '0.9rem', color: '#64648C', lineHeight: 1.6 }}>{r.desc}</p>
+              <a href="#" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                marginTop: 16, fontSize: '0.82rem', fontWeight: 700, color: 'var(--purple)',
+                textDecoration: 'none'
+              }}>
+                Learn More <ArrowRight size={14} />
+              </a>
             </div>
           ))}
         </div>

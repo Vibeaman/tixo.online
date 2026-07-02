@@ -2,91 +2,84 @@ import React from 'react'
 import { ArrowRight, Flame, Search } from 'lucide-react'
 
 export default function Hero() {
+  const tags = ['Afrobeats', 'Tech Lagos', 'Art Basel', 'Food Fest', 'Comedy Night']
+
   return (
-    <section className="hero-bg min-h-screen flex flex-col justify-center items-center px-6 pt-24 pb-20 relative">
-      <div className="hero-grid" />
+    <section style={{
+      position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center',
+      background: `radial-gradient(ellipse at 30% 20%, rgba(123,78,247,0.15) 0%, transparent 60%),
+                   radial-gradient(ellipse at 70% 80%, rgba(91,46,212,0.1) 0%, transparent 50%),
+                   var(--dark)`,
+      overflow: 'hidden'
+    }}>
+      {/* Grid overlay */}
+      <div style={{
+        position: 'absolute', inset: 0, opacity: 0.04,
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+        backgroundSize: '60px 60px'
+      }} />
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto text-center">
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', padding: '140px 24px 80px', width: '100%', textAlign: 'center' }}>
+        {/* Tag */}
+        <span className="section-tag section-tag-white" style={{ marginBottom: 32, display: 'inline-flex' }}>
+          <Flame size={12} style={{ color: '#9D7AFA' }} /> Africa's #1 Event Platform
+        </span>
 
-        {/* Section tag */}
-        <div className="section-tag mx-auto mb-8" style={{ display: 'inline-flex' }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 pulse-dot" />
-          2,400+ events happening this week across Nigeria
-        </div>
-
-        {/* Main headline */}
-        <h1
-          className="text-white uppercase font-black leading-none mb-6"
-          style={{ fontSize: 'clamp(3rem, 11vw, 9rem)', letterSpacing: '-0.03em' }}
-        >
-          Your event life,{' '}
-          <span style={{ color: '#c4b5fd', fontStyle: 'italic' }}>
-            simplified.
-          </span>
+        {/* Headline */}
+        <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.03em', marginTop: 24 }}>
+          Discover events.<br />
+          Reward your people.<br />
+          <span style={{ color: 'var(--purple-light)', fontStyle: 'italic' }}>Build tribes.</span>
         </h1>
 
-        {/* Sub headline */}
-        <p className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
-          Discover epic events. Host sell-outs. Sell tickets &amp; merch.
-          Reward your people. Build Tribes. <span style={{ color: '#f97316' }}>All in one place.</span>
+        <p style={{ marginTop: 20, fontSize: '1.15rem', color: 'rgba(255,255,255,0.55)', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
+          Find, host, and experience the best events across Africa. One platform for everything.
         </p>
 
         {/* Search bar */}
-        <div
-          className="flex items-center gap-3 mb-10 mx-auto max-w-xl"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', padding: '6px 6px 6px 20px' }}
-        >
-          <Search size={16} style={{ color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Search events, artists, venues…"
-            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '0.875rem', flex: 1, fontFamily: 'Inter, sans-serif' }}
-          />
-          <button className="btn-orange">
-            <span className="btn-label">SEARCH</span>
-          </button>
-        </div>
-
-        {/* CTA buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-14">
-          <button className="btn-primary">
-            <span className="btn-label">PLAN AN EVENT</span>
-            <span className="btn-arrow"><ArrowRight size={14} /></span>
-          </button>
-          <button className="btn-outline">
-            <span className="btn-label">EXPLORE EVENTS</span>
-            <span className="btn-arrow"><ArrowRight size={14} /></span>
+        <div style={{
+          marginTop: 40, maxWidth: 580, marginLeft: 'auto', marginRight: 'auto',
+          display: 'flex', alignItems: 'stretch',
+          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+          overflow: 'hidden'
+        }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px' }}>
+            <Search size={18} style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />
+            <input type="text" placeholder="Search events, artists, venues…"
+              style={{ background: 'none', border: 'none', outline: 'none', color: 'white', width: '100%', fontSize: '0.95rem', padding: '16px 0' }}
+            />
+          </div>
+          <button style={{
+            background: 'var(--purple)', border: 'none', color: 'white', padding: '0 28px',
+            fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.03em', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 8
+          }}>
+            SEARCH <ArrowRight size={16} />
           </button>
         </div>
 
         {/* Trending tags */}
-        <div className="flex flex-wrap gap-2 justify-center items-center mb-16">
-          <span className="text-white/40 text-xs font-semibold flex items-center gap-1 uppercase tracking-widest mr-2">
-            <Flame size={12} style={{ color: '#f97316' }} /> Trending
-          </span>
-          {['Afrobeats', 'Tech Summit', 'Art Festival', 'Street Food', 'Comedy Night', 'Web3'].map(tag => (
-            <button
-              key={tag}
-              className="text-white/60 text-xs font-semibold uppercase tracking-wide hover:text-white transition-colors px-3 py-1.5"
-              style={{ border: '1px solid rgba(255,255,255,0.15)' }}
-            >
-              {tag}
-            </button>
+        <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', alignSelf: 'center', marginRight: 4 }}>Trending:</span>
+          {tags.map(t => (
+            <span key={t} style={{
+              padding: '6px 14px', fontSize: '0.78rem', fontWeight: 600,
+              background: 'rgba(123,78,247,0.1)', border: '1px solid rgba(123,78,247,0.2)',
+              color: 'var(--purple-light)', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{t}</span>
           ))}
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 md:gap-0 max-w-xl mx-auto">
-          {[['50K+', 'Attendees'], ['1K+', 'Events Listed'], ['50+', 'Cities']].map(([v, l], i) => (
-            <div
-              key={l}
-              className="text-center px-6"
-              style={i < 2 ? { borderRight: '1px solid rgba(255,255,255,0.08)' } : {}}
-            >
-              <div className="text-4xl md:text-5xl font-black text-white mb-1">{v}</div>
-              <div className="text-white/40 text-xs font-bold uppercase tracking-widest">{l}</div>
-            </div>
-          ))}
+        {/* CTAs */}
+        <div style={{ marginTop: 40, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-purple">
+            <span className="btn-label">EXPLORE EVENTS</span>
+            <span className="btn-arrow"><ArrowRight size={16} /></span>
+          </button>
+          <button className="btn btn-outline">
+            <span className="btn-label">HOST AN EVENT</span>
+            <span className="btn-arrow"><ArrowRight size={16} /></span>
+          </button>
         </div>
       </div>
     </section>

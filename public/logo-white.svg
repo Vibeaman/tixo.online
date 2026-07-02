@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none">
+  <!-- P icon -->
+  <g transform="translate(0,3)">
+    <rect x="8" y="2" width="4" height="4" rx="0.5" fill="#9D7AFA" opacity="0.6"/>
+    <rect x="14" y="0" width="3" height="3" rx="0.5" fill="#9D7AFA" opacity="0.4"/>
+    <rect x="5" y="8" width="3" height="3" rx="0.5" fill="#9D7AFA" opacity="0.5"/>
+    <rect x="13" y="5" width="2.5" height="2.5" rx="0.5" fill="#9D7AFA" opacity="0.3"/>
+    <path d="M20 8 C20 8, 30 4, 36 10 C42 16, 38 26, 28 26 L24 26 L22 40 C22 42, 20 44, 18 42 L18 14 C18 10, 20 8, 20 8Z" fill="url(#pGradW)"/>
+    <circle cx="28" cy="16" r="5" fill="#120D35"/>
+    <circle cx="32" cy="8" r="2.5" fill="#9D7AFA"/>
+  </g>
+  <text x="48" y="35" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-weight="800" font-size="28" letter-spacing="-0.5" fill="white">planam</text>
+  <text x="152" y="35" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-weight="800" font-size="28" letter-spacing="-0.5" fill="#9D7AFA">.io</text>
+  <defs>
+    <linearGradient id="pGradW" x1="18" y1="8" x2="26" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9D7AFA"/>
+      <stop offset="1" stop-color="#7B4EF7"/>
+    </linearGradient>
+  </defs>
+</svg>

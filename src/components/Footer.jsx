@@ -1,97 +1,98 @@
 import React from 'react'
-import { ArrowRight, Twitter, Instagram, Facebook, Linkedin } from 'lucide-react'
+import { ArrowRight, Twitter, Instagram, Youtube } from 'lucide-react'
+
+const linkGroups = [
+  { title: 'Discover', links: ['All Events', 'Music', 'Tech', 'Food & Drink', 'Sports', 'Festivals'] },
+  { title: 'Host', links: ['Create Event', 'Pricing', 'Host Dashboard', 'Payouts', 'Help Center'] },
+  { title: 'Company', links: ['About Planam', 'Careers', 'Press', 'Blog', 'Contact'] },
+]
 
 export default function Footer() {
   return (
-    <footer style={{ background: '#050509', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-      <div className="max-w-7xl mx-auto px-6 pt-16 pb-10">
-
-        {/* Newsletter CTA */}
-        <div
-          className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 md:p-10 mb-16"
-          style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)' }}
-        >
+    <footer style={{ background: 'var(--dark)', borderTop: '1px solid rgba(123,78,247,0.1)' }}>
+      {/* Newsletter strip */}
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
           <div>
-            <h4 className="text-white font-black text-2xl uppercase" style={{ letterSpacing: '-0.02em' }}>
-              Never miss an event.
-            </h4>
-            <p className="text-white/45 text-sm mt-1">Get the best events in your city, every week.</p>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Stay in the loop</h3>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>Get the best events in your inbox weekly.</p>
           </div>
-          <div className="flex gap-0 w-full md:w-auto">
-            <input
-              type="email"
-              placeholder="Enter your email address…"
-              className="flex-1 md:w-72 text-sm outline-none text-white placeholder:text-white/30"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRight: 'none', padding: '14px 18px', fontFamily: 'Inter, sans-serif' }}
+          <div style={{ display: 'flex', alignItems: 'stretch' }}>
+            <input type="email" placeholder="your@email.com"
+              style={{
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRight: 'none', padding: '12px 16px', color: 'white', fontSize: '0.85rem',
+                outline: 'none', minWidth: 220
+              }}
             />
-            <button className="btn-orange flex-shrink-0">
-              <span className="btn-label">SUBSCRIBE</span>
-              <span className="btn-arrow"><ArrowRight size={13} /></span>
+            <button className="btn btn-purple" style={{ fontSize: '0.75rem' }}>
+              <span className="btn-label" style={{ padding: '12px 18px' }}>SUBSCRIBE</span>
+              <span className="btn-arrow" style={{ padding: '0 12px' }}><ArrowRight size={14} /></span>
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Links grid */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-14">
-          <div className="col-span-2">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div style={{ width: 32, height: 32, background: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: 'white', fontWeight: 900, fontSize: 14, fontFamily: 'Inter, sans-serif' }}>P</span>
-              </div>
-              <span style={{ color: 'white', fontWeight: 900, fontSize: 18, fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em' }}>PlanAm</span>
-            </div>
-            <p className="text-white/40 text-sm leading-relaxed max-w-xs mb-6">
-              Your event life, simplified. Discover, host, and experience the best events Nigeria has to offer.
+      {/* Main footer */}
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px 32px' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+          gap: 40
+        }}>
+          {/* Brand col */}
+          <div>
+            <img src="/logo-white.svg" alt="planam.io" style={{ height: 30, marginBottom: 16 }} />
+            <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+              Africa's premier event discovery and ticketing platform.
             </p>
-            <div className="flex gap-2">
-              {[Twitter, Instagram, Facebook, Linkedin].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="w-9 h-9 flex items-center justify-center transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.25)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+              {[Twitter, Instagram, Youtube].map((Icon, i) => (
+                <a key={i} href="#" style={{
+                  width: 36, height: 36,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.5)', transition: 'all 0.2s'
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--purple)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'var(--purple)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
                 >
-                  <Icon size={13} style={{ color: 'rgba(255,255,255,0.6)' }} />
+                  <Icon size={16} />
                 </a>
               ))}
             </div>
           </div>
 
-          {[
-            { title: 'Discover', links: ['Browse Events', 'Trending Now', 'Near Me', 'Online Events', 'Free Events'] },
-            { title: 'Host', links: ['Create Event', 'Sell Tickets', 'Manage Events', 'Analytics', 'Pricing'] },
-            { title: 'Company', links: ['About PlanAm', 'Careers', 'Press', 'Blog', 'Contact Us'] },
-          ].map(({ title, links }) => (
-            <div key={title}>
-              <h4 className="text-white font-black text-xs uppercase tracking-widest mb-5">{title}</h4>
-              <ul className="space-y-3">
-                {links.map(l => (
-                  <li key={l}>
-                    <a
-                      href="#"
-                      className="text-white/40 hover:text-white text-sm transition-colors font-medium"
-                    >
-                      {l}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+          {/* Link columns */}
+          {linkGroups.map((g, i) => (
+            <div key={i}>
+              <h4 style={{ fontSize: '0.82rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--purple-light)', marginBottom: 16 }}>{g.title}</h4>
+              {g.links.map((l, j) => (
+                <a key={j} href="#" style={{
+                  display: 'block', padding: '5px 0', fontSize: '0.82rem',
+                  color: 'rgba(255,255,255,0.45)', textDecoration: 'none',
+                  transition: 'color 0.2s'
+                }}
+                  onMouseEnter={e => e.target.style.color = 'white'}
+                  onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.45)'}
+                >{l}</a>
+              ))}
             </div>
           ))}
         </div>
 
         {/* Bottom bar */}
-        <div
-          className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
-        >
-          <p className="text-white/25 text-xs">© 2026 PlanAm Technologies Ltd. All rights reserved.</p>
-          <div className="flex gap-6">
-            {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map(item => (
-              <a key={item} href="#" className="text-white/25 hover:text-white/55 text-xs transition-colors">{item}</a>
-            ))}
+        <div style={{
+          marginTop: 48, paddingTop: 24,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12,
+          fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)'
+        }}>
+          <span>© 2025 planam.io — All rights reserved.</span>
+          <div style={{ display: 'flex', gap: 20 }}>
+            <a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy</a>
+            <a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Terms</a>
+            <a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Cookies</a>
           </div>
         </div>
       </div>
