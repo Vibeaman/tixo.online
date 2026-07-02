@@ -1,7 +1,10 @@
 import React from 'react'
-import { MapPin, TrendingUp, Ticket, ArrowRight } from 'lucide-react'
+import { MapPin, Ticket, ArrowRight } from 'lucide-react'
 
 export default function EventCard({ event }) {
+  const lowestPrice = event.tickets?.length > 0 ? Math.min(...event.tickets.map(t => t.price)) : null
+  const priceLabel = lowestPrice === 0 ? 'FREE' : lowestPrice != null ? `₦${lowestPrice.toLocaleString()}` : (event.price || '')
+
   return (
     <div style={{
       background: 'rgba(255,255,255,0.04)',
@@ -26,14 +29,16 @@ export default function EventCard({ event }) {
             padding: '4px 10px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em'
           }}>HOT 🔥</span>
         )}
-        <div style={{
-          position: 'absolute', bottom: 12, left: 12,
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'rgba(0,0,0,0.5)', padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem'
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
-          {event.viewers?.toLocaleString()} watching
-        </div>
+        {event.viewers > 0 && (
+          <div style={{
+            position: 'absolute', bottom: 12, left: 12,
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'rgba(0,0,0,0.5)', padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem'
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
+            {event.viewers?.toLocaleString()} watching
+          </div>
+        )}
       </div>
 
       {/* Details */}
@@ -47,7 +52,7 @@ export default function EventCard({ event }) {
         </div>
 
         {/* Demand bar */}
-        {event.demand && (
+        {event.demand > 0 && (
           <div style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: 4 }}>
               <span style={{ color: 'rgba(255,255,255,0.4)' }}>Ticket Demand</span>
@@ -63,12 +68,12 @@ export default function EventCard({ event }) {
         <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{
             fontWeight: 800, fontSize: '1rem',
-            color: event.price === 'FREE' ? '#4ade80' : 'var(--purple-light)'
-          }}>{event.price}</span>
-          <button className="btn btn-purple" style={{ fontSize: '0.7rem' }}>
+            color: priceLabel === 'FREE' ? '#4ade80' : 'var(--purple-light)'
+          }}>{priceLabel}</span>
+          <span className="btn btn-purple" style={{ fontSize: '0.7rem' }}>
             <span className="btn-label" style={{ padding: '8px 14px' }}><Ticket size={12} /> GET TICKETS</span>
             <span className="btn-arrow" style={{ padding: '0 10px' }}><ArrowRight size={12} /></span>
-          </button>
+          </span>
         </div>
       </div>
     </div>

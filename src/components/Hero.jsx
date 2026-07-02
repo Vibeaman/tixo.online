@@ -1,8 +1,16 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Flame, Search } from 'lucide-react'
 
 export default function Hero() {
+  const navigate = useNavigate()
+  const [query, setQuery] = useState('')
   const tags = ['Afrobeats', 'Tech Lagos', 'Art Basel', 'Food Fest', 'Comedy Night']
+
+  const handleSearch = (e) => {
+    e.preventDefault()
+    navigate(query ? `/events?q=${encodeURIComponent(query)}` : '/events')
+  }
 
   return (
     <section style={{
@@ -37,7 +45,7 @@ export default function Hero() {
         </p>
 
         {/* Search bar */}
-        <div style={{
+        <form onSubmit={handleSearch} style={{
           marginTop: 40, maxWidth: 580, marginLeft: 'auto', marginRight: 'auto',
           display: 'flex', alignItems: 'stretch',
           background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
@@ -45,24 +53,24 @@ export default function Hero() {
         }}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px' }}>
             <Search size={18} style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />
-            <input type="text" placeholder="Search events, artists, venues…"
+            <input type="text" placeholder="Search events, artists, venues…" value={query} onChange={e => setQuery(e.target.value)}
               style={{ background: 'none', border: 'none', outline: 'none', color: 'white', width: '100%', fontSize: '0.95rem', padding: '16px 0' }}
             />
           </div>
-          <button style={{
+          <button type="submit" style={{
             background: 'var(--purple)', border: 'none', color: 'white', padding: '0 28px',
             fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.03em', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 8
           }}>
             SEARCH <ArrowRight size={16} />
           </button>
-        </div>
+        </form>
 
         {/* Trending tags */}
         <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
           <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', alignSelf: 'center', marginRight: 4 }}>Trending:</span>
           {tags.map(t => (
-            <span key={t} style={{
+            <span key={t} onClick={() => navigate(`/events?q=${encodeURIComponent(t)}`)} style={{
               padding: '6px 14px', fontSize: '0.78rem', fontWeight: 600,
               background: 'rgba(123,78,247,0.1)', border: '1px solid rgba(123,78,247,0.2)',
               color: 'var(--purple-light)', cursor: 'pointer', transition: 'all 0.2s'
@@ -72,12 +80,12 @@ export default function Hero() {
 
         {/* CTAs */}
         <div style={{ marginTop: 40, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button className="btn btn-purple">
-            <span className="btn-label">EXPLORE EVENTS</span>
+          <button className="btn btn-purple" onClick={() => navigate('/events')}>
+            <span className="btn-label">BROWSE EVENTS</span>
             <span className="btn-arrow"><ArrowRight size={16} /></span>
           </button>
-          <button className="btn btn-outline">
-            <span className="btn-label">HOST AN EVENT</span>
+          <button className="btn btn-outline" onClick={() => navigate('/create')}>
+            <span className="btn-label">CREATE EVENT</span>
             <span className="btn-arrow"><ArrowRight size={16} /></span>
           </button>
         </div>

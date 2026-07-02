@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 
 const features = [
@@ -16,6 +17,8 @@ const stats = [
 ]
 
 export default function HostBanner() {
+  const navigate = useNavigate()
+
   return (
     <section className="section-dark" style={{ padding: 'clamp(60px, 8vw, 100px) 24px' }}>
       <div style={{
@@ -42,7 +45,7 @@ export default function HostBanner() {
           ))}
         </div>
 
-        <button className="btn btn-purple" style={{ marginTop: 32 }}>
+        <button className="btn btn-purple" style={{ marginTop: 32 }} onClick={() => navigate('/create')}>
           <span className="btn-label">START HOSTING FREE</span>
           <span className="btn-arrow"><ArrowRight size={16} /></span>
         </button>

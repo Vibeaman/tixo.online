@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Music, Cpu, Palette, UtensilsCrossed, Trophy, Users, PartyPopper, Laugh, Tent } from 'lucide-react'
 
 const cats = [
@@ -14,6 +15,8 @@ const cats = [
 ]
 
 export default function Categories() {
+  const navigate = useNavigate()
+
   return (
     <section className="section-lavender" style={{ padding: 'clamp(60px, 8vw, 100px) 24px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -31,7 +34,7 @@ export default function Categories() {
           gap: 16
         }}>
           {cats.map((c, i) => (
-            <div key={i} style={{
+            <div key={i} onClick={() => navigate(`/category/${c.name.toLowerCase()}`)} style={{
               background: 'white',
               border: '1px solid rgba(123,78,247,0.08)',
               padding: '28px 20px',

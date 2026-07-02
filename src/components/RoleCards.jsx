@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Ticket, Mic2, Users, Store } from 'lucide-react'
 
 const roles = [
@@ -6,25 +7,31 @@ const roles = [
     icon: Ticket, title: 'Attendees',
     desc: 'Discover events, buy tickets instantly, and earn rewards for attending.',
     color: 'var(--purple)',
+    cta: 'Find Events', to: '/events',
   },
   {
     icon: Mic2, title: 'Organizers',
     desc: 'Create, manage, and sell out your events with powerful tools.',
     color: 'var(--purple-dark)',
+    cta: 'Start Creating', to: '/create',
   },
   {
-    icon: Users, title: 'Communities',
+    icon: Users, title: 'Promoters',
     desc: 'Build tribes around shared passions. Grow together, event after event.',
     color: 'var(--purple)',
+    cta: 'Join Network', to: '/signup',
   },
   {
     icon: Store, title: 'Vendors',
     desc: 'Showcase your brand at top events. Connect with thousands of attendees.',
     color: 'var(--purple-dark)',
+    cta: 'Learn More', to: '/signup',
   },
 ]
 
 export default function RoleCards() {
+  const navigate = useNavigate()
+
   return (
     <section className="section-lavender" style={{ padding: 'clamp(60px, 8vw, 100px) 24px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -52,6 +59,7 @@ export default function RoleCards() {
             }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(123,78,247,0.12)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+              onClick={() => navigate(r.to)}
             >
               <div style={{
                 width: 48, height: 48,
@@ -63,13 +71,13 @@ export default function RoleCards() {
               </div>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-dark)', marginBottom: 8 }}>{r.title}</h3>
               <p style={{ fontSize: '0.9rem', color: '#64648C', lineHeight: 1.6 }}>{r.desc}</p>
-              <a href="#" style={{
+              <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 marginTop: 16, fontSize: '0.82rem', fontWeight: 700, color: 'var(--purple)',
                 textDecoration: 'none'
               }}>
-                Learn More <ArrowRight size={14} />
-              </a>
+                {r.cta} <ArrowRight size={14} />
+              </span>
             </div>
           ))}
         </div>

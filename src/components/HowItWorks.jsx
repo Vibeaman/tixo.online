@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 
 const steps = [
@@ -9,6 +10,8 @@ const steps = [
 ]
 
 export default function HowItWorks() {
+  const navigate = useNavigate()
+
   return (
     <section className="section-dark" style={{ padding: 'clamp(60px, 8vw, 100px) 24px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -21,7 +24,7 @@ export default function HowItWorks() {
               How it <span style={{ color: 'var(--purple-light)', fontStyle: 'italic' }}>works.</span>
             </h2>
           </div>
-          <button className="btn btn-purple self-start md:self-auto">
+          <button className="btn btn-purple" onClick={() => navigate('/signup')}>
             <span className="btn-label">GET STARTED</span>
             <span className="btn-arrow"><ArrowRight size={16} /></span>
           </button>
