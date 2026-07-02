@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check } from 'lucide-react'
+import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
+import { uploadEventImage } from '../lib/uploadImage'
 
 const CATEGORIES = ['Music','Tech','Art','Food','Sports','Comedy','Festivals','Community','Party']
 
@@ -12,6 +13,11 @@ export default function CreateEvent() {
   const { user, profile } = useAuth()
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
+  const [imageMode, setImageMode] = useState('upload') // 'upload' or 'url'
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef(null)
   const [form, setForm] = useState({
     title: '', description: '', date: '', time: '', location: '', category: 'Music',
     image: '', tags: '',
@@ -27,11 +33,44 @@ export default function CreateEvent() {
   function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50 }] })) }
   function removeTier(i) { setForm(f => ({ ...f, tiers: f.tiers.filter((_, idx) => idx !== i) })) }
 
+  function handleFileSelect(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return }
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    setForm(f => ({ ...f, image: '' })) // clear URL if they switch
+  }
+
+  function clearImage() {
+    setImageFile(null)
+    setImagePreview('')
+    setForm(f => ({ ...f, image: '' }))
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   async function handleSubmit() {
     if (!user) { toast.error('Please log in first'); navigate('/login'); return }
     if (!form.title || !form.date || !form.location) { toast.error('Fill in all required fields'); return }
     setSubmitting(true)
     try {
+      let finalImage = form.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800'
+
+      // Upload file if selected
+      if (imageFile) {
+        setUploading(true)
+        try {
+          finalImage = await uploadEventImage(imageFile)
+        } catch (err) {
+          toast.error('Image upload failed: ' + (err.message || 'Unknown error'))
+          setSubmitting(false)
+          setUploading(false)
+          return
+        }
+        setUploading(false)
+      }
+
       const eventData = {
         title: form.title,
         description: form.description,
@@ -39,7 +78,7 @@ export default function CreateEvent() {
         time: form.time,
         location: form.location,
         category: form.category,
-        image: form.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800',
+        image: finalImage,
         organizer_id: user.id,
         organizer_name: profile?.full_name || user.email,
         ticket_tiers: form.tiers.map(t => ({ name: t.name, price: Number(t.price), available: Number(t.available) })),
@@ -54,8 +93,11 @@ export default function CreateEvent() {
       toast.error(e.message || 'Failed to create event')
     } finally {
       setSubmitting(false)
+      setUploading(false)
     }
   }
+
+  const currentPreview = imagePreview || form.image
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
@@ -156,12 +198,52 @@ export default function CreateEvent() {
           {step === 3 && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold text-white mb-4">Media & Tags</h2>
+
+              {/* Image upload toggle */}
               <div>
-                <label className="text-sm text-gray-300 mb-1 block">Cover Image URL</label>
-                <input name="image" value={form.image} onChange={update} placeholder="https://..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
-                {form.image && <img src={form.image} alt="preview" className="mt-3 rounded-xl h-40 w-full object-cover" />}
+                <label className="text-sm text-gray-300 mb-2 block">Cover Image</label>
+                <div className="flex gap-2 mb-3">
+                  <button onClick={() => { setImageMode('upload'); setForm(f => ({ ...f, image: '' })) }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${imageMode === 'upload' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
+                    <Upload className="w-4 h-4" /> Upload
+                  </button>
+                  <button onClick={() => { setImageMode('url'); clearImage() }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${imageMode === 'url' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
+                    <Link className="w-4 h-4" /> URL
+                  </button>
+                </div>
+
+                {imageMode === 'upload' ? (
+                  <div>
+                    {!imageFile ? (
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full border-2 border-dashed border-white/20 rounded-xl p-8 text-center cursor-pointer hover:border-purple-500/50 hover:bg-white/5 transition-all">
+                        <Upload className="w-10 h-10 text-gray-500 mx-auto mb-3" />
+                        <p className="text-gray-400 text-sm">Click to upload an image</p>
+                        <p className="text-gray-600 text-xs mt-1">JPG, PNG, WebP — Max 5MB</p>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <img src={imagePreview} alt="preview" className="rounded-xl h-48 w-full object-cover" />
+                        <button onClick={clearImage}
+                          className="absolute top-2 right-2 bg-black/70 hover:bg-red-600 text-white p-1.5 rounded-full transition-colors">
+                          <X className="w-4 h-4" />
+                        </button>
+                        <p className="text-gray-400 text-xs mt-2">{imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(1)}MB)</p>
+                      </div>
+                    )}
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                  </div>
+                ) : (
+                  <div>
+                    <input name="image" value={form.image} onChange={update} placeholder="https://..."
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
+                    {form.image && <img src={form.image} alt="preview" className="mt-3 rounded-xl h-40 w-full object-cover" />}
+                  </div>
+                )}
               </div>
+
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Tags (comma separated)</label>
                 <input name="tags" value={form.tags} onChange={update} placeholder="music, lagos, nightlife"
@@ -174,6 +256,7 @@ export default function CreateEvent() {
                   <p><span className="text-gray-500">Date:</span> {form.date} {form.time}</p>
                   <p><span className="text-gray-500">Location:</span> {form.location}</p>
                   <p><span className="text-gray-500">Category:</span> {form.category}</p>
+                  <p><span className="text-gray-500">Image:</span> {imageFile ? `📎 ${imageFile.name}` : (form.image ? '🔗 URL provided' : '📷 Default')}</p>
                   <p><span className="text-gray-500">Tiers:</span> {form.tiers.map(t => `${t.name} (₦${Number(t.price).toLocaleString()})`).join(', ')}</p>
                 </div>
               </div>
@@ -183,7 +266,7 @@ export default function CreateEvent() {
                 </button>
                 <button onClick={handleSubmit} disabled={submitting}
                   className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-                  {submitting ? 'Publishing...' : '🎉 Publish Event'}
+                  {uploading ? '📤 Uploading image...' : submitting ? 'Publishing...' : '🎉 Publish Event'}
                 </button>
               </div>
             </div>
