@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe } from 'lucide-react'
+import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe, Share2, DollarSign, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
@@ -29,6 +29,7 @@ export default function CreateEvent() {
     location: '', category: 'Music',
     event_type: 'in-person', virtual_link: '',
     image: '', tags: '',
+    reshare_enabled: false,
     tiers: [{ name: 'General', price: 0, available: 100 }]
   })
 
@@ -92,6 +93,7 @@ export default function CreateEvent() {
         event_type: form.event_type,
         virtual_link: form.virtual_link || null,
         image: finalImage,
+        reshare_enabled: form.reshare_enabled,
         organizer_id: user.id,
         organizer_name: profile?.full_name || user.email,
         ticket_tiers: form.tiers.map(t => ({ name: t.name, price: Number(t.price), available: Number(t.available) })),
@@ -108,6 +110,14 @@ export default function CreateEvent() {
       setUploading(false)
     }
   }
+
+  // Calculate revenue preview based on a sample ticket price
+  const samplePrice = form.tiers[0]?.price || 0
+  const reshareOrganizer = Math.round(samplePrice * 0.90)
+  const resharePlatform = Math.round(samplePrice * 0.075)
+  const reshareReferrer = Math.round(samplePrice * 0.025)
+  const standardOrganizer = Math.round(samplePrice * 0.95)
+  const standardPlatform = Math.round(samplePrice * 0.05)
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
@@ -190,7 +200,7 @@ export default function CreateEvent() {
                 </div>
               </div>
 
-              {/* Location — only for in-person/hybrid */}
+              {/* Location */}
               {form.event_type !== 'virtual' && (
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">Location *</label>
@@ -199,7 +209,7 @@ export default function CreateEvent() {
                 </div>
               )}
 
-              {/* Virtual link — for virtual/hybrid */}
+              {/* Virtual link */}
               {(form.event_type === 'virtual' || form.event_type === 'hybrid') && (
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">Virtual Meeting Link *</label>
@@ -237,6 +247,54 @@ export default function CreateEvent() {
               <button onClick={addTier} className="w-full border border-dashed border-white/20 text-gray-400 hover:text-white hover:border-white/40 py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-colors">
                 <Plus className="w-4 h-4" /> Add Tier
               </button>
+
+              {/* ============ RESHARE TOGGLE ============ */}
+              <div className="border-t border-white/10 pt-5 mt-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <Share2 className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <p className="text-white font-semibold">Enable Public Reshare</p>
+                      <p className="text-gray-500 text-xs">Let anyone earn commissions promoting your event</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, reshare_enabled: !f.reshare_enabled }))}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${form.reshare_enabled ? 'bg-purple-600' : 'bg-white/10'}`}
+                  >
+                    <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${form.reshare_enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+
+                {/* Revenue split preview */}
+                {form.reshare_enabled && (
+                  <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-4 mt-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Info className="w-4 h-4 text-purple-400" />
+                      <p className="text-purple-300 text-sm font-medium">Revenue Split (per ticket)</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">You (Organizer)</span>
+                        <span className="text-green-400 font-bold">90%{samplePrice > 0 ? ` · ₦${reshareOrganizer.toLocaleString()}` : ''}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">PlanAm.io</span>
+                        <span className="text-gray-300 font-medium">7.5%{samplePrice > 0 ? ` · ₦${resharePlatform.toLocaleString()}` : ''}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Referrer (Affiliate)</span>
+                        <span className="text-purple-400 font-bold">2.5%{samplePrice > 0 ? ` · ₦${reshareReferrer.toLocaleString()}` : ''}</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-purple-500/10 mt-3 pt-3">
+                      <p className="text-gray-500 text-xs">Without reshare: You get 95%, PlanAm.io gets 5%{samplePrice > 0 ? ` (₦${standardOrganizer.toLocaleString()} / ₦${standardPlatform.toLocaleString()})` : ''}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
                   <ArrowLeft className="w-5 h-5" /> Back
@@ -303,6 +361,7 @@ export default function CreateEvent() {
                   {form.end_date && <p><span className="text-gray-500">Ends:</span> {form.end_date} {form.end_time}</p>}
                   <p><span className="text-gray-500">Location:</span> {form.event_type === 'virtual' ? 'Online' : form.location}</p>
                   <p><span className="text-gray-500">Category:</span> {form.category}</p>
+                  <p><span className="text-gray-500">Reshare:</span> {form.reshare_enabled ? '✅ Enabled (90/7.5/2.5 split)' : '❌ Off (95/5 split)'}</p>
                   <p><span className="text-gray-500">Image:</span> {imageFile ? `📎 ${imageFile.name}` : (form.image ? '🔗 URL provided' : '📷 Default')}</p>
                   <p><span className="text-gray-500">Tiers:</span> {form.tiers.map(t => `${t.name} (₦${Number(t.price).toLocaleString()})`).join(', ')}</p>
                 </div>

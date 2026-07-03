@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2 } from 'lucide-react'
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
+import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
 import CommentService from '../services/CommentService'
+import ReferralService from '../services/ReferralService'
 import { useAuth } from '../context/AuthContext'
 
 function formatDate(dateStr) {
@@ -45,6 +46,7 @@ function getEventTypeBadge(type) {
 
 export default function EventDetail() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user, profile } = useAuth()
   const [event, setEvent] = useState(null)
@@ -59,6 +61,23 @@ export default function EventDetail() {
   const [commentText, setCommentText] = useState('')
   const [posting, setPosting] = useState(false)
   const [loadingComments, setLoadingComments] = useState(true)
+
+  // Reshare state
+  const [reshareLink, setReshareLink] = useState('')
+  const [generatingLink, setGeneratingLink] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+  const [showResharePanel, setShowResharePanel] = useState(false)
+
+  // Track referral click on page load
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) {
+      // Store referral code in sessionStorage
+      sessionStorage.setItem(`ref_${id}`, ref)
+      // Track the click
+      ReferralService.trackClick(ref).catch(() => {})
+    }
+  }, [id, searchParams])
 
   useEffect(() => {
     async function load() {
@@ -87,19 +106,67 @@ export default function EventDetail() {
     loadComments()
   }, [id])
 
+  async function handleGenerateReshareLink() {
+    if (!user) { toast.error('Please log in to reshare'); navigate('/login'); return }
+    if (user.id === event.organizer_id) { toast.error("You can't reshare your own event"); return }
+    setGeneratingLink(true)
+    try {
+      const link = await ReferralService.getOrCreateLink(id, user.id)
+      const url = `${window.location.origin}/events/${id}?ref=${link.referral_code}`
+      setReshareLink(url)
+      setShowResharePanel(true)
+    } catch (e) {
+      toast.error(e.message || 'Failed to generate link')
+    } finally {
+      setGeneratingLink(false)
+    }
+  }
+
+  function copyReshareLink() {
+    navigator.clipboard.writeText(reshareLink)
+    setLinkCopied(true)
+    toast.success('Referral link copied!')
+    setTimeout(() => setLinkCopied(false), 3000)
+  }
+
   async function handleBuy() {
     if (!user) { toast.error('Please log in to buy tickets'); navigate('/login'); return }
     if (!selectedTier) return
     setBuying(true)
     try {
-      await TicketService.purchase({
+      // Check for referral code
+      const refCode = sessionStorage.getItem(`ref_${id}`)
+      
+      const ticket = await TicketService.purchase({
         eventId: event.id,
         eventTitle: event.title,
         tierName: selectedTier.name,
         quantity: qty,
         totalPrice: selectedTier.price * qty,
-        userId: user.id
+        userId: user.id,
+        referralCode: refCode || null
       })
+
+      // If there's a referral and reshare is enabled, record commission
+      if (refCode && event.reshare_enabled) {
+        try {
+          const refLink = await ReferralService.getByCode(refCode)
+          if (refLink && refLink.user_id !== user.id) {
+            await ReferralService.recordCommission({
+              referralLinkId: refLink.id,
+              ticketId: ticket.id,
+              eventId: event.id,
+              referrerId: refLink.user_id,
+              buyerId: user.id,
+              ticketAmount: selectedTier.price * qty
+            })
+          }
+        } catch (e) { console.error('Commission tracking error:', e) }
+      }
+
+      // Clear referral after purchase
+      sessionStorage.removeItem(`ref_${id}`)
+      
       toast.success(`🎉 ${qty}x ${selectedTier.name} ticket${qty > 1 ? 's' : ''} purchased!`)
       navigate('/dashboard')
     } catch (e) {
@@ -152,7 +219,6 @@ export default function EventDetail() {
   const endTime = formatTime(event.end_time)
   const badge = getEventTypeBadge(event.event_type)
   const BadgeIcon = badge.icon
-
   const isMultiDay = event.end_date && event.end_date !== event.date
 
   return (
@@ -165,12 +231,11 @@ export default function EventDetail() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4">
-        {/* Hero Image — Luma style */}
+        {/* Hero Image */}
         <div className="relative rounded-2xl overflow-hidden aspect-[16/9] mb-8">
           <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
           
-          {/* Action buttons on image */}
           <div className="absolute top-4 right-4 flex gap-2">
             <button onClick={() => setLiked(!liked)} className={`p-2.5 rounded-full backdrop-blur-md transition ${liked ? 'bg-pink-500/80 text-white' : 'bg-black/40 text-white hover:bg-black/60'}`}>
               <Heart className="w-5 h-5" fill={liked ? 'currentColor' : 'none'} />
@@ -180,7 +245,6 @@ export default function EventDetail() {
             </button>
           </div>
 
-          {/* Event type badge on image */}
           <div className="absolute bottom-4 left-4 flex items-center gap-2">
             <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-md ${badge.color}`}>
               <BadgeIcon className="w-3.5 h-3.5" /> {badge.label}
@@ -188,10 +252,15 @@ export default function EventDetail() {
             <span className="bg-black/40 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full">
               {event.category}
             </span>
+            {event.reshare_enabled && (
+              <span className="bg-green-500/20 backdrop-blur-md text-green-400 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" /> Reshare
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Title & Host — Luma style */}
+        {/* Title & Host */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">{event.title}</h1>
           <p className="text-gray-400 flex items-center gap-2">
@@ -206,9 +275,8 @@ export default function EventDetail() {
           </p>
         </div>
 
-        {/* Date & Location — Luma style blocks */}
+        {/* Date & Location */}
         <div className="space-y-4 mb-8">
-          {/* Date block */}
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-xl flex flex-col items-center justify-center flex-shrink-0">
               <span className="text-[10px] font-bold text-purple-400 leading-none">{startDate.month}</span>
@@ -225,7 +293,6 @@ export default function EventDetail() {
             </div>
           </div>
 
-          {/* Location block */}
           {event.event_type !== 'virtual' && (
             <div className="flex items-start gap-4">
               <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -238,7 +305,6 @@ export default function EventDetail() {
             </div>
           )}
 
-          {/* Virtual link block */}
           {(event.event_type === 'virtual' || event.event_type === 'hybrid') && event.virtual_link && (
             <div className="flex items-start gap-4">
               <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -255,7 +321,70 @@ export default function EventDetail() {
           )}
         </div>
 
-        {/* Divider */}
+        {/* ============ RESHARE & EARN ============ */}
+        {event.reshare_enabled && (
+          <>
+            <div className="border-t border-white/10 my-8" />
+            <div className="mb-8">
+              <div className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-500/20 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-purple-600/20 rounded-xl flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-lg">Reshare & Earn</h3>
+                    <p className="text-gray-400 text-sm">Earn 2.5% commission on every ticket sold through your link</p>
+                  </div>
+                </div>
+
+                {!showResharePanel ? (
+                  <button
+                    onClick={handleGenerateReshareLink}
+                    disabled={generatingLink}
+                    className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors mt-3"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    {generatingLink ? 'Generating...' : 'Get Your Referral Link'}
+                  </button>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        readOnly
+                        value={reshareLink}
+                        className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none"
+                      />
+                      <button
+                        onClick={copyReshareLink}
+                        className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-colors ${linkCopied ? 'bg-green-600 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
+                      >
+                        {linkCopied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy</>}
+                      </button>
+                    </div>
+                    <div className="bg-black/20 rounded-xl p-4">
+                      <p className="text-gray-400 text-xs mb-2">How it works:</p>
+                      <div className="space-y-1.5">
+                        <p className="text-gray-300 text-xs flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0">1</span>
+                          Share your unique link with friends & followers
+                        </p>
+                        <p className="text-gray-300 text-xs flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0">2</span>
+                          They click your link and purchase tickets
+                        </p>
+                        <p className="text-gray-300 text-xs flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0">3</span>
+                          You earn 2.5% of every ticket sale automatically
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         <div className="border-t border-white/10 my-8" />
 
         {/* About */}
@@ -271,10 +400,9 @@ export default function EventDetail() {
           </div>
         )}
 
-        {/* Divider */}
         <div className="border-t border-white/10 my-8" />
 
-        {/* Tickets section */}
+        {/* Tickets */}
         <div id="tickets" className="mb-8">
           <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><Ticket className="w-5 h-5 text-purple-400" /> Select Tickets</h2>
           <div className="space-y-3 mb-6">
@@ -314,17 +442,15 @@ export default function EventDetail() {
           )}
         </div>
 
-        {/* Divider */}
         <div className="border-t border-white/10 my-8" />
 
-        {/* Comments Section */}
+        {/* Comments */}
         <div className="mb-8">
           <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-purple-400" /> 
             Comments {comments.length > 0 && <span className="text-sm font-normal text-gray-500">({comments.length})</span>}
           </h2>
 
-          {/* Comment input */}
           <form onSubmit={handlePostComment} className="mb-8">
             <div className="flex gap-3">
               <div className="w-10 h-10 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-sm font-bold flex-shrink-0 overflow-hidden">
@@ -356,7 +482,6 @@ export default function EventDetail() {
             </div>
           </form>
 
-          {/* Comments list */}
           {loadingComments ? (
             <div className="text-center py-8">
               <div className="inline-block w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
@@ -370,7 +495,6 @@ export default function EventDetail() {
             <div className="space-y-1">
               {comments.map(comment => (
                 <div key={comment.id} className="group flex gap-3 py-4 border-b border-white/5 last:border-0">
-                  {/* Avatar */}
                   <div className="w-9 h-9 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-xs font-bold flex-shrink-0 overflow-hidden">
                     {comment.user_avatar ? (
                       <img src={comment.user_avatar} alt="" className="w-full h-full object-cover" />
@@ -378,7 +502,6 @@ export default function EventDetail() {
                       comment.user_name[0].toUpperCase()
                     )}
                   </div>
-                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-white font-semibold text-sm">{comment.user_name}</span>
@@ -386,7 +509,6 @@ export default function EventDetail() {
                     </div>
                     <p className="text-gray-300 text-sm leading-relaxed">{comment.content}</p>
                   </div>
-                  {/* Delete button (own comments only) */}
                   {user && user.id === comment.user_id && (
                     <button onClick={() => handleDeleteComment(comment.id)}
                       className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 p-1 transition-all flex-shrink-0 self-start mt-1">

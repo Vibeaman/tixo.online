@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import AuthService from '../services/AuthService'
 import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
 import UserService from '../services/UserService'
+import ReferralService from '../services/ReferralService'
 
 const TABS = [
   { id: 'tickets', label: 'My Tickets', icon: Ticket },
   { id: 'events', label: 'My Events', icon: Calendar },
+  { id: 'referrals', label: 'Referrals', icon: Share2 },
   { id: 'profile', label: 'Profile', icon: User },
 ]
 
@@ -18,6 +20,18 @@ function EventTypeBadge({ type }) {
   if (type === 'virtual') return <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>
   if (type === 'hybrid') return <span className="text-[10px] font-bold bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded-full">Hybrid</span>
   return null
+}
+
+function StatCard({ icon: Icon, label, value, color = 'text-purple-400' }) {
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Icon className={`w-4 h-4 ${color}`} />
+        <span className="text-gray-500 text-xs">{label}</span>
+      </div>
+      <p className="text-white font-bold text-xl">{value}</p>
+    </div>
+  )
 }
 
 export default function Dashboard() {
@@ -30,6 +44,13 @@ export default function Dashboard() {
   const [profileForm, setProfileForm] = useState({ full_name: '', email: '' })
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const avatarInputRef = useRef(null)
+
+  // Referral state
+  const [referralLinks, setReferralLinks] = useState([])
+  const [commissions, setCommissions] = useState([])
+  const [loadingReferrals, setLoadingReferrals] = useState(false)
+  const [selectedEventStats, setSelectedEventStats] = useState(null)
+  const [loadingEventStats, setLoadingEventStats] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) { navigate('/login'); return }
@@ -48,6 +69,35 @@ export default function Dashboard() {
     }
     load()
   }, [user, authLoading, profile])
+
+  // Load referral data when tab switches to referrals
+  useEffect(() => {
+    if (tab === 'referrals' && user) {
+      loadReferralData()
+    }
+  }, [tab, user])
+
+  async function loadReferralData() {
+    setLoadingReferrals(true)
+    try {
+      const [links, comms] = await Promise.all([
+        ReferralService.getUserLinks(user.id),
+        ReferralService.getUserCommissions(user.id)
+      ])
+      setReferralLinks(links || [])
+      setCommissions(comms || [])
+    } catch (e) { console.error(e) }
+    finally { setLoadingReferrals(false) }
+  }
+
+  async function loadEventReferralStats(eventId) {
+    setLoadingEventStats(true)
+    try {
+      const stats = await ReferralService.getEventReferralStats(eventId)
+      setSelectedEventStats({ eventId, ...stats })
+    } catch (e) { toast.error('Failed to load stats') }
+    finally { setLoadingEventStats(false) }
+  }
 
   async function handleLogout() {
     await AuthService.logout()
@@ -75,17 +125,8 @@ export default function Dashboard() {
   async function handleAvatarUpload(e) {
     const file = e.target.files?.[0]
     if (!file) return
-
-    // Validate
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
-      return
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image must be under 2MB')
-      return
-    }
-
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return }
+    if (file.size > 2 * 1024 * 1024) { toast.error('Image must be under 2MB'); return }
     setUploadingAvatar(true)
     try {
       const avatarUrl = await UserService.uploadAvatar(user.id, file)
@@ -102,10 +143,19 @@ export default function Dashboard() {
 
   const avatarUrl = profile?.avatar_url
 
+  // Referral stats
+  const totalClicks = referralLinks.reduce((sum, l) => sum + (l.clicks || 0), 0)
+  const totalEarned = commissions.reduce((sum, c) => sum + Number(c.commission_amount || 0), 0)
+  const confirmedEarnings = commissions.filter(c => c.status === 'confirmed').reduce((sum, c) => sum + Number(c.commission_amount || 0), 0)
+  const pendingEarnings = commissions.filter(c => c.status === 'pending').reduce((sum, c) => sum + Number(c.commission_amount || 0), 0)
+
+  // Organizer reshare events
+  const reshareEvents = myEvents.filter(e => e.reshare_enabled)
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
-        {/* Header with avatar */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
@@ -123,13 +173,7 @@ export default function Dashboard() {
                   <Camera className="w-5 h-5 text-white" />
                 )}
               </div>
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
+              <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">Dashboard</h1>
@@ -141,6 +185,7 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* Tabs */}
         <div className="flex gap-2 mb-8 overflow-x-auto">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -204,6 +249,11 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-white font-bold truncate">{ev.title}</h3>
                           <EventTypeBadge type={ev.event_type} />
+                          {ev.reshare_enabled && (
+                            <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Share2 className="w-2.5 h-2.5" /> Reshare
+                            </span>
+                          )}
                         </div>
                         <p className="text-gray-400 text-sm flex items-center gap-1"><Calendar className="w-3 h-3" />{ev.date}{ev.end_date && ev.end_date !== ev.date ? ` – ${ev.end_date}` : ''}</p>
                         <p className="text-gray-500 text-sm flex items-center gap-1">
@@ -213,6 +263,12 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                      {ev.reshare_enabled && (
+                        <button onClick={() => { setTab('referrals'); loadEventReferralStats(ev.id) }}
+                          className="text-green-400 hover:text-green-300 p-2 hover:bg-white/5 rounded-lg transition" title="View referral stats">
+                          <BarChart3 className="w-4 h-4" />
+                        </button>
+                      )}
                       <button onClick={() => navigate(`/edit-event/${ev.id}`)}
                         className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition" title="Edit event">
                         <Edit3 className="w-4 h-4" />
@@ -229,12 +285,176 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Referrals tab */}
+        {tab === 'referrals' && (
+          <div>
+            {loadingReferrals ? (
+              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+            ) : (
+              <>
+                {/* Stats overview */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                  <StatCard icon={Share2} label="Links Generated" value={referralLinks.length} />
+                  <StatCard icon={MousePointer} label="Total Clicks" value={totalClicks} />
+                  <StatCard icon={Ticket} label="Tickets Sold" value={commissions.length} color="text-green-400" />
+                  <StatCard icon={DollarSign} label="Total Earned" value={`₦${totalEarned.toLocaleString()}`} color="text-green-400" />
+                </div>
+
+                {/* Earnings breakdown */}
+                {commissions.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4 mb-8">
+                    <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-5">
+                      <p className="text-gray-400 text-sm mb-1">Confirmed Earnings</p>
+                      <p className="text-green-400 font-bold text-2xl">₦{confirmedEarnings.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-5">
+                      <p className="text-gray-400 text-sm mb-1">Pending Earnings</p>
+                      <p className="text-yellow-400 font-bold text-2xl">₦{pendingEarnings.toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Organizer view — stats for reshare events */}
+                {reshareEvents.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-purple-400" /> Your Reshare Events
+                    </h3>
+                    <div className="space-y-3">
+                      {reshareEvents.map(ev => (
+                        <div key={ev.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              {ev.image && <img src={ev.image} alt="" className="w-10 h-10 rounded-lg object-cover" />}
+                              <div>
+                                <h4 className="text-white font-semibold text-sm">{ev.title}</h4>
+                                <p className="text-gray-500 text-xs">{ev.date}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => loadEventReferralStats(ev.id)}
+                              disabled={loadingEventStats}
+                              className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center gap-1"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> View Stats
+                            </button>
+                          </div>
+                          {selectedEventStats?.eventId === ev.id && (
+                            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mt-3 pt-3 border-t border-white/5">
+                              <div className="text-center">
+                                <p className="text-gray-500 text-[10px]">Promoters</p>
+                                <p className="text-white font-bold">{selectedEventStats.totalPromoters}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-gray-500 text-[10px]">Clicks</p>
+                                <p className="text-white font-bold">{selectedEventStats.totalClicks}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-gray-500 text-[10px]">Sales</p>
+                                <p className="text-white font-bold">{selectedEventStats.totalSales}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-gray-500 text-[10px]">Revenue</p>
+                                <p className="text-green-400 font-bold text-sm">₦{selectedEventStats.totalRevenue.toLocaleString()}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-gray-500 text-[10px]">Commissions</p>
+                                <p className="text-yellow-400 font-bold text-sm">₦{selectedEventStats.totalCommissions.toLocaleString()}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-gray-500 text-[10px]">Net Revenue</p>
+                                <p className="text-white font-bold text-sm">₦{selectedEventStats.netRevenue.toLocaleString()}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Referral links list */}
+                <div>
+                  <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                    <Share2 className="w-5 h-5 text-purple-400" /> Your Referral Links
+                  </h3>
+                  {referralLinks.length === 0 ? (
+                    <div className="text-center py-12 bg-white/5 border border-white/10 rounded-2xl">
+                      <Share2 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-400 mb-2">No referral links yet</p>
+                      <p className="text-gray-500 text-sm mb-4">Browse events with Reshare enabled and start earning!</p>
+                      <Link to="/events" className="text-purple-400 hover:text-purple-300 font-medium">Browse Events →</Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {referralLinks.map(link => (
+                        <div key={link.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {link.events?.image && <img src={link.events.image} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />}
+                              <div className="min-w-0">
+                                <h4 className="text-white font-semibold text-sm truncate">{link.events?.title || 'Event'}</h4>
+                                <p className="text-gray-500 text-xs">Code: {link.referral_code}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm flex-shrink-0">
+                              <div className="text-center">
+                                <p className="text-gray-500 text-[10px]">Clicks</p>
+                                <p className="text-white font-bold">{link.clicks || 0}</p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${window.location.origin}/events/${link.event_id}?ref=${link.referral_code}`)
+                                  toast.success('Link copied!')
+                                }}
+                                className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Commissions history */}
+                {commissions.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-green-400" /> Commission History
+                    </h3>
+                    <div className="space-y-2">
+                      {commissions.map(c => (
+                        <div key={c.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                          <div>
+                            <h4 className="text-white font-semibold text-sm">{c.events?.title || 'Event'}</h4>
+                            <p className="text-gray-500 text-xs">Ticket: ₦{Number(c.ticket_amount).toLocaleString()} · {new Date(c.created_at).toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-green-400 font-bold">+₦{Number(c.commission_amount).toLocaleString()}</p>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              c.status === 'confirmed' ? 'text-green-400 bg-green-400/10' :
+                              c.status === 'pending' ? 'text-yellow-400 bg-yellow-400/10' :
+                              c.status === 'paid' ? 'text-blue-400 bg-blue-400/10' :
+                              'text-red-400 bg-red-400/10'
+                            }`}>{c.status}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {/* Profile tab */}
         {tab === 'profile' && (
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 max-w-lg">
             <h2 className="text-xl font-bold text-white mb-6">Your Profile</h2>
-
-            {/* Avatar upload */}
             <div className="flex items-center gap-5 mb-8">
               <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
                 <div className="w-20 h-20 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-2xl font-bold overflow-hidden border-2 border-purple-500/30">
@@ -257,7 +477,6 @@ export default function Dashboard() {
                 <p className="text-gray-500 text-sm">Click to upload · JPG, PNG · Max 2MB</p>
               </div>
             </div>
-
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Full Name</label>
