@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Search } from 'lucide-react'
+import { FloatingParticles, ScrollReveal, MagneticButton } from './Interactive3D'
 
 function AnimatedCounter({ target, suffix = '+', duration = 2000 }) {
   const [count, setCount] = useState(0)
@@ -34,6 +35,7 @@ function AnimatedCounter({ target, suffix = '+', duration = 2000 }) {
 export default function Hero() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -41,82 +43,117 @@ export default function Hero() {
   }
 
   return (
-    <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+      onMouseMove={e => setMousePos({ x: e.clientX, y: e.clientY })}
+    >
       {/* Party GIF background */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 0,
         backgroundImage: 'url(/party.gif)',
         backgroundSize: 'cover', backgroundPosition: 'center',
       }} />
+
       {/* Dark purple gradient overlay */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1,
         background: 'linear-gradient(180deg, rgba(18,13,53,0.82) 0%, rgba(18,13,53,0.68) 40%, rgba(18,13,53,0.92) 100%)'
       }} />
 
+      {/* Mouse-following gradient spotlight */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1,
+        background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(123,78,247,0.08), transparent 50%)`,
+        pointerEvents: 'none',
+        transition: 'background 0.15s ease',
+      }} />
+
+      {/* Floating particles */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
+        <FloatingParticles count={25} color="rgba(157,122,250,0.4)" minSize={1} maxSize={4} speed={0.4} />
+      </div>
+
       {/* Main content */}
       <div style={{
-        position: 'relative', zIndex: 2, flex: 1,
+        position: 'relative', zIndex: 3, flex: 1,
         display: 'flex', flexDirection: 'column', justifyContent: 'center',
         maxWidth: 1200, margin: '0 auto', padding: '140px 24px 40px', width: '100%', textAlign: 'center'
       }}>
-        <h1 style={{
-          fontSize: 'clamp(2.6rem, 7vw, 4.8rem)', fontWeight: 900,
-          lineHeight: 1.06, letterSpacing: '-0.03em'
-        }}>
-          Your event life,<br />
-          <span style={{ color: 'var(--purple-light)', fontStyle: 'italic', textDecoration: 'underline', textDecorationColor: 'rgba(157,122,250,0.3)', textUnderlineOffset: 6 }}>simplified.</span>
-        </h1>
+        <ScrollReveal direction="up" delay={0.1}>
+          <h1 style={{
+            fontSize: 'clamp(2.6rem, 7vw, 4.8rem)', fontWeight: 900,
+            lineHeight: 1.06, letterSpacing: '-0.03em'
+          }}>
+            Your event life,<br />
+            <span className="hero-gradient-text" style={{
+              fontStyle: 'italic',
+              background: 'linear-gradient(135deg, var(--purple-light), #c084fc, var(--purple-light))',
+              backgroundSize: '200% auto',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              animation: 'gradientShift 3s ease infinite',
+            }}>simplified.</span>
+          </h1>
+        </ScrollReveal>
 
-        <p style={{
-          marginTop: 20, fontSize: 'clamp(0.95rem, 2vw, 1.15rem)',
-          color: 'rgba(255,255,255,0.6)', maxWidth: 560,
-          marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.7
-        }}>
-          Discover epic events. Host sell-outs. Sell tickets &amp; merch. Reward your people. Build Tribes. All in one place.
-        </p>
+        <ScrollReveal direction="up" delay={0.25}>
+          <p style={{
+            marginTop: 20, fontSize: 'clamp(0.95rem, 2vw, 1.15rem)',
+            color: 'rgba(255,255,255,0.6)', maxWidth: 560,
+            marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.7
+          }}>
+            Discover epic events. Host sell-outs. Sell tickets & merch. Reward your people. Build Tribes. All in one place.
+          </p>
+        </ScrollReveal>
 
-        {/* Two CTA buttons — rigitix style stacked */}
-        <div style={{
-          marginTop: 36, display: 'flex', flexDirection: 'column', gap: 12,
-          alignItems: 'center', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', width: '100%'
-        }}>
-          <button className="btn btn-white" style={{ width: '100%' }} onClick={() => navigate('/create')}>
-            <span className="btn-label" style={{ flex: 1, justifyContent: 'center' }}>PLAN AN EVENT</span>
-            <span className="btn-arrow"><ArrowRight size={16} /></span>
-          </button>
-          <button className="btn btn-purple" style={{ width: '100%' }} onClick={() => navigate('/events')}>
-            <span className="btn-label" style={{ flex: 1, justifyContent: 'center' }}>EXPLORE EVENTS</span>
-            <span className="btn-arrow"><ArrowRight size={16} /></span>
-          </button>
-        </div>
+        {/* Two CTA buttons */}
+        <ScrollReveal direction="up" delay={0.4}>
+          <div style={{
+            marginTop: 36, display: 'flex', flexDirection: 'column', gap: 12,
+            alignItems: 'center', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', width: '100%'
+          }}>
+            <MagneticButton strength={0.15} style={{ width: '100%' }}>
+              <button className="btn btn-white btn-3d" style={{ width: '100%' }} onClick={() => navigate('/create')}>
+                <span className="btn-label" style={{ flex: 1, justifyContent: 'center' }}>PLAN AN EVENT</span>
+                <span className="btn-arrow"><ArrowRight size={16} /></span>
+              </button>
+            </MagneticButton>
+            <MagneticButton strength={0.15} style={{ width: '100%' }}>
+              <button className="btn btn-purple btn-3d" style={{ width: '100%' }} onClick={() => navigate('/events')}>
+                <span className="btn-label" style={{ flex: 1, justifyContent: 'center' }}>EXPLORE EVENTS</span>
+                <span className="btn-arrow"><ArrowRight size={16} /></span>
+              </button>
+            </MagneticButton>
+          </div>
+        </ScrollReveal>
 
         {/* Compact search */}
-        <form onSubmit={handleSearch} style={{
-          marginTop: 32, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto',
-          display: 'flex', alignItems: 'stretch',
-          background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 12, overflow: 'hidden'
-        }}>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px' }}>
-            <Search size={16} style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />
-            <input type="text" placeholder="Search events, artists, venues…" value={query} onChange={e => setQuery(e.target.value)}
-              style={{ background: 'none', border: 'none', outline: 'none', color: 'white', width: '100%', fontSize: '0.88rem', padding: '14px 0' }}
-            />
-          </div>
-          <button type="submit" style={{
-            background: 'var(--purple)', border: 'none', color: 'white', padding: '0 20px',
-            fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.04em', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6
+        <ScrollReveal direction="up" delay={0.55}>
+          <form onSubmit={handleSearch} style={{
+            marginTop: 32, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto',
+            display: 'flex', alignItems: 'stretch',
+            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 12, overflow: 'hidden',
+            backdropFilter: 'blur(12px)',
           }}>
-            SEARCH <ArrowRight size={14} />
-          </button>
-        </form>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px' }}>
+              <Search size={16} style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />
+              <input type="text" placeholder="Search events, artists, venues…" value={query} onChange={e => setQuery(e.target.value)}
+                style={{ background: 'none', border: 'none', outline: 'none', color: 'white', width: '100%', fontSize: '0.88rem', padding: '14px 0' }}
+              />
+            </div>
+            <button type="submit" style={{
+              background: 'var(--purple)', border: 'none', color: 'white', padding: '0 20px',
+              fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.04em', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6
+            }}>
+              SEARCH <ArrowRight size={14} />
+            </button>
+          </form>
+        </ScrollReveal>
       </div>
 
       {/* Stats bar */}
       <div style={{
-        position: 'relative', zIndex: 2,
+        position: 'relative', zIndex: 3,
         borderTop: '1px solid rgba(255,255,255,0.1)',
         padding: '28px 24px',
         background: 'rgba(0,0,0,0.35)',
@@ -131,14 +168,16 @@ export default function Hero() {
             { value: 19950, label: 'TICKETS' },
             { value: 5355, label: 'USERS' },
           ].map((stat, i) => (
-            <div key={i} style={{ flex: 1 }}>
-              <div style={{ fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 900, color: 'white' }}>
-                <AnimatedCounter target={stat.value} />
+            <ScrollReveal key={i} direction="up" delay={0.1 * i}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 900, color: 'white' }}>
+                  <AnimatedCounter target={stat.value} />
+                </div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', marginTop: 4 }}>
+                  {stat.label}
+                </div>
               </div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', marginTop: 4 }}>
-                {stat.label}
-              </div>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
       </div>

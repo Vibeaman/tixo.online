@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
 import CommentService from '../services/CommentService'
+import PhotoGallery from '../components/PhotoGallery'
 import ReferralService from '../services/ReferralService'
 import { useAuth } from '../context/AuthContext'
 
@@ -843,6 +844,9 @@ export default function EventDetail() {
             </div>
           </div>
         )}
+
+        {/* ═══ EVENT PHOTOS ═══ */}
+        <PhotoGallery eventId={id} eventTitle={event.title} />
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '32px 0' }} />
 
