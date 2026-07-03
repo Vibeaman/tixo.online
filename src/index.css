@@ -112,14 +112,15 @@ body {
 
 /* ── 3D Button hover ── */
 .btn-3d {
-  transition: transform 0.25s cubic-bezier(0.23,1,0.32,1), box-shadow 0.25s !important;
+  transition: transform 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s !important;
 }
 .btn-3d:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 8px 25px rgba(123,78,247,0.25);
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 0 12px 35px rgba(123,78,247,0.35), 0 0 20px rgba(123,78,247,0.15);
 }
 .btn-3d:active {
-  transform: translateY(0) scale(0.98) !important;
+  transform: translateY(0) scale(0.97) !important;
+  box-shadow: 0 2px 10px rgba(123,78,247,0.2);
 }
 
 /* ── Gradient text animation ── */
@@ -148,7 +149,7 @@ body {
 /* ── Glow pulse for important elements ── */
 @keyframes glowPulse {
   0%, 100% { box-shadow: 0 0 20px rgba(123,78,247,0.15); }
-  50% { box-shadow: 0 0 30px rgba(123,78,247,0.3); }
+  50% { box-shadow: 0 0 40px rgba(123,78,247,0.4), 0 0 60px rgba(123,78,247,0.1); }
 }
 
 /* ── Countdown pulse ── */
@@ -163,9 +164,101 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* ── Glowing border spin ── */
+@property --glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes glowSpin {
+  0% { --glow-angle: 0deg; }
+  100% { --glow-angle: 360deg; }
+}
+/* Fallback for browsers that don't support @property */
+.glow-card-border {
+  animation: glowSpinFallback 3s linear infinite;
+}
+@keyframes glowSpinFallback {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── Floating shapes ── */
+@keyframes floatShape {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+  25% { transform: translateY(-30px) rotate(90deg) scale(1.1); }
+  50% { transform: translateY(-15px) rotate(180deg) scale(0.95); }
+  75% { transform: translateY(-40px) rotate(270deg) scale(1.05); }
+}
+
+/* ── Ripple expand ── */
+@keyframes rippleExpand {
+  to { transform: translate(-50%, -50%) scale(40); opacity: 0; }
+}
+
+/* ── Morph blob ── */
+@keyframes morphBlob {
+  0%, 100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
+  25% { border-radius: 58% 42% 35% 65% / 63% 28% 72% 37%; }
+  50% { border-radius: 42% 58% 65% 35% / 37% 63% 37% 63%; }
+  75% { border-radius: 70% 30% 30% 70% / 70% 70% 30% 30%; }
+}
+
+/* ── Card hover lift ── */
+.card-3d-lift {
+  transition: transform 0.4s cubic-bezier(0.23,1,0.32,1), box-shadow 0.4s, border-color 0.3s !important;
+}
+.card-3d-lift:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  box-shadow: 0 20px 50px rgba(123,78,247,0.2), 0 0 30px rgba(123,78,247,0.08) !important;
+  border-color: rgba(123,78,247,0.5) !important;
+}
+
+/* ── Shimmer effect ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer-text {
+  background: linear-gradient(90deg, var(--purple-light) 0%, white 25%, var(--purple-light) 50%, white 75%, var(--purple-light) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite;
+}
+
+/* ── Pulse ring ── */
+@keyframes pulseRing {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 0; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
+/* ── Bounce in ── */
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Floating animation ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-12px) rotate(2deg); }
+  66% { transform: translateY(-6px) rotate(-1deg); }
+}
+
+/* ── Rotate slow ── */
+@keyframes rotateSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ── Input focus styles (guest checkout) ── */
 input:focus, textarea:focus {
   border-color: var(--purple) !important;
+  box-shadow: 0 0 15px rgba(123,78,247,0.2);
 }
 input::placeholder, textarea::placeholder {
   color: rgba(255,255,255,0.3);

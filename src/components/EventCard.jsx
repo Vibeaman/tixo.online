@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapPin, Ticket, ArrowRight, Video, Globe, Calendar } from 'lucide-react'
-import { Tilt3D } from './Interactive3D'
+import { Tilt3D, GlowCard } from './Interactive3D'
 
 export default function EventCard({ event }) {
   const navigate = useNavigate()
+  const [hovered, setHovered] = useState(false)
   const lowestPrice = event.ticket_tiers?.length > 0 ? Math.min(...event.ticket_tiers.map(t => t.price)) : null
   const fallbackPrice = event.tickets?.length > 0 ? Math.min(...event.tickets.map(t => t.price)) : null
   const price = lowestPrice ?? fallbackPrice
@@ -32,29 +33,46 @@ export default function EventCard({ event }) {
   }
 
   return (
-    <Tilt3D intensity={8} glowColor="rgba(123,78,247,0.2)">
+    <Tilt3D intensity={18} glowColor="rgba(123,78,247,0.3)">
       <div
         onClick={() => navigate(`/events/${event.id}`)}
+        className="card-3d-lift"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
           background: 'var(--dark)',
           border: '1.5px solid rgba(123,78,247,0.12)',
           borderRadius: 16,
           overflow: 'hidden',
-          transition: 'border-color 0.25s, box-shadow 0.25s',
           cursor: 'pointer',
-          position: 'relative'
+          position: 'relative',
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(123,78,247,0.35)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(123,78,247,0.12)' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(123,78,247,0.12)'; e.currentTarget.style.boxShadow = 'none' }}
       >
+        {/* Animated top border glow on hover */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+          background: 'linear-gradient(90deg, transparent, var(--purple), var(--purple-light), var(--purple), transparent)',
+          opacity: hovered ? 1 : 0,
+          transition: 'opacity 0.4s',
+          zIndex: 5,
+        }} />
+
         {/* Image */}
         <div style={{ position: 'relative', height: 180, overflow: 'hidden' }}>
           <img src={event.image} alt={event.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            style={{
+              width: '100%', height: '100%', objectFit: 'cover',
+              transition: 'transform 0.6s cubic-bezier(0.23,1,0.32,1)',
+              transform: hovered ? 'scale(1.12)' : 'scale(1)',
+            }}
           />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 40%, rgba(18,13,53,0.85))' }} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: hovered
+              ? 'linear-gradient(transparent 20%, rgba(18,13,53,0.9))'
+              : 'linear-gradient(transparent 40%, rgba(18,13,53,0.85))',
+            transition: 'background 0.4s',
+          }} />
           
           {(isVirtual || isHybrid) && (
             <span style={{
@@ -75,7 +93,8 @@ export default function EventCard({ event }) {
               position: 'absolute', top: 12, right: 12,
               background: 'rgba(123,78,247,0.85)', color: 'white',
               padding: '4px 10px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em',
-              borderRadius: 999, backdropFilter: 'blur(8px)'
+              borderRadius: 999, backdropFilter: 'blur(8px)',
+              animation: 'glowPulse 2s ease-in-out infinite',
             }}>🔥 HOT</span>
           )}
 
@@ -85,21 +104,36 @@ export default function EventCard({ event }) {
             color: priceLabel === 'FREE' ? '#4ade80' : 'white',
             background: priceLabel === 'FREE' ? 'rgba(74,222,128,0.15)' : 'rgba(123,78,247,0.25)',
             border: `1px solid ${priceLabel === 'FREE' ? 'rgba(74,222,128,0.3)' : 'rgba(123,78,247,0.3)'}`,
-            padding: '4px 12px', borderRadius: 999,
-            backdropFilter: 'blur(8px)'
+            padding: '5px 14px', borderRadius: 999,
+            backdropFilter: 'blur(8px)',
+            transition: 'transform 0.3s',
+            transform: hovered ? 'scale(1.08)' : 'scale(1)',
           }}>{priceLabel}</span>
         </div>
 
         {/* Details */}
         <div style={{ padding: '16px 18px 18px' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: 10, letterSpacing: '-0.01em', color: 'white' }}>{event.title}</h3>
+          <h3 style={{
+            fontSize: '1.05rem', fontWeight: 800, marginBottom: 10,
+            letterSpacing: '-0.01em', color: 'white',
+            transition: 'color 0.3s',
+            ...(hovered ? { color: 'var(--purple-light)' } : {}),
+          }}>{event.title}</h3>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>
-            <Calendar size={12} style={{ color: 'var(--purple-light)', flexShrink: 0 }} />
+            <Calendar size={12} style={{
+              color: 'var(--purple-light)', flexShrink: 0,
+              transition: 'transform 0.3s',
+              transform: hovered ? 'rotate(-15deg) scale(1.2)' : 'none',
+            }} />
             {shortDate || dateDisplay}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}>
-            {isVirtual ? <Video size={12} style={{ color: 'var(--purple-light)', flexShrink: 0 }} /> : <MapPin size={12} style={{ color: 'var(--purple-light)', flexShrink: 0 }} />}
+            {isVirtual ? <Video size={12} style={{ color: 'var(--purple-light)', flexShrink: 0 }} /> : <MapPin size={12} style={{
+              color: 'var(--purple-light)', flexShrink: 0,
+              transition: 'transform 0.3s',
+              transform: hovered ? 'translateY(-3px) scale(1.2)' : 'none',
+            }} />}
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {isVirtual ? 'Online Event' : event.location}
             </span>
@@ -111,14 +145,24 @@ export default function EventCard({ event }) {
                 <span style={{ color: 'rgba(255,255,255,0.35)' }}>Ticket Demand</span>
                 <span style={{ color: 'var(--purple-light)', fontWeight: 700 }}>{event.demand}%</span>
               </div>
-              <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
-                <div className="demand-bar-fill" style={{ height: '100%', width: `${event.demand}%`, background: 'linear-gradient(90deg, var(--purple), var(--purple-light))', borderRadius: 2 }} />
+              <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                <div className="demand-bar-fill" style={{
+                  height: '100%', width: `${event.demand}%`,
+                  background: 'linear-gradient(90deg, var(--purple), var(--purple-light))',
+                  borderRadius: 2,
+                  boxShadow: hovered ? '0 0 12px rgba(123,78,247,0.5)' : 'none',
+                  transition: 'box-shadow 0.3s',
+                }} />
               </div>
             </div>
           )}
 
-          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-            <span className="btn btn-purple btn-3d" style={{ fontSize: '0.68rem' }}>
+          <div style={{
+            marginTop: 16, display: 'flex', justifyContent: 'flex-end',
+            transform: hovered ? 'translateX(4px)' : 'translateX(0)',
+            transition: 'transform 0.3s',
+          }}>
+            <span className="btn btn-purple btn-3d" style={{ fontSize: '0.68rem', borderRadius: 10 }}>
               <span className="btn-label" style={{ padding: '8px 14px', gap: 5 }}><Ticket size={11} /> GET TICKETS</span>
               <span className="btn-arrow" style={{ padding: '0 10px' }}><ArrowRight size={11} /></span>
             </span>
