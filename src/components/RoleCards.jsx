@@ -4,27 +4,27 @@ import { ArrowRight, Ticket, Mic2, Users, Store } from 'lucide-react'
 
 const roles = [
   {
+    num: '01', badge: 'ATTENDEE',
     icon: Ticket, title: 'Attendees',
     desc: 'Discover events, buy tickets instantly, and earn rewards for attending.',
-    color: 'var(--purple)',
     cta: 'Find Events', to: '/events',
   },
   {
+    num: '02', badge: 'ORGANIZER',
     icon: Mic2, title: 'Organizers',
     desc: 'Create, manage, and sell out your events with powerful tools.',
-    color: 'var(--purple-dark)',
     cta: 'Start Creating', to: '/create',
   },
   {
+    num: '03', badge: 'PROMOTER',
     icon: Users, title: 'Promoters',
-    desc: 'Build tribes around shared passions. Grow together, event after event.',
-    color: 'var(--purple)',
+    desc: 'Share events, build tribes around shared passions. Earn commission on every ticket sold.',
     cta: 'Join Network', to: '/signup',
   },
   {
+    num: '04', badge: 'VENDOR',
     icon: Store, title: 'Vendors',
     desc: 'Showcase your brand at top events. Connect with thousands of attendees.',
-    color: 'var(--purple-dark)',
     cta: 'Learn More', to: '/signup',
   },
 ]
@@ -33,8 +33,38 @@ export default function RoleCards() {
   const navigate = useNavigate()
 
   return (
-    <section className="section-lavender" style={{ padding: 'clamp(60px, 8vw, 100px) 24px' }}>
+    <section style={{ padding: 'clamp(60px, 8vw, 100px) 24px', background: 'var(--lavender)' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        {/* Vision card — rigitix-style dark card */}
+        <div style={{
+          background: 'var(--dark)',
+          borderRadius: 20,
+          border: '1.5px solid rgba(123,78,247,0.25)',
+          padding: 'clamp(32px, 5vw, 48px)',
+          marginBottom: 48,
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Decorative side notches */}
+          <div style={{ position: 'absolute', left: -10, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, borderRadius: '50%', background: 'var(--lavender)' }} />
+          <div style={{ position: 'absolute', right: -10, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, borderRadius: '50%', background: 'var(--lavender)' }} />
+
+          <h3 style={{ fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', fontWeight: 900, color: 'var(--purple-light)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+            THE VISION
+          </h3>
+          <p style={{ fontSize: 'clamp(0.95rem, 2vw, 1.1rem)', color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, maxWidth: 520 }}>
+            Power your movement. From ticketing to discovery and promotion, Planam is built for the African event scene — and built to scale.
+          </p>
+          <span onClick={() => navigate('/events')} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            marginTop: 28, fontSize: '0.85rem', fontWeight: 700, color: 'white',
+            letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer'
+          }}>
+            EXPLORE EVENTS <ArrowRight size={16} style={{ color: 'var(--purple-light)' }} />
+          </span>
+        </div>
+
+        {/* Section heading */}
         <span className="section-tag section-tag-purple" style={{ marginBottom: 16 }}>
           👥 Built for Everyone
         </span>
@@ -43,38 +73,65 @@ export default function RoleCards() {
           <span style={{ color: 'var(--purple)', fontStyle: 'italic' }}>every role.</span>
         </h2>
 
+        {/* Role cards grid — dark style */}
         <div style={{
-          marginTop: 48,
+          marginTop: 40,
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-          gap: 24
+          gap: 20
         }}>
           {roles.map((r, i) => (
-            <div key={i} style={{
-              background: 'white',
-              border: '1px solid rgba(123,78,247,0.1)',
-              padding: 32,
-              transition: 'transform 0.25s, box-shadow 0.25s',
-              cursor: 'pointer'
+            <div key={i} onClick={() => navigate(r.to)} style={{
+              background: 'var(--dark)',
+              borderRadius: 16,
+              border: '1.5px solid rgba(123,78,247,0.15)',
+              padding: '28px 24px',
+              cursor: 'pointer',
+              transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s',
+              position: 'relative',
+              overflow: 'hidden'
             }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(123,78,247,0.12)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-              onClick={() => navigate(r.to)}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(123,78,247,0.4)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(123,78,247,0.15)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(123,78,247,0.15)'; e.currentTarget.style.boxShadow = 'none' }}
             >
-              <div style={{
-                width: 48, height: 48,
-                background: 'var(--lavender)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: 20
-              }}>
-                <r.icon size={22} style={{ color: r.color }} />
+              {/* Role number + badge */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em' }}>
+                  ROLE · {r.num}
+                </span>
+                <span style={{
+                  fontSize: '0.65rem', fontWeight: 800, color: 'var(--purple-light)',
+                  background: 'rgba(123,78,247,0.15)', padding: '4px 10px', borderRadius: 999,
+                  letterSpacing: '0.06em'
+                }}>
+                  {r.badge}
+                </span>
               </div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-dark)', marginBottom: 8 }}>{r.title}</h3>
-              <p style={{ fontSize: '0.9rem', color: '#64648C', lineHeight: 1.6 }}>{r.desc}</p>
+
+              {/* Icon */}
+              <div style={{
+                width: 44, height: 44,
+                background: 'rgba(123,78,247,0.12)',
+                borderRadius: 12,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 16
+              }}>
+                <r.icon size={20} style={{ color: 'var(--purple-light)' }} />
+              </div>
+
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white', marginBottom: 8 }}>{r.title}</h3>
+
+              {/* Dashed separator */}
+              <div style={{
+                borderTop: '2px dashed rgba(123,78,247,0.2)',
+                margin: '12px 0', width: '100%'
+              }} />
+
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{r.desc}</p>
+
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                marginTop: 16, fontSize: '0.82rem', fontWeight: 700, color: 'var(--purple)',
-                textDecoration: 'none'
+                marginTop: 16, fontSize: '0.8rem', fontWeight: 700, color: 'var(--purple-light)'
               }}>
                 {r.cta} <ArrowRight size={14} />
               </span>

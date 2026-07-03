@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
-import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign, Monitor, MapPinned, CheckCircle2, X, ChevronUp } from 'lucide-react'
+import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign, Monitor, MapPinned, CheckCircle2, X, ChevronUp, ArrowRight, Eye, Download, Zap, User } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
@@ -8,24 +8,23 @@ import CommentService from '../services/CommentService'
 import ReferralService from '../services/ReferralService'
 import { useAuth } from '../context/AuthContext'
 
+/* ─── Helpers ─── */
 function formatDate(dateStr) {
-  if (!dateStr) return { month: '', day: '', full: '' }
+  if (!dateStr) return { month: '', day: '', full: '', weekday: '' }
   const d = new Date(dateStr + 'T00:00:00')
   return {
     month: d.toLocaleString('en', { month: 'short' }).toUpperCase(),
     day: d.getDate(),
-    full: d.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    full: d.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+    weekday: d.toLocaleDateString('en', { weekday: 'long' })
   }
 }
-
 function formatTime(t) {
   if (!t) return ''
   const [h, m] = t.split(':')
   const hr = parseInt(h)
-  const ampm = hr >= 12 ? 'PM' : 'AM'
-  return `${hr % 12 || 12}:${m} ${ampm}`
+  return `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`
 }
-
 function timeAgo(dateStr) {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
   if (seconds < 60) return 'just now'
@@ -38,11 +37,81 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString()
 }
 
-function getEventTypeBadge(type) {
-  if (type === 'virtual') return { label: 'Virtual', icon: Video, color: 'bg-blue-500/20 text-blue-400' }
-  if (type === 'hybrid') return { label: 'Hybrid', icon: Globe, color: 'bg-teal-500/20 text-teal-400' }
-  return { label: 'In Person', icon: MapPin, color: 'bg-purple-500/20 text-purple-400' }
+/* ─── Countdown Component ─── */
+function Countdown({ date, time }) {
+  const [tl, setTl] = useState({ d: 0, h: 0, m: 0, s: 0 })
+  const [expired, setExpired] = useState(false)
+
+  useEffect(() => {
+    const target = new Date(`${date}T${time || '00:00:00'}`)
+    const update = () => {
+      const diff = target - Date.now()
+      if (diff <= 0) { setExpired(true); return }
+      setTl({
+        d: Math.floor(diff / 86400000),
+        h: Math.floor((diff % 86400000) / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000)
+      })
+    }
+    update()
+    const timer = setInterval(update, 1000)
+    return () => clearInterval(timer)
+  }, [date, time])
+
+  if (expired) return null
+
+  const pad = n => String(n).padStart(2, '0')
+
+  return (
+    <div style={{
+      background: 'var(--purple)', padding: '10px 20px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      gap: 6, fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.06em'
+    }}>
+      <span style={{ color: 'rgba(255,255,255,0.7)' }}>EVENT STARTS IN</span>
+      <span style={{ fontWeight: 900, fontSize: '0.9rem' }}>
+        {pad(tl.d)}<span style={{ color: 'rgba(255,255,255,0.5)', margin: '0 2px' }}>D</span>{' '}
+        {pad(tl.h)}<span style={{ color: 'rgba(255,255,255,0.5)', margin: '0 2px' }}>H</span>{' '}
+        {pad(tl.m)}<span style={{ color: 'rgba(255,255,255,0.5)', margin: '0 2px' }}>M</span>{' '}
+        {pad(tl.s)}<span style={{ color: 'rgba(255,255,255,0.5)', margin: '0 2px' }}>S</span>
+      </span>
+    </div>
+  )
 }
+
+/* ─── Google Calendar URL builder ─── */
+function googleCalUrl(event) {
+  const s = (event.date || '').replace(/-/g, '') + 'T' + (event.time || '00:00').replace(/:/g, '') + '00'
+  let e = s
+  if (event.end_date) {
+    e = event.end_date.replace(/-/g, '') + 'T' + (event.end_time || event.time || '23:59').replace(/:/g, '') + '00'
+  }
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title || '',
+    dates: `${s}/${e}`,
+    location: event.location || '',
+    details: (event.description || '').slice(0, 500)
+  })
+  return `https://calendar.google.com/calendar/render?${params}`
+}
+
+/* ─── ICS file generator ─── */
+function downloadIcs(event) {
+  const s = (event.date || '').replace(/-/g, '') + 'T' + (event.time || '00:00').replace(/:/g, '') + '00'
+  let e = s
+  if (event.end_date) {
+    e = event.end_date.replace(/-/g, '') + 'T' + (event.end_time || event.time || '23:59').replace(/:/g, '') + '00'
+  }
+  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${s}\nDTEND:${e}\nSUMMARY:${event.title}\nLOCATION:${event.location || ''}\nDESCRIPTION:${(event.description || '').slice(0, 300)}\nEND:VEVENT\nEND:VCALENDAR`
+  const blob = new Blob([ics], { type: 'text/calendar' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = `${event.title || 'event'}.ics`; a.click()
+  URL.revokeObjectURL(url)
+}
+
 
 export default function EventDetail() {
   const { id } = useParams()
@@ -56,49 +125,48 @@ export default function EventDetail() {
   // Cart state
   const [cart, setCart] = useState({})
   const [buying, setBuying] = useState(false)
-
-  // Floating cart expand state
   const [floaterExpanded, setFloaterExpanded] = useState(false)
-
-  // Ref for static cart summary — hide floater when this is visible
   const cartSummaryRef = useRef(null)
   const [cartSummaryVisible, setCartSummaryVisible] = useState(false)
 
-  // Hybrid attendance mode
+  // Hybrid attendance
   const [attendanceMode, setAttendanceMode] = useState('in-person')
 
-  // RSVP state
+  // RSVP
   const [hasRsvpd, setHasRsvpd] = useState(false)
   const [rsvping, setRsvping] = useState(false)
-
-  // Purchase success state
   const [purchaseSuccess, setPurchaseSuccess] = useState(false)
 
-  // Comments state
+  // Comments
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [posting, setPosting] = useState(false)
   const [loadingComments, setLoadingComments] = useState(true)
 
-  // Reshare state
+  // Reshare
   const [reshareLink, setReshareLink] = useState('')
   const [generatingLink, setGeneratingLink] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [showResharePanel, setShowResharePanel] = useState(false)
 
-  // Intersection observer to track cart summary visibility
+  // Guest checkout
+  const [showGuestForm, setShowGuestForm] = useState(false)
+  const [guestName, setGuestName] = useState('')
+  const [guestEmail, setGuestEmail] = useState('')
+  const [guestAction, setGuestAction] = useState('') // 'checkout' or 'rsvp'
+
+  // View flyer
+  const [showFlyer, setShowFlyer] = useState(false)
+
+  /* ─── Effects ─── */
   useEffect(() => {
     const el = cartSummaryRef.current
     if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setCartSummaryVisible(entry.isIntersecting),
-      { threshold: 0.2 }
-    )
+    const observer = new IntersectionObserver(([entry]) => setCartSummaryVisible(entry.isIntersecting), { threshold: 0.2 })
     observer.observe(el)
     return () => observer.disconnect()
   }, [event, purchaseSuccess, hasRsvpd])
 
-  // Track referral click on page load
   useEffect(() => {
     const ref = searchParams.get('ref')
     if (ref) {
@@ -109,27 +177,18 @@ export default function EventDetail() {
 
   useEffect(() => {
     async function load() {
-      try {
-        const data = await EventService.getById(id)
-        setEvent(data)
-      } catch (e) {
-        toast.error('Event not found')
-        navigate('/events')
-      } finally {
-        setLoading(false)
-      }
+      try { setEvent(await EventService.getById(id)) }
+      catch { toast.error('Event not found'); navigate('/events') }
+      finally { setLoading(false) }
     }
     load()
   }, [id])
 
-  // Check RSVP status
   useEffect(() => {
     async function checkRsvp() {
       if (!user || !event) return
-      const isFree = event.ticket_tiers?.every(t => Number(t.price) === 0)
-      if (isFree) {
-        const already = await TicketService.hasRsvp(event.id, user.id)
-        setHasRsvpd(already)
+      if (event.ticket_tiers?.every(t => Number(t.price) === 0)) {
+        setHasRsvpd(await TicketService.hasRsvp(event.id, user.id))
       }
     }
     checkRsvp()
@@ -137,25 +196,21 @@ export default function EventDetail() {
 
   useEffect(() => {
     async function loadComments() {
-      try {
-        const data = await CommentService.getByEvent(id)
-        setComments(data)
-      } catch (e) { console.error(e) }
+      try { setComments(await CommentService.getByEvent(id)) }
+      catch (e) { console.error(e) }
       finally { setLoadingComments(false) }
     }
     loadComments()
   }, [id])
 
-  // Cart helpers
+  /* ─── Cart helpers ─── */
   function cartQty(tierName) { return cart[tierName] || 0 }
-  function addToCart(tierName) {
-    setCart(c => ({ ...c, [tierName]: (c[tierName] || 0) + 1 }))
-  }
+  function addToCart(tierName) { setCart(c => ({ ...c, [tierName]: (c[tierName] || 0) + 1 })) }
   function removeFromCart(tierName) {
     setCart(c => {
-      const newQty = (c[tierName] || 0) - 1
-      if (newQty <= 0) { const { [tierName]: _, ...rest } = c; return rest }
-      return { ...c, [tierName]: newQty }
+      const q = (c[tierName] || 0) - 1
+      if (q <= 0) { const { [tierName]: _, ...rest } = c; return rest }
+      return { ...c, [tierName]: q }
     })
   }
   function clearCart() { setCart({}); setFloaterExpanded(false) }
@@ -166,142 +221,127 @@ export default function EventDetail() {
     const tier = tiers.find(t => t.name === name)
     return { tierName: name, quantity: qty, price: tier?.price || 0, totalPrice: (tier?.price || 0) * qty }
   }).filter(i => i.quantity > 0)
-  const cartTotal = cartItems.reduce((sum, i) => sum + i.totalPrice, 0)
-  const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0)
-
-  // Show floating cart when: items in cart, not free event, not purchased, and static cart summary is NOT visible
+  const cartTotal = cartItems.reduce((s, i) => s + i.totalPrice, 0)
+  const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0)
   const showFloatingCart = cartCount > 0 && !isFreeEvent && !purchaseSuccess && !cartSummaryVisible
 
-  // Scroll to cart summary
-  function scrollToCart() {
-    cartSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    setFloaterExpanded(false)
-  }
+  function scrollToCart() { cartSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setFloaterExpanded(false) }
 
-  // Reshare handlers
+  /* ─── Reshare handlers ─── */
   async function handleGenerateReshareLink() {
     if (!user) { toast.error('Please log in to reshare'); navigate('/login'); return }
     if (user.id === event.organizer_id) { toast.error("You can't reshare your own event"); return }
     setGeneratingLink(true)
     try {
       const link = await ReferralService.getOrCreateLink(id, user.id)
-      const url = `${window.location.origin}/events/${id}?ref=${link.referral_code}`
-      setReshareLink(url)
+      setReshareLink(`${window.location.origin}/events/${id}?ref=${link.referral_code}`)
       setShowResharePanel(true)
-    } catch (e) {
-      toast.error(e.message || 'Failed to generate link')
-    } finally { setGeneratingLink(false) }
+    } catch (e) { toast.error(e.message || 'Failed to generate link') }
+    finally { setGeneratingLink(false) }
   }
-
   function copyReshareLink() {
     navigator.clipboard.writeText(reshareLink)
-    setLinkCopied(true)
-    toast.success('Referral link copied!')
+    setLinkCopied(true); toast.success('Referral link copied!')
     setTimeout(() => setLinkCopied(false), 3000)
   }
 
-  // RSVP handler
-  async function handleRsvp() {
-    if (!user) { toast.error('Please log in to RSVP'); navigate('/login'); return }
-    if (hasRsvpd) return
+  /* ─── Guest checkout trigger ─── */
+  function triggerGuestCheckout(action) {
+    setGuestAction(action)
+    setShowGuestForm(true)
+  }
+
+  /* ─── RSVP handler ─── */
+  async function handleRsvp(guestInfo = null) {
+    if (!user && !guestInfo) { triggerGuestCheckout('rsvp'); return }
     setRsvping(true)
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
       await TicketService.purchase({
-        eventId: event.id,
-        eventTitle: event.title,
-        tierName: tiers[0]?.name || 'General',
-        quantity: 1,
-        totalPrice: 0,
-        userId: user.id,
+        eventId: event.id, eventTitle: event.title,
+        tierName: tiers[0]?.name || 'General', quantity: 1, totalPrice: 0,
+        userId: user?.id || null,
+        guestName: guestInfo?.name || null,
+        guestEmail: guestInfo?.email || null,
         referralCode: refCode || null,
         attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'),
         isRsvp: true
       })
       sessionStorage.removeItem(`ref_${id}`)
-      setHasRsvpd(true)
-      setPurchaseSuccess(true)
+      setHasRsvpd(true); setPurchaseSuccess(true); setShowGuestForm(false)
       toast.success('🎉 RSVP confirmed!')
-    } catch (e) {
-      toast.error(e.message || 'RSVP failed')
-    } finally { setRsvping(false) }
+    } catch (e) { toast.error(e.message || 'RSVP failed') }
+    finally { setRsvping(false) }
   }
 
-  // Cart checkout handler
-  async function handleCheckout() {
-    if (!user) { toast.error('Please log in to buy tickets'); navigate('/login'); return }
+  /* ─── Cart checkout handler ─── */
+  async function handleCheckout(guestInfo = null) {
+    if (!user && !guestInfo) { triggerGuestCheckout('checkout'); return }
     if (cartItems.length === 0) return
     setBuying(true)
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
       const mode = event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person')
-      
       const tickets = await TicketService.purchaseMultiple({
-        eventId: event.id,
-        eventTitle: event.title,
-        items: cartItems,
-        userId: user.id,
-        referralCode: refCode || null,
-        attendanceMode: mode,
-        isRsvp: false
+        eventId: event.id, eventTitle: event.title, items: cartItems,
+        userId: user?.id || null,
+        guestName: guestInfo?.name || null,
+        guestEmail: guestInfo?.email || null,
+        referralCode: refCode || null, attendanceMode: mode, isRsvp: false
       })
-
-      // Record commission if referral
       if (refCode && event.reshare_enabled) {
         try {
           const refLink = await ReferralService.getByCode(refCode)
-          if (refLink && refLink.user_id !== user.id) {
+          if (refLink && refLink.user_id !== user?.id) {
             await ReferralService.recordCommission({
-              referralLinkId: refLink.id,
-              ticketId: tickets[0]?.id,
-              eventId: event.id,
-              referrerId: refLink.user_id,
-              buyerId: user.id,
-              ticketAmount: cartTotal
+              referralLinkId: refLink.id, ticketId: tickets[0]?.id, eventId: event.id,
+              referrerId: refLink.user_id, buyerId: user?.id || null, ticketAmount: cartTotal
             })
           }
         } catch (e) { console.error('Commission tracking error:', e) }
       }
-
       sessionStorage.removeItem(`ref_${id}`)
-      setPurchaseSuccess(true)
-      setCart({})
-      setFloaterExpanded(false)
+      setPurchaseSuccess(true); setCart({}); setFloaterExpanded(false); setShowGuestForm(false)
       toast.success(`🎉 ${cartCount} ticket${cartCount > 1 ? 's' : ''} purchased!`)
-    } catch (e) {
-      toast.error(e.message || 'Purchase failed')
-    } finally { setBuying(false) }
+    } catch (e) { toast.error(e.message || 'Purchase failed') }
+    finally { setBuying(false) }
   }
 
+  /* ─── Guest form submit ─── */
+  function handleGuestSubmit(e) {
+    e.preventDefault()
+    if (!guestName.trim() || !guestEmail.trim()) { toast.error('Please fill in your name and email'); return }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRe.test(guestEmail)) { toast.error('Please enter a valid email'); return }
+    const info = { name: guestName.trim(), email: guestEmail.trim() }
+    if (guestAction === 'rsvp') handleRsvp(info)
+    else handleCheckout(info)
+  }
+
+  /* ─── Comments ─── */
   async function handlePostComment(e) {
     e.preventDefault()
     if (!commentText.trim()) return
     if (!user) { toast.error('Please log in to comment'); navigate('/login'); return }
     setPosting(true)
     try {
-      const newComment = await CommentService.add({
-        eventId: id,
-        userId: user.id,
+      const nc = await CommentService.add({
+        eventId: id, userId: user.id,
         userName: profile?.full_name || user.email.split('@')[0],
         userAvatar: profile?.avatar_url || null,
         content: commentText.trim()
       })
-      setComments(prev => [newComment, ...prev])
-      setCommentText('')
+      setComments(prev => [nc, ...prev]); setCommentText('')
       toast.success('Comment posted!')
-    } catch (e) {
-      toast.error(e.message || 'Failed to post comment')
-    } finally { setPosting(false) }
+    } catch (e) { toast.error(e.message || 'Failed to post comment') }
+    finally { setPosting(false) }
   }
-
   async function handleDeleteComment(commentId) {
-    try {
-      await CommentService.delete(commentId)
-      setComments(prev => prev.filter(c => c.id !== commentId))
-      toast.success('Comment deleted')
-    } catch (e) { toast.error('Failed to delete comment') }
+    try { await CommentService.delete(commentId); setComments(prev => prev.filter(c => c.id !== commentId)); toast.success('Comment deleted') }
+    catch { toast.error('Failed to delete comment') }
   }
 
+  /* ─── Loading ─── */
   if (loading) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!event) return null
 
@@ -309,338 +349,430 @@ export default function EventDetail() {
   const endDate = formatDate(event.end_date)
   const startTime = formatTime(event.time)
   const endTime = formatTime(event.end_time)
-  const badge = getEventTypeBadge(event.event_type)
-  const BadgeIcon = badge.icon
   const isMultiDay = event.end_date && event.end_date !== event.date
   const isHybrid = event.event_type === 'hybrid'
   const isVirtual = event.event_type === 'virtual'
   const showVirtualLink = purchaseSuccess && (isVirtual || (isHybrid && attendanceMode === 'virtual')) && event.virtual_link
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] pt-20 pb-16">
-      {/* Back button */}
-      <div className="max-w-3xl mx-auto px-4 mb-4">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-400 hover:text-white transition text-sm">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-      </div>
+    <div className="min-h-screen bg-[#0a0a0f]" style={{ paddingTop: 64 }}>
 
-      <div className="max-w-3xl mx-auto px-4">
-        {/* Hero Image */}
-        <div className="relative rounded-2xl overflow-hidden aspect-[16/9] mb-8">
-          <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-          
-          <div className="absolute top-4 right-4 flex gap-2">
-            <button onClick={() => setLiked(!liked)} className={`p-2.5 rounded-full backdrop-blur-md transition ${liked ? 'bg-pink-500/80 text-white' : 'bg-black/40 text-white hover:bg-black/60'}`}>
-              <Heart className="w-5 h-5" fill={liked ? 'currentColor' : 'none'} />
-            </button>
-            <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!') }} className="bg-black/40 backdrop-blur-md text-white p-2.5 rounded-full hover:bg-black/60 transition">
-              <Share2 className="w-5 h-5" />
-            </button>
+      {/* ═══ COUNTDOWN TIMER ═══ */}
+      {event.date && <Countdown date={event.date} time={event.time} />}
+
+      {/* ═══ FULL-BLEED HERO ═══ */}
+      <div style={{ position: 'relative', width: '100%', minHeight: 420, overflow: 'hidden' }}>
+        <img src={event.image} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 20%, rgba(10,10,15,0.85) 75%, rgba(10,10,15,1) 100%)' }} />
+
+        {/* Back + actions */}
+        <div style={{ position: 'absolute', top: 16, left: 16, right: 16, display: 'flex', justifyContent: 'space-between', zIndex: 5 }}>
+          <button onClick={() => navigate(-1)} style={{
+            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', border: 'none',
+            color: 'white', padding: '8px 14px', borderRadius: 999, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', fontWeight: 600
+          }}><ArrowLeft size={16} /> Back</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setLiked(!liked)} style={{
+              background: liked ? 'rgba(236,72,153,0.7)' : 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(8px)', border: 'none', color: 'white',
+              width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}><Heart size={18} fill={liked ? 'currentColor' : 'none'} /></button>
+            <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!') }} style={{
+              background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', border: 'none', color: 'white',
+              width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}><Share2 size={18} /></button>
           </div>
+        </div>
 
-          <div className="absolute bottom-4 left-4 flex items-center gap-2">
-            <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-md ${badge.color}`}>
-              <BadgeIcon className="w-3.5 h-3.5" /> {badge.label}
-            </span>
-            <span className="bg-black/40 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full">
-              {event.category}
-            </span>
-            {isFreeEvent && (
-              <span className="bg-green-500/20 backdrop-blur-md text-green-400 text-xs font-bold px-3 py-1.5 rounded-full">Free</span>
-            )}
-            {event.reshare_enabled && (
-              <span className="bg-green-500/20 backdrop-blur-md text-green-400 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" /> Reshare
+        {/* Overlaid event info */}
+        <div style={{ position: 'relative', zIndex: 4, padding: '200px 24px 32px', maxWidth: 800, margin: '0 auto' }}>
+          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, color: 'white', lineHeight: 1.1, marginBottom: 16 }}>
+            {event.title}
+          </h1>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
+            {event.event_type !== 'virtual' && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <MapPin size={15} style={{ color: 'var(--purple-light)' }} /> {event.location}
               </span>
             )}
-          </div>
-        </div>
-
-        {/* Title & Host */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">{event.title}</h1>
-          <p className="text-gray-400 flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-sm font-bold overflow-hidden">
-              {event.organizer_avatar ? (
-                <img src={event.organizer_avatar} alt="" className="w-full h-full object-cover" />
-              ) : (
-                (event.organizer_name || 'U')[0].toUpperCase()
-              )}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Calendar size={15} style={{ color: 'var(--purple-light)' }} />
+              {startDate.month} {startDate.day}{startTime ? ` · ${startTime}` : ''}
             </span>
-            Hosted by <span className="text-white font-medium">{event.organizer_name || 'Unknown'}</span>
-          </p>
-        </div>
-
-        {/* Date & Location */}
-        <div className="space-y-4 mb-8">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-xl flex flex-col items-center justify-center flex-shrink-0">
-              <span className="text-[10px] font-bold text-purple-400 leading-none">{startDate.month}</span>
-              <span className="text-xl font-bold text-white leading-none mt-0.5">{startDate.day}</span>
-            </div>
-            <div>
-              <p className="text-white font-semibold">{startDate.full}</p>
-              <p className="text-gray-400 text-sm">
-                {startTime}{endTime ? ` – ${endTime}` : ''}
-                {isMultiDay && (
-                  <span className="text-gray-500"> · Ends {endDate.full}</span>
-                )}
-              </p>
-            </div>
           </div>
+
+          {/* CTA buttons row */}
+          <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+            <button className="btn btn-purple" onClick={() => document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })}>
+              <span className="btn-label">GET TICKETS</span>
+              <span className="btn-arrow"><ArrowRight size={16} /></span>
+            </button>
+            <button onClick={() => setShowFlyer(true)} style={{
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+              color: 'white', padding: '12px 20px', borderRadius: 8, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: '0.82rem',
+              backdropFilter: 'blur(8px)'
+            }}><Eye size={15} /> VIEW FLYER</button>
+          </div>
+
+          {/* Save the date row */}
+          <div style={{
+            marginTop: 16, display: 'flex', alignItems: 'center', gap: 16,
+            fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em'
+          }}>
+            <span style={{ fontWeight: 700 }}>SAVE THE DATE</span>
+            <a href={googleCalUrl(event)} target="_blank" rel="noopener noreferrer"
+              style={{ color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              title="Google Calendar"
+            >
+              <Calendar size={16} />
+            </a>
+            <button onClick={() => downloadIcs(event)}
+              style={{ color: 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              title="Download .ics"
+            >
+              <Download size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ MAIN CONTENT ═══ */}
+      <div className="max-w-3xl mx-auto px-4" style={{ paddingTop: 32, paddingBottom: 80 }}>
+
+        {/* Event info cards */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 32,
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 16, padding: 24
+        }}>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', marginBottom: 4 }}>{event.title}</h2>
 
           {event.event_type !== 'virtual' && (
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-6 h-6 text-purple-400" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(123,78,247,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <MapPin size={18} style={{ color: 'var(--purple-light)' }} />
               </div>
               <div>
-                <p className="text-white font-semibold">{event.location}</p>
-                <p className="text-gray-400 text-sm">In person</p>
+                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Venue</p>
+                <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>{event.location}</p>
               </div>
             </div>
           )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(123,78,247,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Calendar size={18} style={{ color: 'var(--purple-light)' }} />
+            </div>
+            <div>
+              <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>{startDate.full}</p>
+              <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>
+                {startTime}{endTime ? ` – ${endTime}` : ''} Africa/Lagos
+                {isMultiDay && <span> · Ends {endDate.full}</span>}
+              </p>
+            </div>
+          </div>
 
           {(isVirtual || isHybrid) && event.virtual_link && (
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Video className="w-6 h-6 text-blue-400" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Video size={18} style={{ color: '#60a5fa' }} />
               </div>
               <div>
-                <p className="text-white font-semibold">Virtual Event</p>
+                <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>Virtual Event</p>
                 {purchaseSuccess || hasRsvpd ? (
-                  <a href={event.virtual_link} target="_blank" rel="noopener noreferrer"
-                    className="text-purple-400 hover:text-purple-300 text-sm flex items-center gap-1">
-                    Join online <ExternalLink className="w-3 h-3" />
-                  </a>
+                  <a href={event.virtual_link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple-light)', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4 }}>Join online <ExternalLink size={12} /></a>
                 ) : (
-                  <p className="text-gray-500 text-sm">Virtual link available after registration</p>
+                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem' }}>Link available after registration</p>
                 )}
               </div>
             </div>
           )}
-        </div>
 
-        {/* ============ RESHARE & EARN ============ */}
-        {event.reshare_enabled && (
-          <>
-            <div className="border-t border-white/10 my-8" />
-            <div className="mb-8">
-              <div className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-500/20 rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-purple-600/20 rounded-xl flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold text-lg">Reshare & Earn</h3>
-                    <p className="text-gray-400 text-sm">Earn 2.5% commission on every ticket sold through your link</p>
-                  </div>
-                </div>
-
-                {!showResharePanel ? (
-                  <button onClick={handleGenerateReshareLink} disabled={generatingLink}
-                    className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors mt-3">
-                    <Share2 className="w-4 h-4" />
-                    {generatingLink ? 'Generating...' : 'Get Your Referral Link'}
-                  </button>
-                ) : (
-                  <div className="mt-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <input readOnly value={reshareLink}
-                        className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none" />
-                      <button onClick={copyReshareLink}
-                        className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-colors ${linkCopied ? 'bg-green-600 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}>
-                        {linkCopied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy</>}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+          {/* Organizer */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+              {event.organizer_avatar ? (
+                <img src={event.organizer_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ fontWeight: 800, fontSize: '0.85rem' }}>{(event.organizer_name || 'U')[0].toUpperCase()}</span>
+              )}
             </div>
-          </>
-        )}
-
-        <div className="border-t border-white/10 my-8" />
-
-        {/* About */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-white mb-4">About This Event</h2>
-          <p className="text-gray-300 leading-relaxed whitespace-pre-line">{event.description}</p>
+            <div>
+              <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>Organized by</p>
+              <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'white' }}>{event.organizer_name || 'Unknown'}</p>
+            </div>
+          </div>
         </div>
 
-        {/* Tags */}
-        {event.tags?.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-8">
-            {event.tags.map(t => <span key={t} className="bg-white/5 text-gray-400 text-sm px-3 py-1.5 rounded-full border border-white/5">#{t}</span>)}
+        {/* ═══ RESHARE & EARN ═══ */}
+        {event.reshare_enabled && (
+          <div style={{ marginBottom: 32 }}>
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(123,78,247,0.1), rgba(236,72,153,0.06))',
+              border: '1px solid rgba(123,78,247,0.2)', borderRadius: 16, padding: 24
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(123,78,247,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <DollarSign size={18} style={{ color: 'var(--purple-light)' }} />
+                </div>
+                <div>
+                  <h3 style={{ fontWeight: 800, color: 'white', fontSize: '1.05rem' }}>Reshare & Earn</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem' }}>Earn 2.5% commission on every ticket sold through your link</p>
+                </div>
+              </div>
+              {!showResharePanel ? (
+                <button onClick={handleGenerateReshareLink} disabled={generatingLink} style={{
+                  width: '100%', background: 'var(--purple)', border: 'none', color: 'white',
+                  fontWeight: 700, padding: '14px', borderRadius: 12, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: '0.9rem'
+                }}><Share2 size={16} /> {generatingLink ? 'Generating...' : 'Get Your Referral Link'}</button>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input readOnly value={reshareLink} style={{
+                    flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 10, padding: '12px 14px', color: 'white', fontSize: '0.82rem', outline: 'none'
+                  }} />
+                  <button onClick={copyReshareLink} style={{
+                    background: linkCopied ? '#16a34a' : 'var(--purple)', border: 'none', color: 'white',
+                    padding: '12px 18px', borderRadius: 10, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 6
+                  }}>{linkCopied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}</button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        <div className="border-t border-white/10 my-8" />
-
-        {/* ============ PURCHASE SUCCESS ============ */}
+        {/* ═══ PURCHASE SUCCESS ═══ */}
         {purchaseSuccess && (
-          <div className="mb-8">
-            <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-8 text-center">
-              <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto mb-4" />
-              <h3 className="text-white font-bold text-2xl mb-2">
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 16, padding: 40, textAlign: 'center' }}>
+              <CheckCircle2 size={56} style={{ color: '#4ade80', margin: '0 auto 16px' }} />
+              <h3 style={{ fontWeight: 900, fontSize: '1.5rem', color: 'white', marginBottom: 8 }}>
                 {isFreeEvent ? "You're In! 🎉" : "Tickets Secured! 🎉"}
               </h3>
-              <p className="text-gray-400 mb-4">
-                {isFreeEvent 
-                  ? "Your RSVP has been confirmed. We'll see you there!" 
-                  : "Your tickets have been confirmed. Check your dashboard for details."}
+              <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>
+                {isFreeEvent ? "Your RSVP has been confirmed. We'll see you there!" : "Your tickets have been confirmed. Check your dashboard for details."}
               </p>
               {showVirtualLink && (
-                <a href={event.virtual_link} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors mb-3">
-                  <Video className="w-5 h-5" /> Join Virtual Event <ExternalLink className="w-4 h-4" />
-                </a>
+                <a href={event.virtual_link} target="_blank" rel="noopener noreferrer" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: '#2563eb', color: 'white', fontWeight: 700, padding: '12px 24px',
+                  borderRadius: 12, textDecoration: 'none', marginBottom: 12
+                }}><Video size={18} /> Join Virtual Event <ExternalLink size={14} /></a>
               )}
-              <div className="flex items-center justify-center gap-3 mt-2">
-                <Link to="/dashboard" className="text-purple-400 hover:text-purple-300 font-medium text-sm">View Dashboard →</Link>
-              </div>
+              {user && <Link to="/dashboard" style={{ color: 'var(--purple-light)', fontWeight: 600, fontSize: '0.9rem' }}>View Dashboard →</Link>}
             </div>
           </div>
         )}
 
-        {/* ============ HYBRID ATTENDANCE MODE ============ */}
+        {/* ═══ HYBRID MODE SELECTOR ═══ */}
         {isHybrid && !purchaseSuccess && !hasRsvpd && (
-          <div className="mb-6">
-            <h3 className="text-white font-semibold mb-3">How will you attend?</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setAttendanceMode('in-person')}
-                className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${
-                  attendanceMode === 'in-person'
-                    ? 'border-purple-500 bg-purple-500/10'
-                    : 'border-white/10 bg-white/5 hover:border-white/20'
-                }`}
-              >
-                <MapPinned className={`w-5 h-5 ${attendanceMode === 'in-person' ? 'text-purple-400' : 'text-gray-400'}`} />
-                <div className="text-left">
-                  <p className={`font-semibold text-sm ${attendanceMode === 'in-person' ? 'text-white' : 'text-gray-300'}`}>In Person</p>
-                  <p className="text-gray-500 text-xs">Attend at venue</p>
-                </div>
-              </button>
-              <button
-                onClick={() => setAttendanceMode('virtual')}
-                className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${
-                  attendanceMode === 'virtual'
-                    ? 'border-blue-500 bg-blue-500/10'
-                    : 'border-white/10 bg-white/5 hover:border-white/20'
-                }`}
-              >
-                <Monitor className={`w-5 h-5 ${attendanceMode === 'virtual' ? 'text-blue-400' : 'text-gray-400'}`} />
-                <div className="text-left">
-                  <p className={`font-semibold text-sm ${attendanceMode === 'virtual' ? 'text-white' : 'text-gray-300'}`}>Virtual</p>
-                  <p className="text-gray-500 text-xs">Join online</p>
-                </div>
-              </button>
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontWeight: 700, color: 'white', marginBottom: 12 }}>How will you attend?</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {[{ mode: 'in-person', icon: MapPinned, label: 'In Person', sub: 'Attend at venue', active: 'var(--purple)' },
+                { mode: 'virtual', icon: Monitor, label: 'Virtual', sub: 'Join online', active: '#2563eb' }
+              ].map(o => (
+                <button key={o.mode} onClick={() => setAttendanceMode(o.mode)} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 12,
+                  border: `1.5px solid ${attendanceMode === o.mode ? o.active : 'rgba(255,255,255,0.1)'}`,
+                  background: attendanceMode === o.mode ? `${o.active}15` : 'rgba(255,255,255,0.03)',
+                  cursor: 'pointer', textAlign: 'left', color: 'white'
+                }}>
+                  <o.icon size={20} style={{ color: attendanceMode === o.mode ? o.active : 'rgba(255,255,255,0.4)' }} />
+                  <div>
+                    <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>{o.label}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>{o.sub}</p>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        {/* ============ TICKETS / RSVP ============ */}
+        {/* ═══ SELECT TICKETS / RSVP ═══ */}
         {!purchaseSuccess && !hasRsvpd && (
-          <div id="tickets" className="mb-8">
-            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <Ticket className="w-5 h-5 text-purple-400" /> 
+          <div id="tickets" style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'white', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
               {isFreeEvent ? 'RSVP' : 'Select Tickets'}
             </h2>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.88rem', marginBottom: 24 }}>
+              {isFreeEvent ? 'Confirm your spot for this free event' : 'Join the experience. Pulse levels rising'}
+            </p>
 
             {isFreeEvent ? (
-              /* ---- FREE EVENT: RSVP ---- */
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
-                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-green-400" />
+              <div style={{
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 16, padding: 32, textAlign: 'center'
+              }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(74,222,128,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <Users size={28} style={{ color: '#4ade80' }} />
                 </div>
-                <h3 className="text-white font-bold text-xl mb-2">This is a Free Event!</h3>
-                <p className="text-gray-400 text-sm mb-6">RSVP to confirm your spot and get event updates</p>
-                <button onClick={handleRsvp} disabled={rsvping}
-                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-4 px-10 rounded-xl transition-colors text-lg inline-flex items-center gap-2">
-                  {rsvping ? (
-                    <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Confirming...</>
-                  ) : (
-                    <><CheckCircle2 className="w-5 h-5" /> RSVP – It's Free</>
-                  )}
+                <h3 style={{ fontWeight: 800, fontSize: '1.2rem', color: 'white', marginBottom: 8 }}>This is a Free Event!</h3>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.88rem', marginBottom: 20 }}>RSVP to confirm your spot and get event updates</p>
+                <button onClick={() => handleRsvp()} disabled={rsvping} style={{
+                  background: '#16a34a', border: 'none', color: 'white', fontWeight: 800,
+                  padding: '16px 32px', borderRadius: 12, cursor: 'pointer', fontSize: '1rem',
+                  display: 'inline-flex', alignItems: 'center', gap: 8
+                }}>
+                  {rsvping ? 'Confirming...' : <><CheckCircle2 size={18} /> RSVP – It's Free</>}
                 </button>
               </div>
             ) : (
-              /* ---- PAID EVENT: MULTI-TIER CART ---- */
               <>
-                <div className="space-y-3 mb-6">
-                  {tiers.map(tier => {
+                {/* Ticket tier cards — rigitix style */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+                  {tiers.map((tier, i) => {
                     const qty = cartQty(tier.name)
                     return (
-                      <div key={tier.name}
-                        className={`p-5 rounded-xl border transition-all ${qty > 0 ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-white/5'}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="text-white font-semibold text-lg">{tier.name}</p>
-                            <p className="text-xs text-gray-500 mt-1">{tier.available} remaining</p>
+                      <div key={tier.name} style={{
+                        background: qty > 0 ? 'rgba(123,78,247,0.06)' : 'rgba(255,255,255,0.03)',
+                        border: `1.5px solid ${qty > 0 ? 'rgba(123,78,247,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        borderRadius: 16, padding: 24, transition: 'all 0.25s'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                          {/* Ticket icon */}
+                          <div style={{
+                            width: 52, height: 52, borderRadius: 14,
+                            background: 'linear-gradient(135deg, var(--purple), var(--purple-dark))',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                          }}>
+                            <Zap size={24} style={{ color: 'white' }} />
                           </div>
-                          <div className="flex items-center gap-4">
-                            <p className="text-purple-400 font-bold text-lg">₦{Number(tier.price).toLocaleString()}</p>
-                            <div className="flex items-center gap-2">
-                              {qty > 0 && (
-                                <button onClick={() => removeFromCart(tier.name)}
-                                  className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition">
-                                  <Minus className="w-4 h-4" />
-                                </button>
-                              )}
-                              {qty > 0 && (
-                                <span className="text-white font-bold w-6 text-center">{qty}</span>
-                              )}
-                              <button onClick={() => addToCart(tier.name)}
-                                className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition">
-                                <Plus className="w-4 h-4" />
-                              </button>
-                            </div>
+                          <div style={{ flex: 1 }}>
+                            <h4 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white', marginBottom: 4 }}>{tier.name}</h4>
+                            <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                              {tier.description || `Access to ${event.title}`}
+                            </p>
+                            <span style={{
+                              display: 'inline-block', marginTop: 8,
+                              fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,255,255,0.5)',
+                              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                              padding: '4px 10px', borderRadius: 999
+                            }}>Admits 1 Person</span>
                           </div>
                         </div>
+
+                        {/* Price + quantity */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                          <div>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em', marginBottom: 2 }}>UNIT PRICE</p>
+                            <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>₦{Number(tier.price).toLocaleString()}</p>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {qty > 0 && (
+                              <button onClick={() => removeFromCart(tier.name)} style={{
+                                width: 36, height: 36, borderRadius: 10,
+                                background: 'rgba(255,255,255,0.08)', border: 'none', color: 'white',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                              }}><Minus size={16} /></button>
+                            )}
+                            {qty > 0 && <span style={{ fontWeight: 800, color: 'white', width: 24, textAlign: 'center' }}>{qty}</span>}
+                            <button onClick={() => addToCart(tier.name)} style={{
+                              width: 36, height: 36, borderRadius: 10,
+                              background: 'var(--purple)', border: 'none', color: 'white',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}><Plus size={16} /></button>
+                          </div>
+                        </div>
+                        {tier.available != null && (
+                          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>{tier.available} remaining</p>
+                        )}
                       </div>
                     )
                   })}
                 </div>
 
-                {/* Static Cart summary / checkout */}
-                {cartCount > 0 && (
-                  <div ref={cartSummaryRef} className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-white font-bold flex items-center gap-2">
-                        <ShoppingCart className="w-5 h-5 text-purple-400" /> Your Cart
-                      </h3>
-                      <button onClick={clearCart} className="text-gray-500 hover:text-red-400 text-xs flex items-center gap-1 transition">
-                        <X className="w-3 h-3" /> Clear
-                      </button>
+                {/* ═══ GUEST CHECKOUT FORM ═══ */}
+                {showGuestForm && !user && (
+                  <div style={{
+                    background: 'rgba(123,78,247,0.06)', border: '1.5px solid rgba(123,78,247,0.2)',
+                    borderRadius: 16, padding: 24, marginBottom: 16
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <User size={20} style={{ color: 'var(--purple-light)' }} />
+                      <h3 style={{ fontWeight: 800, color: 'white', fontSize: '1rem' }}>Guest Checkout</h3>
                     </div>
-
-                    <div className="space-y-2 mb-4">
-                      {cartItems.map(item => (
-                        <div key={item.tierName} className="flex justify-between text-sm">
-                          <span className="text-gray-400">{item.tierName} × {item.quantity}</span>
-                          <span className="text-white">₦{item.totalPrice.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="border-t border-white/10 pt-4 mb-5">
-                      <div className="flex justify-between items-center">
-                        <span className="text-white font-bold text-xl">Total</span>
-                        <span className="text-purple-400 font-bold text-2xl">₦{cartTotal.toLocaleString()}</span>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 16 }}>
+                      Enter your details to {guestAction === 'rsvp' ? 'confirm your RSVP' : 'complete your purchase'}. No account needed!
+                    </p>
+                    <form onSubmit={handleGuestSubmit}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                        <input type="text" placeholder="Full Name" value={guestName} onChange={e => setGuestName(e.target.value)}
+                          style={{
+                            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none'
+                          }}
+                        />
+                        <input type="email" placeholder="Email Address" value={guestEmail} onChange={e => setGuestEmail(e.target.value)}
+                          style={{
+                            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none'
+                          }}
+                        />
                       </div>
-                      <p className="text-gray-500 text-xs mt-1">{cartCount} ticket{cartCount > 1 ? 's' : ''}</p>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button type="submit" disabled={buying || rsvping} style={{
+                          flex: 1, background: 'var(--purple)', border: 'none', color: 'white',
+                          fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer', fontSize: '0.9rem'
+                        }}>
+                          {(buying || rsvping) ? 'Processing...' : guestAction === 'rsvp' ? 'Confirm RSVP' : `Pay ₦${cartTotal.toLocaleString()}`}
+                        </button>
+                        <button type="button" onClick={() => setShowGuestForm(false)} style={{
+                          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                          color: 'rgba(255,255,255,0.6)', padding: '14px 18px', borderRadius: 12, cursor: 'pointer', fontSize: '0.85rem'
+                        }}>Cancel</button>
+                      </div>
+                    </form>
+                    <p style={{ marginTop: 12, fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>
+                      Already have an account? <Link to="/login" style={{ color: 'var(--purple-light)' }}>Log in</Link>
+                    </p>
+                  </div>
+                )}
+
+                {/* Static cart summary / checkout */}
+                {cartCount > 0 && !showGuestForm && (
+                  <div ref={cartSummaryRef} style={{
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 16, padding: 24
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <h3 style={{ fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <ShoppingCart size={18} style={{ color: 'var(--purple-light)' }} /> Your Cart
+                      </h3>
+                      <button onClick={clearCart} style={{
+                        background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
+                        cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4
+                      }}><X size={12} /> Clear</button>
                     </div>
 
-                    <button onClick={handleCheckout} disabled={buying}
-                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors text-lg">
-                      {buying ? (
-                        <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</>
-                      ) : (
-                        <><ShoppingCart className="w-5 h-5" /> Checkout – ₦{cartTotal.toLocaleString()}</>
-                      )}
+                    {cartItems.map(item => (
+                      <div key={item.tierName} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', padding: '6px 0' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>{item.tierName} × {item.quantity}</span>
+                        <span style={{ color: 'white', fontWeight: 600 }}>₦{item.totalPrice.toLocaleString()}</span>
+                      </div>
+                    ))}
+
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 12, paddingTop: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>Total</span>
+                        <span style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--purple-light)' }}>₦{cartTotal.toLocaleString()}</span>
+                      </div>
+                      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginTop: 2 }}>{cartCount} ticket{cartCount > 1 ? 's' : ''}</p>
+                    </div>
+
+                    <button onClick={() => handleCheckout()} disabled={buying} style={{
+                      width: '100%', marginTop: 20,
+                      background: 'var(--purple)', border: 'none', color: 'white',
+                      fontWeight: 800, padding: '16px', borderRadius: 12, cursor: 'pointer',
+                      fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                    }}>
+                      {buying ? 'Processing...' : <><ShoppingCart size={18} /> Checkout – ₦{cartTotal.toLocaleString()}</>}
                     </button>
                   </div>
                 )}
@@ -651,55 +783,103 @@ export default function EventDetail() {
 
         {/* Already RSVP'd */}
         {hasRsvpd && !purchaseSuccess && (
-          <div className="mb-8">
-            <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 text-center">
-              <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-3" />
-              <h3 className="text-white font-bold text-xl mb-2">You've RSVP'd! ✓</h3>
-              <p className="text-gray-400 text-sm">You're confirmed for this event</p>
-              {(isVirtual || isHybrid) && event.virtual_link && (
-                <a href={event.virtual_link} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors mt-4 text-sm">
-                  <Video className="w-4 h-4" /> Join Virtual Event <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 16, padding: 28, textAlign: 'center' }}>
+              <CheckCircle2 size={44} style={{ color: '#4ade80', margin: '0 auto 12px' }} />
+              <h3 style={{ fontWeight: 800, fontSize: '1.2rem', color: 'white', marginBottom: 4 }}>You've RSVP'd! ✓</h3>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.88rem' }}>You're confirmed for this event</p>
             </div>
           </div>
         )}
 
-        <div className="border-t border-white/10 my-8" />
+        {/* ═══ ABOUT THIS EVENT ═══ */}
+        <div style={{ marginBottom: 32 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.02em' }}>About This Event</h2>
+          <p style={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, whiteSpace: 'pre-line', fontSize: '0.95rem' }}>{event.description}</p>
+        </div>
 
-        {/* Comments */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-purple-400" /> 
-            Comments {comments.length > 0 && <span className="text-sm font-normal text-gray-500">({comments.length})</span>}
+        {event.tags?.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 32 }}>
+            {event.tags.map(t => (
+              <span key={t} style={{
+                background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)',
+                fontSize: '0.82rem', padding: '6px 14px', borderRadius: 999,
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}>#{t}</span>
+            ))}
+          </div>
+        )}
+
+        {/* ═══ LOCATION WITH MAP ═══ */}
+        {event.location && event.event_type !== 'virtual' && (
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Location</h2>
+              <a href={`https://maps.google.com/?q=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer"
+                style={{ color: 'var(--purple-light)', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', letterSpacing: '0.04em' }}>
+                GET DIRECTIONS <ExternalLink size={12} />
+              </a>
+            </div>
+            <div style={{
+              borderRadius: 16, overflow: 'hidden',
+              border: '1.5px solid rgba(123,78,247,0.15)',
+              background: 'rgba(200,240,220,0.06)'
+            }}>
+              <iframe
+                title="Map"
+                width="100%" height="220" frameBorder="0" style={{ border: 0, display: 'block' }}
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(event.location)}&output=embed&z=15`}
+                allowFullScreen loading="lazy"
+              />
+              <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(0,0,0,0.3)' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MapPin size={16} style={{ color: 'white' }} />
+                </div>
+                <div>
+                  <p style={{ fontWeight: 700, color: 'white', fontSize: '0.88rem' }}>{event.location}</p>
+                  <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>THE SPOT</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '32px 0' }} />
+
+        {/* ═══ COMMENTS ═══ */}
+        <div style={{ marginBottom: 32 }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'white', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MessageCircle size={18} style={{ color: 'var(--purple-light)' }} /> Comments
+            {comments.length > 0 && <span style={{ fontSize: '0.82rem', fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>({comments.length})</span>}
           </h2>
 
-          <form onSubmit={handlePostComment} className="mb-8">
-            <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-sm font-bold flex-shrink-0 overflow-hidden">
+          <form onSubmit={handlePostComment} style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%', background: 'rgba(123,78,247,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden'
+              }}>
                 {user && profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <MessageCircle className="w-4 h-4" />
-                )}
+                  <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : <MessageCircle size={14} style={{ color: 'var(--purple-light)' }} />}
               </div>
-              <div className="flex-1">
-                <textarea
-                  value={commentText}
-                  onChange={e => setCommentText(e.target.value)}
-                  placeholder={user ? "Share your thoughts about this event..." : "Log in to comment..."}
-                  disabled={!user}
-                  rows={3}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none text-sm disabled:opacity-50"
+              <div style={{ flex: 1 }}>
+                <textarea value={commentText} onChange={e => setCommentText(e.target.value)}
+                  placeholder={user ? "Share your thoughts..." : "Log in to comment..."}
+                  disabled={!user} rows={3}
+                  style={{
+                    width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 12, padding: '12px 14px', color: 'white', fontSize: '0.88rem',
+                    outline: 'none', resize: 'none'
+                  }}
                 />
                 {user && commentText.trim() && (
-                  <div className="flex justify-end mt-2">
-                    <button type="submit" disabled={posting}
-                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors">
-                      <Send className="w-3.5 h-3.5" />
-                      {posting ? 'Posting...' : 'Post Comment'}
-                    </button>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                    <button type="submit" disabled={posting} style={{
+                      background: 'var(--purple)', border: 'none', color: 'white',
+                      padding: '8px 18px', borderRadius: 10, fontWeight: 700, fontSize: '0.82rem',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6
+                    }}><Send size={12} /> {posting ? 'Posting...' : 'Post'}</button>
                   </div>
                 )}
               </div>
@@ -707,37 +887,37 @@ export default function EventDetail() {
           </form>
 
           {loadingComments ? (
-            <div className="text-center py-8">
-              <div className="inline-block w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-            </div>
+            <div style={{ textAlign: 'center', padding: 32 }}><div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" style={{ display: 'inline-block' }} /></div>
           ) : comments.length === 0 ? (
-            <div className="text-center py-10 bg-white/[0.02] border border-white/5 rounded-2xl">
-              <MessageCircle className="w-10 h-10 text-gray-700 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm">No comments yet. Be the first to share your thoughts!</p>
+            <div style={{ textAlign: 'center', padding: 40, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16 }}>
+              <MessageCircle size={32} style={{ color: 'rgba(255,255,255,0.15)', margin: '0 auto 12px' }} />
+              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.88rem' }}>No comments yet. Be the first!</p>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div>
               {comments.map(comment => (
-                <div key={comment.id} className="group flex gap-3 py-4 border-b border-white/5 last:border-0">
-                  <div className="w-9 h-9 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-xs font-bold flex-shrink-0 overflow-hidden">
-                    {comment.user_avatar ? (
-                      <img src={comment.user_avatar} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      comment.user_name[0].toUpperCase()
-                    )}
+                <div key={comment.id} style={{ display: 'flex', gap: 12, padding: '16px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                  className="group"
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%', background: 'rgba(123,78,247,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden',
+                    fontSize: '0.72rem', fontWeight: 800, color: 'var(--purple-light)'
+                  }}>
+                    {comment.user_avatar ? <img src={comment.user_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : comment.user_name[0].toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-white font-semibold text-sm">{comment.user_name}</span>
-                      <span className="text-gray-600 text-xs">{timeAgo(comment.created_at)}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'white' }}>{comment.user_name}</span>
+                      <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>{timeAgo(comment.created_at)}</span>
                     </div>
-                    <p className="text-gray-300 text-sm leading-relaxed">{comment.content}</p>
+                    <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>{comment.content}</p>
                   </div>
                   {user && user.id === comment.user_id && (
-                    <button onClick={() => handleDeleteComment(comment.id)}
-                      className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 p-1 transition-all flex-shrink-0 self-start mt-1">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <button onClick={() => handleDeleteComment(comment.id)} className="opacity-0 group-hover:opacity-100" style={{
+                      background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)',
+                      cursor: 'pointer', padding: 4, alignSelf: 'flex-start'
+                    }}><Trash2 size={14} /></button>
                   )}
                 </div>
               ))}
@@ -746,75 +926,87 @@ export default function EventDetail() {
         </div>
       </div>
 
-      {/* ============ FLOATING CART BAR ============ */}
+      {/* ═══ FLYER MODAL ═══ */}
+      {showFlyer && (
+        <div onClick={() => setShowFlyer(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: 600, width: '100%' }}>
+            <button onClick={() => setShowFlyer(false)} style={{
+              position: 'absolute', top: -40, right: 0,
+              background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white',
+              width: 36, height: 36, borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}><X size={18} /></button>
+            <img src={event.image} alt={event.title} style={{ width: '100%', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }} />
+          </div>
+        </div>
+      )}
+
+      {/* ═══ FLOATING CART BAR ═══ */}
       {showFloatingCart && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom duration-300">
-          {/* Expanded cart detail */}
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}>
           {floaterExpanded && (
-            <div className="max-w-3xl mx-auto px-4">
-              <div className="bg-[#16161f] border border-white/10 border-b-0 rounded-t-2xl px-5 pt-5 pb-3 shadow-2xl">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-white font-bold text-sm flex items-center gap-2">
-                    <ShoppingCart className="w-4 h-4 text-purple-400" /> Cart Summary
+            <div style={{ maxWidth: 768, margin: '0 auto', padding: '0 16px' }}>
+              <div style={{
+                background: '#16161f', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none',
+                borderRadius: '16px 16px 0 0', padding: '16px 20px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <h4 style={{ fontWeight: 800, fontSize: '0.85rem', color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ShoppingCart size={14} style={{ color: 'var(--purple-light)' }} /> Cart Summary
                   </h4>
-                  <button onClick={clearCart} className="text-gray-500 hover:text-red-400 text-xs flex items-center gap-1 transition">
-                    <X className="w-3 h-3" /> Clear
+                  <button onClick={clearCart} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <X size={10} /> Clear
                   </button>
                 </div>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                  {cartItems.map(item => (
-                    <div key={item.tierName} className="flex items-center justify-between text-sm py-1">
-                      <div className="flex items-center gap-3">
-                        <span className="text-gray-400">{item.tierName}</span>
-                        <div className="flex items-center gap-1.5">
-                          <button onClick={() => removeFromCart(item.tierName)}
-                            className="w-6 h-6 rounded-md bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition text-xs">
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="text-white font-semibold w-5 text-center text-xs">{item.quantity}</span>
-                          <button onClick={() => addToCart(item.tierName)}
-                            className="w-6 h-6 rounded-md bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition text-xs">
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
+                {cartItems.map(item => (
+                  <div key={item.tierName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>{item.tierName}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <button onClick={() => removeFromCart(item.tierName)} style={{ width: 22, height: 22, borderRadius: 6, background: 'rgba(255,255,255,0.08)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={10} /></button>
+                        <span style={{ color: 'white', fontWeight: 700, width: 18, textAlign: 'center', fontSize: '0.78rem' }}>{item.quantity}</span>
+                        <button onClick={() => addToCart(item.tierName)} style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--purple)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={10} /></button>
                       </div>
-                      <span className="text-white font-medium">₦{item.totalPrice.toLocaleString()}</span>
                     </div>
-                  ))}
-                </div>
+                    <span style={{ color: 'white', fontWeight: 600 }}>₦{item.totalPrice.toLocaleString()}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Main floating bar */}
-          <div className="bg-[#12121a]/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
-            <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-              {/* Cart info — tap to expand */}
-              <button onClick={() => setFloaterExpanded(!floaterExpanded)}
-                className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                <div className="relative">
-                  <ShoppingCart className="w-6 h-6 text-purple-400" />
-                  <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                    {cartCount}
-                  </span>
+          <div style={{ background: 'rgba(18,18,26,0.95)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ maxWidth: 768, margin: '0 auto', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button onClick={() => setFloaterExpanded(!floaterExpanded)} style={{
+                display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0,
+                background: 'none', border: 'none', color: 'white', cursor: 'pointer', textAlign: 'left'
+              }}>
+                <div style={{ position: 'relative' }}>
+                  <ShoppingCart size={22} style={{ color: 'var(--purple-light)' }} />
+                  <span style={{
+                    position: 'absolute', top: -8, right: -8,
+                    background: 'var(--purple)', color: 'white', fontSize: '0.6rem', fontWeight: 800,
+                    width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>{cartCount}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-bold text-lg leading-tight">₦{cartTotal.toLocaleString()}</p>
-                  <p className="text-gray-400 text-xs truncate">
-                    {cartCount} ticket{cartCount > 1 ? 's' : ''} · {cartItems.map(i => `${i.quantity}× ${i.tierName}`).join(', ')}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 900, fontSize: '1.1rem' }}>₦{cartTotal.toLocaleString()}</p>
+                  <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {cartCount} ticket{cartCount > 1 ? 's' : ''}
                   </p>
                 </div>
-                <ChevronUp className={`w-4 h-4 text-gray-500 transition-transform ${floaterExpanded ? 'rotate-180' : ''}`} />
+                <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.4)', transform: floaterExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </button>
-
-              {/* Checkout button */}
-              <button onClick={handleCheckout} disabled={buying}
-                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3.5 px-6 rounded-xl flex items-center gap-2 transition-colors whitespace-nowrap text-sm shadow-lg shadow-purple-600/20">
-                {buying ? (
-                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Wait</>
-                ) : (
-                  <>Checkout</>
-                )}
+              <button onClick={() => handleCheckout()} disabled={buying} style={{
+                background: 'var(--purple)', border: 'none', color: 'white',
+                fontWeight: 800, padding: '14px 24px', borderRadius: 12, cursor: 'pointer',
+                fontSize: '0.88rem', whiteSpace: 'nowrap'
+              }}>
+                {buying ? 'Wait...' : 'Checkout'}
               </button>
             </div>
           </div>

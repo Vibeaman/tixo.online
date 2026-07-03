@@ -109,3 +109,23 @@ body {
 .text-brand { color: var(--purple); }
 .text-brand-light { color: var(--purple-light); }
 .bg-brand { background: var(--purple); }
+
+/* ── Countdown pulse ── */
+@keyframes countdownPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ── Smooth slide-in for floating cart ── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Input focus styles (guest checkout) ── */
+input:focus, textarea:focus {
+  border-color: var(--purple) !important;
+}
+input::placeholder, textarea::placeholder {
+  color: rgba(255,255,255,0.3);
+}

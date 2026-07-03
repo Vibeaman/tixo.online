@@ -1,11 +1,10 @@
 import { supabase } from '../lib/supabase'
 
 const TicketService = {
-  // Single tier purchase (backward compat)
-  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, referralCode, attendanceMode, isRsvp }) {
+  // Single tier purchase (supports guest checkout)
+  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp }) {
     const insertData = {
       event_id: eventId,
-      user_id: userId,
       event_title: eventTitle,
       tier_name: tierName,
       quantity,
@@ -13,6 +12,16 @@ const TicketService = {
       attendance_mode: attendanceMode || 'in-person',
       is_rsvp: isRsvp || false
     }
+
+    // Authenticated user or guest
+    if (userId) {
+      insertData.user_id = userId
+    } else {
+      insertData.user_id = null
+      insertData.guest_name = guestName || null
+      insertData.guest_email = guestEmail || null
+    }
+
     if (referralCode) insertData.referral_code = referralCode
 
     const { data, error } = await supabase
@@ -24,20 +33,30 @@ const TicketService = {
     return data
   },
 
-  // Multi-tier purchase (cart checkout)
-  async purchaseMultiple({ eventId, eventTitle, items, userId, referralCode, attendanceMode, isRsvp }) {
-    // items: [{ tierName, quantity, totalPrice }]
-    const inserts = items.map(item => ({
-      event_id: eventId,
-      user_id: userId,
-      event_title: eventTitle,
-      tier_name: item.tierName,
-      quantity: item.quantity,
-      total_price: item.totalPrice,
-      attendance_mode: attendanceMode || 'in-person',
-      is_rsvp: isRsvp || false,
-      ...(referralCode ? { referral_code: referralCode } : {})
-    }))
+  // Multi-tier purchase (cart checkout — supports guest checkout)
+  async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp }) {
+    const inserts = items.map(item => {
+      const row = {
+        event_id: eventId,
+        event_title: eventTitle,
+        tier_name: item.tierName,
+        quantity: item.quantity,
+        total_price: item.totalPrice,
+        attendance_mode: attendanceMode || 'in-person',
+        is_rsvp: isRsvp || false,
+        ...(referralCode ? { referral_code: referralCode } : {})
+      }
+
+      if (userId) {
+        row.user_id = userId
+      } else {
+        row.user_id = null
+        row.guest_name = guestName || null
+        row.guest_email = guestEmail || null
+      }
+
+      return row
+    })
 
     const { data, error } = await supabase
       .from('tickets')
