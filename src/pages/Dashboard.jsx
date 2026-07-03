@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3 } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import AuthService from '../services/AuthService'
@@ -12,6 +12,7 @@ import ReferralService from '../services/ReferralService'
 const TABS = [
   { id: 'tickets', label: 'My Tickets', icon: Ticket },
   { id: 'events', label: 'My Events', icon: Calendar },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'referrals', label: 'Referrals', icon: Share2 },
   { id: 'profile', label: 'Profile', icon: User },
 ]
@@ -22,7 +23,7 @@ function EventTypeBadge({ type }) {
   return null
 }
 
-function StatCard({ icon: Icon, label, value, color = 'text-purple-400' }) {
+function StatCard({ icon: Icon, label, value, color = 'text-purple-400', sub }) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl p-4">
       <div className="flex items-center gap-2 mb-2">
@@ -30,6 +31,32 @@ function StatCard({ icon: Icon, label, value, color = 'text-purple-400' }) {
         <span className="text-gray-500 text-xs">{label}</span>
       </div>
       <p className="text-white font-bold text-xl">{value}</p>
+      {sub && <p className="text-gray-500 text-xs mt-1">{sub}</p>}
+    </div>
+  )
+}
+
+// Simple bar chart component
+function BarChart({ data, labelKey, valueKey, color = 'bg-purple-500' }) {
+  if (!data || data.length === 0) return <p className="text-gray-500 text-sm text-center py-8">No data yet</p>
+  const maxVal = Math.max(...data.map(d => Number(d[valueKey]) || 0), 1)
+  return (
+    <div className="space-y-2">
+      {data.map((d, i) => {
+        const val = Number(d[valueKey]) || 0
+        const pct = (val / maxVal) * 100
+        return (
+          <div key={i} className="flex items-center gap-3">
+            <span className="text-gray-400 text-xs w-20 truncate flex-shrink-0">{d[labelKey]}</span>
+            <div className="flex-1 bg-white/5 rounded-full h-6 overflow-hidden">
+              <div className={`${color} h-full rounded-full flex items-center justify-end pr-2 transition-all`}
+                style={{ width: `${Math.max(pct, 8)}%` }}>
+                <span className="text-white text-[10px] font-bold">{typeof val === 'number' && val >= 1000 ? `₦${(val/1000).toFixed(1)}k` : val.toLocaleString?.() || val}</span>
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -52,6 +79,11 @@ export default function Dashboard() {
   const [selectedEventStats, setSelectedEventStats] = useState(null)
   const [loadingEventStats, setLoadingEventStats] = useState(false)
 
+  // Analytics state
+  const [salesSummary, setSalesSummary] = useState([])
+  const [dailySales, setDailySales] = useState([])
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false)
+
   useEffect(() => {
     if (!authLoading && !user) { navigate('/login'); return }
     if (!user) return
@@ -70,11 +102,14 @@ export default function Dashboard() {
     load()
   }, [user, authLoading, profile])
 
-  // Load referral data when tab switches to referrals
+  // Load referral data
   useEffect(() => {
-    if (tab === 'referrals' && user) {
-      loadReferralData()
-    }
+    if (tab === 'referrals' && user) loadReferralData()
+  }, [tab, user])
+
+  // Load analytics data
+  useEffect(() => {
+    if (tab === 'analytics' && user) loadAnalyticsData()
   }, [tab, user])
 
   async function loadReferralData() {
@@ -88,6 +123,19 @@ export default function Dashboard() {
       setCommissions(comms || [])
     } catch (e) { console.error(e) }
     finally { setLoadingReferrals(false) }
+  }
+
+  async function loadAnalyticsData() {
+    setLoadingAnalytics(true)
+    try {
+      const [summary, daily] = await Promise.all([
+        TicketService.getOrganizerSummary(user.id),
+        TicketService.getDailySales(user.id)
+      ])
+      setSalesSummary(summary || [])
+      setDailySales(daily || [])
+    } catch (e) { console.error(e) }
+    finally { setLoadingAnalytics(false) }
   }
 
   async function loadEventReferralStats(eventId) {
@@ -134,9 +182,7 @@ export default function Dashboard() {
       toast.success('Profile picture updated!')
     } catch (e) {
       toast.error(e.message || 'Failed to upload avatar')
-    } finally {
-      setUploadingAvatar(false)
-    }
+    } finally { setUploadingAvatar(false) }
   }
 
   if (authLoading || loading) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
@@ -148,9 +194,32 @@ export default function Dashboard() {
   const totalEarned = commissions.reduce((sum, c) => sum + Number(c.commission_amount || 0), 0)
   const confirmedEarnings = commissions.filter(c => c.status === 'confirmed').reduce((sum, c) => sum + Number(c.commission_amount || 0), 0)
   const pendingEarnings = commissions.filter(c => c.status === 'pending').reduce((sum, c) => sum + Number(c.commission_amount || 0), 0)
-
-  // Organizer reshare events
   const reshareEvents = myEvents.filter(e => e.reshare_enabled)
+
+  // Analytics stats
+  const totalRevenue = salesSummary.reduce((sum, s) => sum + Number(s.total_revenue || 0), 0)
+  const totalTicketsSold = salesSummary.reduce((sum, s) => sum + Number(s.total_quantity || 0), 0)
+  const totalRsvps = salesSummary.reduce((sum, s) => sum + Number(s.total_rsvps || 0), 0)
+  const totalVirtualAttendees = salesSummary.reduce((sum, s) => sum + Number(s.virtual_attendees || 0), 0)
+  const totalInPersonAttendees = salesSummary.reduce((sum, s) => sum + Number(s.inperson_attendees || 0), 0)
+
+  // For bar charts
+  const revenueByEvent = salesSummary
+    .filter(s => Number(s.total_revenue) > 0)
+    .sort((a, b) => Number(b.total_revenue) - Number(a.total_revenue))
+    .slice(0, 8)
+    .map(s => ({ label: s.event_title?.substring(0, 20) || 'Event', value: Number(s.total_revenue) }))
+
+  const ticketsByEvent = salesSummary
+    .filter(s => Number(s.total_quantity) > 0)
+    .sort((a, b) => Number(b.total_quantity) - Number(a.total_quantity))
+    .slice(0, 8)
+    .map(s => ({ label: s.event_title?.substring(0, 20) || 'Event', value: Number(s.total_quantity) }))
+
+  const recentDailySales = dailySales.slice(-14).map(d => ({
+    label: new Date(d.sale_date).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+    value: Number(d.revenue)
+  }))
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
@@ -186,7 +255,7 @@ export default function Dashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto">
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-colors ${tab === t.id ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
@@ -195,7 +264,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Tickets tab */}
+        {/* ============ TICKETS TAB ============ */}
         {tab === 'tickets' && (
           <div>
             {tickets.length === 0 ? (
@@ -210,12 +279,20 @@ export default function Dashboard() {
                   <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center justify-between hover:border-purple-500/30 transition cursor-pointer"
                     onClick={() => navigate(`/events/${t.event_id}`)}>
                     <div>
-                      <h3 className="text-white font-bold">{t.event_title}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-white font-bold">{t.event_title}</h3>
+                        {t.is_rsvp && <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">RSVP</span>}
+                        {t.attendance_mode === 'virtual' && <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>}
+                      </div>
                       <p className="text-gray-400 text-sm">{t.tier_name} · x{t.quantity}</p>
                       <p className="text-gray-500 text-xs mt-1">{new Date(t.purchased_at).toLocaleDateString()}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-purple-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>
+                      {t.is_rsvp ? (
+                        <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Free</span>
+                      ) : (
+                        <p className="text-purple-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>
+                      )}
                       <span className="text-xs text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">Confirmed</span>
                     </div>
                   </div>
@@ -225,7 +302,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* My Events tab */}
+        {/* ============ MY EVENTS TAB ============ */}
         {tab === 'events' && (
           <div>
             <div className="flex justify-end mb-4">
@@ -263,12 +340,6 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-                      {ev.reshare_enabled && (
-                        <button onClick={() => { setTab('referrals'); loadEventReferralStats(ev.id) }}
-                          className="text-green-400 hover:text-green-300 p-2 hover:bg-white/5 rounded-lg transition" title="View referral stats">
-                          <BarChart3 className="w-4 h-4" />
-                        </button>
-                      )}
                       <button onClick={() => navigate(`/edit-event/${ev.id}`)}
                         className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition" title="Edit event">
                         <Edit3 className="w-4 h-4" />
@@ -285,14 +356,117 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Referrals tab */}
+        {/* ============ ANALYTICS TAB ============ */}
+        {tab === 'analytics' && (
+          <div>
+            {loadingAnalytics ? (
+              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+            ) : myEvents.length === 0 ? (
+              <div className="text-center py-16 bg-white/5 border border-white/10 rounded-2xl">
+                <BarChart3 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 mb-4">Create events to see your analytics</p>
+                <Link to="/create" className="text-purple-400 hover:text-purple-300 font-medium">Create Event →</Link>
+              </div>
+            ) : (
+              <>
+                {/* Overview Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                  <StatCard icon={DollarSign} label="Total Revenue" value={`₦${totalRevenue.toLocaleString()}`} color="text-green-400" />
+                  <StatCard icon={Ticket} label="Tickets Sold" value={totalTicketsSold} />
+                  <StatCard icon={Users} label="RSVPs" value={totalRsvps} color="text-green-400" />
+                  <StatCard icon={Calendar} label="Total Events" value={myEvents.length} color="text-blue-400" />
+                </div>
+
+                {/* Attendance breakdown */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MapPin className="w-4 h-4 text-purple-400" />
+                      <span className="text-gray-400 text-sm">In-Person Attendees</span>
+                    </div>
+                    <p className="text-white font-bold text-3xl">{totalInPersonAttendees}</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Video className="w-4 h-4 text-blue-400" />
+                      <span className="text-gray-400 text-sm">Virtual Attendees</span>
+                    </div>
+                    <p className="text-white font-bold text-3xl">{totalVirtualAttendees}</p>
+                  </div>
+                </div>
+
+                {/* Revenue by Event */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+                  <h3 className="text-white font-bold text-lg mb-5 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-green-400" /> Revenue by Event
+                  </h3>
+                  <BarChart data={revenueByEvent} labelKey="label" valueKey="value" color="bg-green-500" />
+                </div>
+
+                {/* Tickets by Event */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+                  <h3 className="text-white font-bold text-lg mb-5 flex items-center gap-2">
+                    <Ticket className="w-5 h-5 text-purple-400" /> Tickets Sold by Event
+                  </h3>
+                  <BarChart data={ticketsByEvent} labelKey="label" valueKey="value" color="bg-purple-500" />
+                </div>
+
+                {/* Daily Sales Trend */}
+                {recentDailySales.length > 0 && (
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+                    <h3 className="text-white font-bold text-lg mb-5 flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-blue-400" /> Daily Revenue (Last 14 Days)
+                    </h3>
+                    <BarChart data={recentDailySales} labelKey="label" valueKey="value" color="bg-blue-500" />
+                  </div>
+                )}
+
+                {/* Per-event detail cards */}
+                <div className="mb-6">
+                  <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                    <PieChart className="w-5 h-5 text-purple-400" /> Event Breakdown
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {salesSummary.map(s => (
+                      <div key={s.event_id} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-purple-500/30 transition cursor-pointer"
+                        onClick={() => navigate(`/events/${s.event_id}`)}>
+                        <div className="flex items-center gap-3 mb-4">
+                          {s.event_image && <img src={s.event_image} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />}
+                          <div className="min-w-0">
+                            <h4 className="text-white font-bold truncate">{s.event_title}</h4>
+                            <p className="text-gray-500 text-xs">{s.event_date}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <p className="text-gray-500 text-[10px]">Revenue</p>
+                            <p className="text-green-400 font-bold">₦{Number(s.total_revenue).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-[10px]">Tickets</p>
+                            <p className="text-white font-bold">{s.total_quantity}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-[10px]">RSVPs</p>
+                            <p className="text-white font-bold">{s.total_rsvps}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ============ REFERRALS TAB ============ */}
         {tab === 'referrals' && (
           <div>
             {loadingReferrals ? (
               <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
             ) : (
               <>
-                {/* Stats overview */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                   <StatCard icon={Share2} label="Links Generated" value={referralLinks.length} />
                   <StatCard icon={MousePointer} label="Total Clicks" value={totalClicks} />
@@ -300,7 +474,6 @@ export default function Dashboard() {
                   <StatCard icon={DollarSign} label="Total Earned" value={`₦${totalEarned.toLocaleString()}`} color="text-green-400" />
                 </div>
 
-                {/* Earnings breakdown */}
                 {commissions.length > 0 && (
                   <div className="grid grid-cols-2 gap-4 mb-8">
                     <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-5">
@@ -314,7 +487,6 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* Organizer view — stats for reshare events */}
                 {reshareEvents.length > 0 && (
                   <div className="mb-8">
                     <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
@@ -331,11 +503,8 @@ export default function Dashboard() {
                                 <p className="text-gray-500 text-xs">{ev.date}</p>
                               </div>
                             </div>
-                            <button
-                              onClick={() => loadEventReferralStats(ev.id)}
-                              disabled={loadingEventStats}
-                              className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center gap-1"
-                            >
+                            <button onClick={() => loadEventReferralStats(ev.id)} disabled={loadingEventStats}
+                              className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center gap-1">
                               <Eye className="w-3.5 h-3.5" /> View Stats
                             </button>
                           </div>
@@ -373,7 +542,6 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* Referral links list */}
                 <div>
                   <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
                     <Share2 className="w-5 h-5 text-purple-400" /> Your Referral Links
@@ -407,8 +575,7 @@ export default function Dashboard() {
                                   navigator.clipboard.writeText(`${window.location.origin}/events/${link.event_id}?ref=${link.referral_code}`)
                                   toast.success('Link copied!')
                                 }}
-                                className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition"
-                              >
+                                className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition">
                                 <ExternalLink className="w-4 h-4" />
                               </button>
                             </div>
@@ -419,7 +586,6 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Commissions history */}
                 {commissions.length > 0 && (
                   <div className="mt-8">
                     <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
@@ -451,7 +617,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Profile tab */}
+        {/* ============ PROFILE TAB ============ */}
         {tab === 'profile' && (
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 max-w-lg">
             <h2 className="text-xl font-bold text-white mb-6">Your Profile</h2>

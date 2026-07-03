@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
-import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign } from 'lucide-react'
+import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign, Monitor, MapPinned, CheckCircle2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
@@ -51,10 +51,22 @@ export default function EventDetail() {
   const { user, profile } = useAuth()
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [selectedTier, setSelectedTier] = useState(null)
-  const [qty, setQty] = useState(1)
-  const [buying, setBuying] = useState(false)
   const [liked, setLiked] = useState(false)
+
+  // Cart state: { tierName: qty }
+  const [cart, setCart] = useState({})
+  const [buying, setBuying] = useState(false)
+  const [showCheckout, setShowCheckout] = useState(false)
+
+  // Hybrid attendance mode
+  const [attendanceMode, setAttendanceMode] = useState('in-person')
+
+  // RSVP state
+  const [hasRsvpd, setHasRsvpd] = useState(false)
+  const [rsvping, setRsvping] = useState(false)
+
+  // Purchase success state
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false)
 
   // Comments state
   const [comments, setComments] = useState([])
@@ -72,9 +84,7 @@ export default function EventDetail() {
   useEffect(() => {
     const ref = searchParams.get('ref')
     if (ref) {
-      // Store referral code in sessionStorage
       sessionStorage.setItem(`ref_${id}`, ref)
-      // Track the click
       ReferralService.trackClick(ref).catch(() => {})
     }
   }, [id, searchParams])
@@ -84,7 +94,6 @@ export default function EventDetail() {
       try {
         const data = await EventService.getById(id)
         setEvent(data)
-        if (data?.ticket_tiers?.length) setSelectedTier(data.ticket_tiers[0])
       } catch (e) {
         toast.error('Event not found')
         navigate('/events')
@@ -94,6 +103,19 @@ export default function EventDetail() {
     }
     load()
   }, [id])
+
+  // Check RSVP status
+  useEffect(() => {
+    async function checkRsvp() {
+      if (!user || !event) return
+      const isFree = event.ticket_tiers?.every(t => Number(t.price) === 0)
+      if (isFree) {
+        const already = await TicketService.hasRsvp(event.id, user.id)
+        setHasRsvpd(already)
+      }
+    }
+    checkRsvp()
+  }, [user, event])
 
   useEffect(() => {
     async function loadComments() {
@@ -106,6 +128,30 @@ export default function EventDetail() {
     loadComments()
   }, [id])
 
+  // Cart helpers
+  function cartQty(tierName) { return cart[tierName] || 0 }
+  function addToCart(tierName) {
+    setCart(c => ({ ...c, [tierName]: (c[tierName] || 0) + 1 }))
+  }
+  function removeFromCart(tierName) {
+    setCart(c => {
+      const newQty = (c[tierName] || 0) - 1
+      if (newQty <= 0) { const { [tierName]: _, ...rest } = c; return rest }
+      return { ...c, [tierName]: newQty }
+    })
+  }
+  function clearCart() { setCart({}) }
+
+  const tiers = event?.ticket_tiers || []
+  const isFreeEvent = tiers.length > 0 && tiers.every(t => Number(t.price) === 0)
+  const cartItems = Object.entries(cart).map(([name, qty]) => {
+    const tier = tiers.find(t => t.name === name)
+    return { tierName: name, quantity: qty, price: tier?.price || 0, totalPrice: (tier?.price || 0) * qty }
+  }).filter(i => i.quantity > 0)
+  const cartTotal = cartItems.reduce((sum, i) => sum + i.totalPrice, 0)
+  const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0)
+
+  // Reshare handlers
   async function handleGenerateReshareLink() {
     if (!user) { toast.error('Please log in to reshare'); navigate('/login'); return }
     if (user.id === event.organizer_id) { toast.error("You can't reshare your own event"); return }
@@ -117,9 +163,7 @@ export default function EventDetail() {
       setShowResharePanel(true)
     } catch (e) {
       toast.error(e.message || 'Failed to generate link')
-    } finally {
-      setGeneratingLink(false)
-    }
+    } finally { setGeneratingLink(false) }
   }
 
   function copyReshareLink() {
@@ -129,51 +173,77 @@ export default function EventDetail() {
     setTimeout(() => setLinkCopied(false), 3000)
   }
 
-  async function handleBuy() {
-    if (!user) { toast.error('Please log in to buy tickets'); navigate('/login'); return }
-    if (!selectedTier) return
-    setBuying(true)
+  // RSVP handler
+  async function handleRsvp() {
+    if (!user) { toast.error('Please log in to RSVP'); navigate('/login'); return }
+    if (hasRsvpd) return
+    setRsvping(true)
     try {
-      // Check for referral code
       const refCode = sessionStorage.getItem(`ref_${id}`)
-      
-      const ticket = await TicketService.purchase({
+      await TicketService.purchase({
         eventId: event.id,
         eventTitle: event.title,
-        tierName: selectedTier.name,
-        quantity: qty,
-        totalPrice: selectedTier.price * qty,
+        tierName: tiers[0]?.name || 'General',
+        quantity: 1,
+        totalPrice: 0,
         userId: user.id,
-        referralCode: refCode || null
+        referralCode: refCode || null,
+        attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'),
+        isRsvp: true
+      })
+      sessionStorage.removeItem(`ref_${id}`)
+      setHasRsvpd(true)
+      setPurchaseSuccess(true)
+      toast.success('🎉 RSVP confirmed!')
+    } catch (e) {
+      toast.error(e.message || 'RSVP failed')
+    } finally { setRsvping(false) }
+  }
+
+  // Cart checkout handler
+  async function handleCheckout() {
+    if (!user) { toast.error('Please log in to buy tickets'); navigate('/login'); return }
+    if (cartItems.length === 0) return
+    setBuying(true)
+    try {
+      const refCode = sessionStorage.getItem(`ref_${id}`)
+      const mode = event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person')
+      
+      const tickets = await TicketService.purchaseMultiple({
+        eventId: event.id,
+        eventTitle: event.title,
+        items: cartItems,
+        userId: user.id,
+        referralCode: refCode || null,
+        attendanceMode: mode,
+        isRsvp: false
       })
 
-      // If there's a referral and reshare is enabled, record commission
+      // Record commission if referral
       if (refCode && event.reshare_enabled) {
         try {
           const refLink = await ReferralService.getByCode(refCode)
           if (refLink && refLink.user_id !== user.id) {
             await ReferralService.recordCommission({
               referralLinkId: refLink.id,
-              ticketId: ticket.id,
+              ticketId: tickets[0]?.id,
               eventId: event.id,
               referrerId: refLink.user_id,
               buyerId: user.id,
-              ticketAmount: selectedTier.price * qty
+              ticketAmount: cartTotal
             })
           }
         } catch (e) { console.error('Commission tracking error:', e) }
       }
 
-      // Clear referral after purchase
       sessionStorage.removeItem(`ref_${id}`)
-      
-      toast.success(`🎉 ${qty}x ${selectedTier.name} ticket${qty > 1 ? 's' : ''} purchased!`)
-      navigate('/dashboard')
+      setPurchaseSuccess(true)
+      setCart({})
+      setShowCheckout(false)
+      toast.success(`🎉 ${cartCount} ticket${cartCount > 1 ? 's' : ''} purchased!`)
     } catch (e) {
       toast.error(e.message || 'Purchase failed')
-    } finally {
-      setBuying(false)
-    }
+    } finally { setBuying(false) }
   }
 
   async function handlePostComment(e) {
@@ -194,9 +264,7 @@ export default function EventDetail() {
       toast.success('Comment posted!')
     } catch (e) {
       toast.error(e.message || 'Failed to post comment')
-    } finally {
-      setPosting(false)
-    }
+    } finally { setPosting(false) }
   }
 
   async function handleDeleteComment(commentId) {
@@ -204,15 +272,12 @@ export default function EventDetail() {
       await CommentService.delete(commentId)
       setComments(prev => prev.filter(c => c.id !== commentId))
       toast.success('Comment deleted')
-    } catch (e) {
-      toast.error('Failed to delete comment')
-    }
+    } catch (e) { toast.error('Failed to delete comment') }
   }
 
   if (loading) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!event) return null
 
-  const tiers = event.ticket_tiers || []
   const startDate = formatDate(event.date)
   const endDate = formatDate(event.end_date)
   const startTime = formatTime(event.time)
@@ -220,6 +285,9 @@ export default function EventDetail() {
   const badge = getEventTypeBadge(event.event_type)
   const BadgeIcon = badge.icon
   const isMultiDay = event.end_date && event.end_date !== event.date
+  const isHybrid = event.event_type === 'hybrid'
+  const isVirtual = event.event_type === 'virtual'
+  const showVirtualLink = purchaseSuccess && (isVirtual || (isHybrid && attendanceMode === 'virtual')) && event.virtual_link
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-20 pb-16">
@@ -252,6 +320,9 @@ export default function EventDetail() {
             <span className="bg-black/40 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full">
               {event.category}
             </span>
+            {isFreeEvent && (
+              <span className="bg-green-500/20 backdrop-blur-md text-green-400 text-xs font-bold px-3 py-1.5 rounded-full">Free</span>
+            )}
             {event.reshare_enabled && (
               <span className="bg-green-500/20 backdrop-blur-md text-green-400 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" /> Reshare
@@ -305,17 +376,21 @@ export default function EventDetail() {
             </div>
           )}
 
-          {(event.event_type === 'virtual' || event.event_type === 'hybrid') && event.virtual_link && (
+          {(isVirtual || isHybrid) && event.virtual_link && (
             <div className="flex items-start gap-4">
               <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Video className="w-6 h-6 text-blue-400" />
               </div>
               <div>
                 <p className="text-white font-semibold">Virtual Event</p>
-                <a href={event.virtual_link} target="_blank" rel="noopener noreferrer"
-                  className="text-purple-400 hover:text-purple-300 text-sm flex items-center gap-1">
-                  Join online <ExternalLink className="w-3 h-3" />
-                </a>
+                {purchaseSuccess || hasRsvpd ? (
+                  <a href={event.virtual_link} target="_blank" rel="noopener noreferrer"
+                    className="text-purple-400 hover:text-purple-300 text-sm flex items-center gap-1">
+                    Join online <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : (
+                  <p className="text-gray-500 text-sm">Virtual link available after registration</p>
+                )}
               </div>
             </div>
           )}
@@ -338,45 +413,20 @@ export default function EventDetail() {
                 </div>
 
                 {!showResharePanel ? (
-                  <button
-                    onClick={handleGenerateReshareLink}
-                    disabled={generatingLink}
-                    className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors mt-3"
-                  >
+                  <button onClick={handleGenerateReshareLink} disabled={generatingLink}
+                    className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors mt-3">
                     <Share2 className="w-4 h-4" />
                     {generatingLink ? 'Generating...' : 'Get Your Referral Link'}
                   </button>
                 ) : (
                   <div className="mt-4 space-y-3">
                     <div className="flex items-center gap-2">
-                      <input
-                        readOnly
-                        value={reshareLink}
-                        className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none"
-                      />
-                      <button
-                        onClick={copyReshareLink}
-                        className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-colors ${linkCopied ? 'bg-green-600 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
-                      >
+                      <input readOnly value={reshareLink}
+                        className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none" />
+                      <button onClick={copyReshareLink}
+                        className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-colors ${linkCopied ? 'bg-green-600 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}>
                         {linkCopied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy</>}
                       </button>
-                    </div>
-                    <div className="bg-black/20 rounded-xl p-4">
-                      <p className="text-gray-400 text-xs mb-2">How it works:</p>
-                      <div className="space-y-1.5">
-                        <p className="text-gray-300 text-xs flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0">1</span>
-                          Share your unique link with friends & followers
-                        </p>
-                        <p className="text-gray-300 text-xs flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0">2</span>
-                          They click your link and purchase tickets
-                        </p>
-                        <p className="text-gray-300 text-xs flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0">3</span>
-                          You earn 2.5% of every ticket sale automatically
-                        </p>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -402,45 +452,192 @@ export default function EventDetail() {
 
         <div className="border-t border-white/10 my-8" />
 
-        {/* Tickets */}
-        <div id="tickets" className="mb-8">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><Ticket className="w-5 h-5 text-purple-400" /> Select Tickets</h2>
-          <div className="space-y-3 mb-6">
-            {tiers.map(tier => (
-              <button key={tier.name} onClick={() => { setSelectedTier(tier); setQty(1) }}
-                className={`w-full text-left p-5 rounded-xl border transition-all ${selectedTier?.name === tier.name ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-white font-semibold text-lg">{tier.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">{tier.available} remaining</p>
-                  </div>
-                  <p className="text-purple-400 font-bold text-lg">₦{tier.price.toLocaleString()}</p>
+        {/* ============ PURCHASE SUCCESS ============ */}
+        {purchaseSuccess && (
+          <div className="mb-8">
+            <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-8 text-center">
+              <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto mb-4" />
+              <h3 className="text-white font-bold text-2xl mb-2">
+                {isFreeEvent ? "You're In! 🎉" : "Tickets Secured! 🎉"}
+              </h3>
+              <p className="text-gray-400 mb-4">
+                {isFreeEvent 
+                  ? "Your RSVP has been confirmed. We'll see you there!" 
+                  : "Your tickets have been confirmed. Check your dashboard for details."}
+              </p>
+              {showVirtualLink && (
+                <a href={event.virtual_link} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors mb-3">
+                  <Video className="w-5 h-5" /> Join Virtual Event <ExternalLink className="w-4 h-4" />
+                </a>
+              )}
+              <div className="flex items-center justify-center gap-3 mt-2">
+                <Link to="/dashboard" className="text-purple-400 hover:text-purple-300 font-medium text-sm">View Dashboard →</Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============ HYBRID ATTENDANCE MODE ============ */}
+        {isHybrid && !purchaseSuccess && !hasRsvpd && (
+          <div className="mb-6">
+            <h3 className="text-white font-semibold mb-3">How will you attend?</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setAttendanceMode('in-person')}
+                className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${
+                  attendanceMode === 'in-person'
+                    ? 'border-purple-500 bg-purple-500/10'
+                    : 'border-white/10 bg-white/5 hover:border-white/20'
+                }`}
+              >
+                <MapPinned className={`w-5 h-5 ${attendanceMode === 'in-person' ? 'text-purple-400' : 'text-gray-400'}`} />
+                <div className="text-left">
+                  <p className={`font-semibold text-sm ${attendanceMode === 'in-person' ? 'text-white' : 'text-gray-300'}`}>In Person</p>
+                  <p className="text-gray-500 text-xs">Attend at venue</p>
                 </div>
               </button>
-            ))}
-          </div>
-          {selectedTier && (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-gray-400">Quantity</span>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-9 h-9 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-white/20"><Minus className="w-4 h-4" /></button>
-                  <span className="text-white font-bold w-8 text-center text-lg">{qty}</span>
-                  <button onClick={() => setQty(Math.min(10, qty + 1))} className="w-9 h-9 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-white/20"><Plus className="w-4 h-4" /></button>
+              <button
+                onClick={() => setAttendanceMode('virtual')}
+                className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${
+                  attendanceMode === 'virtual'
+                    ? 'border-blue-500 bg-blue-500/10'
+                    : 'border-white/10 bg-white/5 hover:border-white/20'
+                }`}
+              >
+                <Monitor className={`w-5 h-5 ${attendanceMode === 'virtual' ? 'text-blue-400' : 'text-gray-400'}`} />
+                <div className="text-left">
+                  <p className={`font-semibold text-sm ${attendanceMode === 'virtual' ? 'text-white' : 'text-gray-300'}`}>Virtual</p>
+                  <p className="text-gray-500 text-xs">Join online</p>
                 </div>
-              </div>
-              <div className="border-t border-white/10 pt-4 mb-5">
-                <div className="flex justify-between text-gray-400 text-sm mb-1"><span>{selectedTier.name} × {qty}</span><span>₦{(selectedTier.price * qty).toLocaleString()}</span></div>
-                <div className="flex justify-between text-white font-bold text-xl mt-3"><span>Total</span><span>₦{(selectedTier.price * qty).toLocaleString()}</span></div>
-              </div>
-              <button onClick={handleBuy} disabled={buying}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors text-lg">
-                <ShoppingCart className="w-5 h-5" />
-                {buying ? 'Processing...' : `Get Ticket${qty > 1 ? 's' : ''}`}
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* ============ TICKETS / RSVP ============ */}
+        {!purchaseSuccess && !hasRsvpd && (
+          <div id="tickets" className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+              <Ticket className="w-5 h-5 text-purple-400" /> 
+              {isFreeEvent ? 'RSVP' : 'Select Tickets'}
+            </h2>
+
+            {isFreeEvent ? (
+              /* ---- FREE EVENT: RSVP ---- */
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
+                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-green-400" />
+                </div>
+                <h3 className="text-white font-bold text-xl mb-2">This is a Free Event!</h3>
+                <p className="text-gray-400 text-sm mb-6">RSVP to confirm your spot and get event updates</p>
+                <button onClick={handleRsvp} disabled={rsvping}
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-4 px-10 rounded-xl transition-colors text-lg inline-flex items-center gap-2">
+                  {rsvping ? (
+                    <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Confirming...</>
+                  ) : (
+                    <><CheckCircle2 className="w-5 h-5" /> RSVP – It's Free</>
+                  )}
+                </button>
+              </div>
+            ) : (
+              /* ---- PAID EVENT: MULTI-TIER CART ---- */
+              <>
+                <div className="space-y-3 mb-6">
+                  {tiers.map(tier => {
+                    const qty = cartQty(tier.name)
+                    return (
+                      <div key={tier.name}
+                        className={`p-5 rounded-xl border transition-all ${qty > 0 ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-white/5'}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-white font-semibold text-lg">{tier.name}</p>
+                            <p className="text-xs text-gray-500 mt-1">{tier.available} remaining</p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <p className="text-purple-400 font-bold text-lg">₦{Number(tier.price).toLocaleString()}</p>
+                            <div className="flex items-center gap-2">
+                              {qty > 0 && (
+                                <button onClick={() => removeFromCart(tier.name)}
+                                  className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition">
+                                  <Minus className="w-4 h-4" />
+                                </button>
+                              )}
+                              {qty > 0 && (
+                                <span className="text-white font-bold w-6 text-center">{qty}</span>
+                              )}
+                              <button onClick={() => addToCart(tier.name)}
+                                className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition">
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Cart summary / checkout */}
+                {cartCount > 0 && (
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-white font-bold flex items-center gap-2">
+                        <ShoppingCart className="w-5 h-5 text-purple-400" /> Your Cart
+                      </h3>
+                      <button onClick={clearCart} className="text-gray-500 hover:text-red-400 text-xs flex items-center gap-1 transition">
+                        <X className="w-3 h-3" /> Clear
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 mb-4">
+                      {cartItems.map(item => (
+                        <div key={item.tierName} className="flex justify-between text-sm">
+                          <span className="text-gray-400">{item.tierName} × {item.quantity}</span>
+                          <span className="text-white">₦{item.totalPrice.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="border-t border-white/10 pt-4 mb-5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-white font-bold text-xl">Total</span>
+                        <span className="text-purple-400 font-bold text-2xl">₦{cartTotal.toLocaleString()}</span>
+                      </div>
+                      <p className="text-gray-500 text-xs mt-1">{cartCount} ticket{cartCount > 1 ? 's' : ''}</p>
+                    </div>
+
+                    <button onClick={handleCheckout} disabled={buying}
+                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors text-lg">
+                      {buying ? (
+                        <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</>
+                      ) : (
+                        <><ShoppingCart className="w-5 h-5" /> Checkout – ₦{cartTotal.toLocaleString()}</>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Already RSVP'd */}
+        {hasRsvpd && !purchaseSuccess && (
+          <div className="mb-8">
+            <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 text-center">
+              <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-3" />
+              <h3 className="text-white font-bold text-xl mb-2">You've RSVP'd! ✓</h3>
+              <p className="text-gray-400 text-sm">You're confirmed for this event</p>
+              {(isVirtual || isHybrid) && event.virtual_link && (
+                <a href={event.virtual_link} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors mt-4 text-sm">
+                  <Video className="w-4 h-4" /> Join Virtual Event <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-white/10 my-8" />
 
