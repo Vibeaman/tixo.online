@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
-import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign, Monitor, MapPinned, CheckCircle2, X } from 'lucide-react'
+import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign, Monitor, MapPinned, CheckCircle2, X, ChevronUp } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
@@ -53,10 +53,16 @@ export default function EventDetail() {
   const [loading, setLoading] = useState(true)
   const [liked, setLiked] = useState(false)
 
-  // Cart state: { tierName: qty }
+  // Cart state
   const [cart, setCart] = useState({})
   const [buying, setBuying] = useState(false)
-  const [showCheckout, setShowCheckout] = useState(false)
+
+  // Floating cart expand state
+  const [floaterExpanded, setFloaterExpanded] = useState(false)
+
+  // Ref for static cart summary — hide floater when this is visible
+  const cartSummaryRef = useRef(null)
+  const [cartSummaryVisible, setCartSummaryVisible] = useState(false)
 
   // Hybrid attendance mode
   const [attendanceMode, setAttendanceMode] = useState('in-person')
@@ -79,6 +85,18 @@ export default function EventDetail() {
   const [generatingLink, setGeneratingLink] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [showResharePanel, setShowResharePanel] = useState(false)
+
+  // Intersection observer to track cart summary visibility
+  useEffect(() => {
+    const el = cartSummaryRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setCartSummaryVisible(entry.isIntersecting),
+      { threshold: 0.2 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [event, purchaseSuccess, hasRsvpd])
 
   // Track referral click on page load
   useEffect(() => {
@@ -140,7 +158,7 @@ export default function EventDetail() {
       return { ...c, [tierName]: newQty }
     })
   }
-  function clearCart() { setCart({}) }
+  function clearCart() { setCart({}); setFloaterExpanded(false) }
 
   const tiers = event?.ticket_tiers || []
   const isFreeEvent = tiers.length > 0 && tiers.every(t => Number(t.price) === 0)
@@ -150,6 +168,15 @@ export default function EventDetail() {
   }).filter(i => i.quantity > 0)
   const cartTotal = cartItems.reduce((sum, i) => sum + i.totalPrice, 0)
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0)
+
+  // Show floating cart when: items in cart, not free event, not purchased, and static cart summary is NOT visible
+  const showFloatingCart = cartCount > 0 && !isFreeEvent && !purchaseSuccess && !cartSummaryVisible
+
+  // Scroll to cart summary
+  function scrollToCart() {
+    cartSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setFloaterExpanded(false)
+  }
 
   // Reshare handlers
   async function handleGenerateReshareLink() {
@@ -239,7 +266,7 @@ export default function EventDetail() {
       sessionStorage.removeItem(`ref_${id}`)
       setPurchaseSuccess(true)
       setCart({})
-      setShowCheckout(false)
+      setFloaterExpanded(false)
       toast.success(`🎉 ${cartCount} ticket${cartCount > 1 ? 's' : ''} purchased!`)
     } catch (e) {
       toast.error(e.message || 'Purchase failed')
@@ -578,9 +605,9 @@ export default function EventDetail() {
                   })}
                 </div>
 
-                {/* Cart summary / checkout */}
+                {/* Static Cart summary / checkout */}
                 {cartCount > 0 && (
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                  <div ref={cartSummaryRef} className="bg-white/5 border border-white/10 rounded-2xl p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-white font-bold flex items-center gap-2">
                         <ShoppingCart className="w-5 h-5 text-purple-400" /> Your Cart
@@ -718,6 +745,81 @@ export default function EventDetail() {
           )}
         </div>
       </div>
+
+      {/* ============ FLOATING CART BAR ============ */}
+      {showFloatingCart && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom duration-300">
+          {/* Expanded cart detail */}
+          {floaterExpanded && (
+            <div className="max-w-3xl mx-auto px-4">
+              <div className="bg-[#16161f] border border-white/10 border-b-0 rounded-t-2xl px-5 pt-5 pb-3 shadow-2xl">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-white font-bold text-sm flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4 text-purple-400" /> Cart Summary
+                  </h4>
+                  <button onClick={clearCart} className="text-gray-500 hover:text-red-400 text-xs flex items-center gap-1 transition">
+                    <X className="w-3 h-3" /> Clear
+                  </button>
+                </div>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {cartItems.map(item => (
+                    <div key={item.tierName} className="flex items-center justify-between text-sm py-1">
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-400">{item.tierName}</span>
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => removeFromCart(item.tierName)}
+                            className="w-6 h-6 rounded-md bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition text-xs">
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-white font-semibold w-5 text-center text-xs">{item.quantity}</span>
+                          <button onClick={() => addToCart(item.tierName)}
+                            className="w-6 h-6 rounded-md bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition text-xs">
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                      <span className="text-white font-medium">₦{item.totalPrice.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main floating bar */}
+          <div className="bg-[#12121a]/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
+            <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+              {/* Cart info — tap to expand */}
+              <button onClick={() => setFloaterExpanded(!floaterExpanded)}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                <div className="relative">
+                  <ShoppingCart className="w-6 h-6 text-purple-400" />
+                  <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-bold text-lg leading-tight">₦{cartTotal.toLocaleString()}</p>
+                  <p className="text-gray-400 text-xs truncate">
+                    {cartCount} ticket{cartCount > 1 ? 's' : ''} · {cartItems.map(i => `${i.quantity}× ${i.tierName}`).join(', ')}
+                  </p>
+                </div>
+                <ChevronUp className={`w-4 h-4 text-gray-500 transition-transform ${floaterExpanded ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Checkout button */}
+              <button onClick={handleCheckout} disabled={buying}
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3.5 px-6 rounded-xl flex items-center gap-2 transition-colors whitespace-nowrap text-sm shadow-lg shadow-purple-600/20">
+                {buying ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Wait</>
+                ) : (
+                  <>Checkout</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
