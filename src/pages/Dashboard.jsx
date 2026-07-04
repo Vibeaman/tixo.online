@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -66,6 +66,50 @@ function BarChart({ data, labelKey, valueKey, color = 'bg-purple-500' }) {
 // QR Code Modal overlay
 function QRModal({ ticket, onClose }) {
   if (!ticket) return null
+  const qrRef = useRef(null)
+
+  function handleDownload() {
+    const svg = qrRef.current?.querySelector('svg')
+    if (!svg) return
+    const svgData = new XMLSerializer().serializeToString(svg)
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    img.onload = () => {
+      // Add padding and event info to the ticket image
+      const pad = 40, infoH = 120
+      canvas.width = img.width + pad * 2
+      canvas.height = img.height + pad * 2 + infoH
+      // Background
+      ctx.fillStyle = '#12121a'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      // QR white background
+      ctx.fillStyle = '#ffffff'
+      ctx.roundRect(pad - 12, pad - 12, img.width + 24, img.height + 24, 12)
+      ctx.fill()
+      ctx.drawImage(img, pad, pad)
+      // Event title
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 18px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(ticket.event_title || 'Event Ticket', canvas.width / 2, img.height + pad * 2 + 20)
+      // Tier + code
+      ctx.fillStyle = '#a78bfa'
+      ctx.font = 'bold 22px monospace'
+      ctx.fillText(ticket.check_in_code || '', canvas.width / 2, img.height + pad * 2 + 55)
+      ctx.fillStyle = '#9ca3af'
+      ctx.font = '14px sans-serif'
+      ctx.fillText(ticket.tier_name ? `${ticket.tier_name} · x${ticket.quantity}` : '', canvas.width / 2, img.height + pad * 2 + 80)
+      ctx.fillText('Planam Events', canvas.width / 2, img.height + pad * 2 + 105)
+      // Download
+      const link = document.createElement('a')
+      link.download = `planam-ticket-${ticket.check_in_code || 'qr'}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    }
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-[#12121a] border border-white/10 rounded-2xl p-8 max-w-sm w-full mx-4 relative" onClick={e => e.stopPropagation()}>
@@ -74,14 +118,18 @@ function QRModal({ ticket, onClose }) {
         </button>
         <h3 className="text-white font-bold text-lg mb-1 text-center">{ticket.event_title}</h3>
         <p className="text-gray-400 text-sm text-center mb-6">{ticket.tier_name} · x{ticket.quantity}</p>
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-4" ref={qrRef}>
           <div className="bg-white rounded-xl p-4">
             <QRCodeSVG value={ticket.check_in_code || ticket.id} size={200} level="H" />
           </div>
         </div>
         <p className="text-center text-purple-400 font-mono font-bold text-lg tracking-wider mb-2">{ticket.check_in_code || '—'}</p>
+        <button onClick={handleDownload}
+          className="w-full mt-2 mb-3 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors">
+          <Download className="w-5 h-5" /> Download Ticket QR
+        </button>
         {ticket.checked_in ? (
-          <div className="flex items-center justify-center gap-2 mt-4">
+          <div className="flex items-center justify-center gap-2 mt-2">
             <span className="text-green-400 bg-green-500/20 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4" /> Checked In
             </span>
@@ -90,7 +138,7 @@ function QRModal({ ticket, onClose }) {
             )}
           </div>
         ) : (
-          <div className="flex items-center justify-center mt-4">
+          <div className="flex items-center justify-center mt-2">
             <span className="text-amber-400 bg-amber-500/20 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5">
               <Clock className="w-4 h-4" /> Pending
             </span>
