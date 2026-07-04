@@ -68,9 +68,11 @@ export default function CreateEvent() {
     return true
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(status = 'published') {
     if (!user) { toast.error('Please log in first'); navigate('/login'); return }
-    if (!form.title || !form.date) { toast.error('Fill in all required fields'); return }
+    // Drafts only need a title; published needs full validation
+    if (!form.title) { toast.error('Event title is required'); return }
+    if (status === 'published' && !form.date) { toast.error('Start date is required'); return }
     setSubmitting(true)
     try {
       let finalImage = form.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800'
@@ -84,9 +86,9 @@ export default function CreateEvent() {
       const eventData = {
         title: form.title,
         description: form.description,
-        date: form.date,
+        date: form.date || null,
         time: form.time,
-        end_date: form.end_date || form.date,
+        end_date: form.end_date || form.date || null,
         end_time: form.end_time || form.time,
         location: form.event_type === 'virtual' ? 'Online' : form.location,
         category: form.category,
@@ -98,10 +100,15 @@ export default function CreateEvent() {
         organizer_name: profile?.full_name || user.email,
         ticket_tiers: form.tiers.map(t => ({ name: t.name, price: Number(t.price), available: Number(t.available) })),
         tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        watchers: 0, demand: 0
+        watchers: 0, demand: 0,
+        status
       }
       await EventService.create(eventData)
-      toast.success('🎉 Event published!')
+      if (status === 'draft') {
+        toast.success('💾 Event saved as draft!')
+      } else {
+        toast.success('🎉 Event published!')
+      }
       navigate('/dashboard')
     } catch (e) {
       toast.error(e.message || 'Failed to create event')
@@ -370,7 +377,11 @@ export default function CreateEvent() {
                 <button onClick={() => setStep(2)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
                   <ArrowLeft className="w-5 h-5" /> Back
                 </button>
-                <button onClick={handleSubmit} disabled={submitting}
+                <button onClick={() => handleSubmit('draft')} disabled={submitting}
+                  className="bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 text-amber-400 font-semibold py-3 px-5 rounded-xl flex items-center justify-center gap-2 transition-colors">
+                  {submitting ? '...' : '💾 Save Draft'}
+                </button>
+                <button onClick={() => handleSubmit('published')} disabled={submitting}
                   className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
                   {uploading ? '📤 Uploading image...' : submitting ? 'Publishing...' : '🎉 Publish Event'}
                 </button>

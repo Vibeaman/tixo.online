@@ -5,6 +5,7 @@ const EventService = {
     const { data, error } = await supabase
       .from('events')
       .select('*')
+      .or('status.eq.published,status.is.null')
       .order('created_at', { ascending: false })
     if (error) throw error
     return data
@@ -37,6 +38,7 @@ const EventService = {
     const { data, error } = await supabase
       .from('events')
       .select('*')
+      .or('status.eq.published,status.is.null')
       .or(`title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%,category.ilike.%${query}%`)
       .order('created_at', { ascending: false })
     if (error) throw error
@@ -47,6 +49,7 @@ const EventService = {
     const { data, error } = await supabase
       .from('events')
       .select('*')
+      .or('status.eq.published,status.is.null')
       .ilike('category', category)
       .order('created_at', { ascending: false })
     if (error) throw error
@@ -58,6 +61,7 @@ const EventService = {
       .from('events')
       .select('*')
       .eq('is_featured', true)
+      .or('status.eq.published,status.is.null')
       .order('watchers', { ascending: false })
       .limit(4)
     if (error) throw error
@@ -67,7 +71,7 @@ const EventService = {
   async create(eventData) {
     const { data, error } = await supabase
       .from('events')
-      .insert([eventData])
+      .insert([{ ...eventData, status: eventData.status || 'published' }])
       .select()
       .single()
     if (error) throw error
@@ -99,6 +103,18 @@ const EventService = {
       .select('*')
       .eq('organizer_id', userId)
       .order('created_at', { ascending: false })
+    if (error) throw error
+    return data
+  },
+
+  // Publish a draft event
+  async publish(id) {
+    const { data, error } = await supabase
+      .from('events')
+      .update({ status: 'published' })
+      .eq('id', id)
+      .select()
+      .single()
     if (error) throw error
     return data
   }

@@ -22,6 +22,7 @@ import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
+import ScanTickets from './pages/ScanTickets'
 import CategoryView from './pages/CategoryView'
 
 function Landing() {
@@ -61,6 +62,7 @@ function Layout() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/scan" element={<ScanTickets />} />
         <Route path="/category/:name" element={<CategoryView />} />
       </Routes>
       {!hideNavFooter && <Footer />}

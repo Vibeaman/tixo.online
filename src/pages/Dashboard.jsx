@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2 } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import AuthService from '../services/AuthService'
@@ -9,9 +10,10 @@ import TicketService from '../services/TicketService'
 import UserService from '../services/UserService'
 import ReferralService from '../services/ReferralService'
 
-const TABS = [
+const BASE_TABS = [
   { id: 'tickets', label: 'My Tickets', icon: Ticket },
   { id: 'events', label: 'My Events', icon: Calendar },
+  { id: 'checkin', label: 'Check-in', icon: ScanLine },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'referrals', label: 'Referrals', icon: Share2 },
   { id: 'profile', label: 'Profile', icon: User },
@@ -61,6 +63,44 @@ function BarChart({ data, labelKey, valueKey, color = 'bg-purple-500' }) {
   )
 }
 
+// QR Code Modal overlay
+function QRModal({ ticket, onClose }) {
+  if (!ticket) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#12121a] border border-white/10 rounded-2xl p-8 max-w-sm w-full mx-4 relative" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+          <X className="w-5 h-5" />
+        </button>
+        <h3 className="text-white font-bold text-lg mb-1 text-center">{ticket.event_title}</h3>
+        <p className="text-gray-400 text-sm text-center mb-6">{ticket.tier_name} · x{ticket.quantity}</p>
+        <div className="flex justify-center mb-4">
+          <div className="bg-white rounded-xl p-4">
+            <QRCodeSVG value={ticket.check_in_code || ticket.id} size={200} level="H" />
+          </div>
+        </div>
+        <p className="text-center text-purple-400 font-mono font-bold text-lg tracking-wider mb-2">{ticket.check_in_code || '—'}</p>
+        {ticket.checked_in ? (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <span className="text-green-400 bg-green-500/20 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4" /> Checked In
+            </span>
+            {ticket.checked_in_at && (
+              <span className="text-gray-500 text-xs">{new Date(ticket.checked_in_at).toLocaleString()}</span>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center mt-4">
+            <span className="text-amber-400 bg-amber-500/20 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5">
+              <Clock className="w-4 h-4" /> Pending
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user, profile, loading: authLoading, setProfile } = useAuth()
@@ -71,6 +111,16 @@ export default function Dashboard() {
   const [profileForm, setProfileForm] = useState({ full_name: '', email: '' })
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const avatarInputRef = useRef(null)
+
+  // QR modal state
+  const [qrTicket, setQrTicket] = useState(null)
+
+  // Check-in stats state
+  const [checkInStats, setCheckInStats] = useState([])
+  const [loadingCheckIn, setLoadingCheckIn] = useState(false)
+
+  // Publishing state
+  const [publishingId, setPublishingId] = useState(null)
 
   // Referral state
   const [referralLinks, setReferralLinks] = useState([])
@@ -111,6 +161,20 @@ export default function Dashboard() {
   useEffect(() => {
     if (tab === 'analytics' && user) loadAnalyticsData()
   }, [tab, user])
+
+  // Load check-in stats
+  useEffect(() => {
+    if (tab === 'checkin' && user) loadCheckInStats()
+  }, [tab, user])
+
+  async function loadCheckInStats() {
+    setLoadingCheckIn(true)
+    try {
+      const stats = await TicketService.getCheckInStats(user.id)
+      setCheckInStats(stats || [])
+    } catch (e) { console.error(e) }
+    finally { setLoadingCheckIn(false) }
+  }
 
   async function loadReferralData() {
     setLoadingReferrals(true)
@@ -162,6 +226,16 @@ export default function Dashboard() {
     } catch (e) { toast.error(e.message) }
   }
 
+  async function handlePublishEvent(id) {
+    setPublishingId(id)
+    try {
+      const updated = await EventService.publish(id)
+      setMyEvents(evs => evs.map(ev => ev.id === id ? { ...ev, ...updated, status: 'published' } : ev))
+      toast.success('Event published successfully!')
+    } catch (e) { toast.error(e.message || 'Failed to publish event') }
+    finally { setPublishingId(null) }
+  }
+
   async function handleUpdateProfile() {
     try {
       const updated = await UserService.updateProfile(user.id, { full_name: profileForm.full_name })
@@ -188,6 +262,13 @@ export default function Dashboard() {
   if (authLoading || loading) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
 
   const avatarUrl = profile?.avatar_url
+
+  // Filter tabs: only show check-in tab if user has events (is an organizer)
+  const TABS = BASE_TABS.filter(t => t.id !== 'checkin' || myEvents.length > 0)
+
+  // Separate draft and published events
+  const draftEvents = myEvents.filter(ev => ev.status === 'draft')
+  const publishedEvents = myEvents.filter(ev => ev.status !== 'draft')
 
   // Referral stats
   const totalClicks = referralLinks.reduce((sum, l) => sum + (l.clicks || 0), 0)
@@ -221,9 +302,16 @@ export default function Dashboard() {
     value: Number(d.revenue)
   }))
 
+  // Check-in totals
+  const totalCheckedIn = checkInStats.reduce((sum, s) => sum + Number(s.checked_in_count || 0), 0)
+  const totalTicketsAll = checkInStats.reduce((sum, s) => sum + Number(s.total_tickets || 0), 0)
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
+        {/* QR Modal */}
+        {qrTicket && <QRModal ticket={qrTicket} onClose={() => setQrTicket(null)} />}
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -276,24 +364,50 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-4">
                 {tickets.map(t => (
-                  <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center justify-between hover:border-purple-500/30 transition cursor-pointer"
-                    onClick={() => navigate(`/events/${t.event_id}`)}>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-white font-bold">{t.event_title}</h3>
-                        {t.is_rsvp && <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">RSVP</span>}
-                        {t.attendance_mode === 'virtual' && <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>}
+                  <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center justify-between hover:border-purple-500/30 transition">
+                    <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => navigate(`/events/${t.event_id}`)}>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-white font-bold">{t.event_title}</h3>
+                          {t.is_rsvp && <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">RSVP</span>}
+                          {t.attendance_mode === 'virtual' && <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>}
+                          {/* Check-in status badge */}
+                          {t.checked_in ? (
+                            <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <CheckCircle2 className="w-2.5 h-2.5" /> Checked In
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5" /> Pending
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-400 text-sm">{t.tier_name} · x{t.quantity}</p>
+                        <p className="text-gray-500 text-xs mt-1">
+                          {new Date(t.purchased_at).toLocaleDateString()}
+                          {t.checked_in && t.checked_in_at && (
+                            <span className="text-green-500 ml-2">· Checked in {new Date(t.checked_in_at).toLocaleString()}</span>
+                          )}
+                        </p>
                       </div>
-                      <p className="text-gray-400 text-sm">{t.tier_name} · x{t.quantity}</p>
-                      <p className="text-gray-500 text-xs mt-1">{new Date(t.purchased_at).toLocaleDateString()}</p>
                     </div>
-                    <div className="text-right">
-                      {t.is_rsvp ? (
-                        <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Free</span>
-                      ) : (
-                        <p className="text-purple-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>
-                      )}
-                      <span className="text-xs text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">Confirmed</span>
+                    <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+                      {/* QR Code thumbnail */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setQrTicket(t) }}
+                        className="bg-white rounded-lg p-1.5 hover:scale-105 transition-transform cursor-pointer flex-shrink-0"
+                        title="View QR code"
+                      >
+                        <QRCodeSVG value={t.check_in_code || t.id} size={48} level="M" />
+                      </button>
+                      <div className="text-right">
+                        {t.is_rsvp ? (
+                          <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Free</span>
+                        ) : (
+                          <p className="text-purple-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>
+                        )}
+                        <span className="text-xs text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">Confirmed</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -318,13 +432,79 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="space-y-4">
-                {myEvents.map(ev => (
+                {/* Drafts Section */}
+                {draftEvents.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-amber-400 font-bold text-sm uppercase tracking-wider">Drafts</h3>
+                      <div className="flex-1 h-px bg-amber-500/20" />
+                      <span className="text-amber-400/60 text-xs">{draftEvents.length} draft{draftEvents.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    {draftEvents.map(ev => (
+                      <div key={ev.id} className="bg-white/5 border border-amber-500/20 rounded-xl p-5 flex items-center justify-between">
+                        <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => navigate(`/events/${ev.id}`)}>
+                          {ev.image && <img src={ev.image} alt="" className="w-16 h-16 rounded-lg object-cover hidden sm:block flex-shrink-0 opacity-60" />}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-white font-bold truncate">{ev.title}</h3>
+                              <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">Draft</span>
+                              <EventTypeBadge type={ev.event_type} />
+                              {ev.reshare_enabled && (
+                                <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Share2 className="w-2.5 h-2.5" /> Reshare
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-gray-400 text-sm flex items-center gap-1"><Calendar className="w-3 h-3" />{ev.date}{ev.end_date && ev.end_date !== ev.date ? ` – ${ev.end_date}` : ''}</p>
+                            <p className="text-gray-500 text-sm flex items-center gap-1">
+                              {ev.event_type === 'virtual' ? <Video className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                              {ev.location}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                          <button onClick={() => navigate(`/edit-event/${ev.id}`)}
+                            className="text-amber-400 hover:text-amber-300 px-3 py-1.5 text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 rounded-lg transition flex items-center gap-1.5"
+                            title="Continue editing">
+                            <Edit3 className="w-3.5 h-3.5" /> Continue Editing
+                          </button>
+                          <button onClick={() => handlePublishEvent(ev.id)}
+                            disabled={publishingId === ev.id}
+                            className="text-green-400 hover:text-green-300 px-3 py-1.5 text-xs font-medium bg-green-500/10 hover:bg-green-500/20 rounded-lg transition flex items-center gap-1.5 disabled:opacity-50"
+                            title="Publish event">
+                            {publishingId === ev.id ? (
+                              <div className="w-3.5 h-3.5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            )}
+                            Publish
+                          </button>
+                          <button onClick={() => handleDeleteEvent(ev.id)}
+                            className="text-red-400 hover:text-red-300 p-2 hover:bg-white/5 rounded-lg transition" title="Delete event">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Published / Active Events */}
+                {publishedEvents.length > 0 && draftEvents.length > 0 && (
+                  <div className="flex items-center gap-3 mt-6 mb-2">
+                    <h3 className="text-green-400 font-bold text-sm uppercase tracking-wider">Published</h3>
+                    <div className="flex-1 h-px bg-green-500/20" />
+                    <span className="text-green-400/60 text-xs">{publishedEvents.length} event{publishedEvents.length !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
+                {publishedEvents.map(ev => (
                   <div key={ev.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center justify-between">
                     <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => navigate(`/events/${ev.id}`)}>
                       {ev.image && <img src={ev.image} alt="" className="w-16 h-16 rounded-lg object-cover hidden sm:block flex-shrink-0" />}
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-white font-bold truncate">{ev.title}</h3>
+                          <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Published</span>
                           <EventTypeBadge type={ev.event_type} />
                           {ev.reshare_enabled && (
                             <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -352,6 +532,95 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ============ CHECK-IN TAB ============ */}
+        {tab === 'checkin' && (
+          <div>
+            {loadingCheckIn ? (
+              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+            ) : (
+              <>
+                {/* Scanner link */}
+                <div className="bg-purple-600/10 border border-purple-500/30 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-purple-600/30 flex items-center justify-center flex-shrink-0">
+                      <ScanLine className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-lg">QR Code Scanner</h3>
+                      <p className="text-gray-400 text-sm">Scan attendee tickets to check them in</p>
+                    </div>
+                  </div>
+                  <Link to="/scan" className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium text-sm transition-colors whitespace-nowrap">
+                    <ScanLine className="w-4 h-4" /> Open Scanner
+                  </Link>
+                </div>
+
+                {/* Overview Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                  <StatCard icon={Users} label="Total Attendees" value={totalTicketsAll} color="text-purple-400" />
+                  <StatCard icon={CheckCircle2} label="Checked In" value={totalCheckedIn} color="text-green-400" />
+                  <StatCard icon={Clock} label="Not Checked In" value={totalTicketsAll - totalCheckedIn} color="text-amber-400" />
+                </div>
+
+                {/* Per-event check-in stats */}
+                <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-purple-400" /> Check-in by Event
+                </h3>
+
+                {checkInStats.length === 0 ? (
+                  <div className="text-center py-12 bg-white/5 border border-white/10 rounded-2xl">
+                    <ScanLine className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-400">No ticket data yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {checkInStats.map(stat => {
+                      const total = Number(stat.total_tickets) || 0
+                      const checked = Number(stat.checked_in_count) || 0
+                      const pct = total > 0 ? Math.round((checked / total) * 100) : 0
+                      return (
+                        <div key={stat.event_id} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-purple-500/30 transition">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {stat.event_image && <img src={stat.event_image} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />}
+                              <div className="min-w-0">
+                                <h4 className="text-white font-bold text-sm truncate">{stat.event_title}</h4>
+                                <p className="text-gray-500 text-xs">{stat.event_date}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                              <div className="text-right">
+                                <p className="text-white font-bold text-lg">{pct}%</p>
+                                <p className="text-gray-500 text-[10px]">{checked}/{total} checked in</p>
+                              </div>
+                              <Link to={`/scan?event=${stat.event_id}`}
+                                className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition"
+                                title="Scan for this event">
+                                <ScanLine className="w-5 h-5" />
+                              </Link>
+                            </div>
+                          </div>
+                          {/* Progress bar */}
+                          <div className="w-full bg-white/5 rounded-full h-3 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${pct === 100 ? 'bg-green-500' : pct > 50 ? 'bg-purple-500' : 'bg-amber-500'}`}
+                              style={{ width: `${Math.max(pct, 1)}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-green-400 text-xs">{checked} checked in</span>
+                            <span className="text-amber-400 text-xs">{stat.not_checked_in_count || (total - checked)} remaining</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

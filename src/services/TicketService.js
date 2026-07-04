@@ -3,6 +3,10 @@ import { supabase } from '../lib/supabase'
 const TicketService = {
   // Single tier purchase (supports guest checkout)
   async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp }) {
+    // Generate a unique 8-char check-in code
+    const checkInCode = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+      .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
+
     const insertData = {
       event_id: eventId,
       event_title: eventTitle,
@@ -10,10 +14,11 @@ const TicketService = {
       quantity,
       total_price: totalPrice,
       attendance_mode: attendanceMode || 'in-person',
-      is_rsvp: isRsvp || false
+      is_rsvp: isRsvp || false,
+      check_in_code: checkInCode,
+      checked_in: false
     }
 
-    // Authenticated user or guest
     if (userId) {
       insertData.user_id = userId
     } else {
@@ -36,6 +41,9 @@ const TicketService = {
   // Multi-tier purchase (cart checkout — supports guest checkout)
   async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp }) {
     const inserts = items.map(item => {
+      const code = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+        .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
+
       const row = {
         event_id: eventId,
         event_title: eventTitle,
@@ -44,6 +52,8 @@ const TicketService = {
         total_price: item.totalPrice,
         attendance_mode: attendanceMode || 'in-person',
         is_rsvp: isRsvp || false,
+        check_in_code: code,
+        checked_in: false,
         ...(referralCode ? { referral_code: referralCode } : {})
       }
 
@@ -87,6 +97,72 @@ const TicketService = {
       .limit(1)
     if (error) throw error
     return data && data.length > 0
+  },
+
+  // ═══════ CHECK-IN METHODS ═══════
+
+  // Look up ticket by check-in code
+  async getByCheckInCode(code) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*, events(*), profiles:user_id(full_name, avatar_url, email)')
+      .eq('check_in_code', code.toUpperCase().trim())
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // Mark ticket as checked in
+  async checkIn(ticketId, checkedInBy) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({
+        checked_in: true,
+        checked_in_at: new Date().toISOString(),
+        checked_in_by: checkedInBy
+      })
+      .eq('id', ticketId)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // Undo check-in
+  async undoCheckIn(ticketId) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({
+        checked_in: false,
+        checked_in_at: null,
+        checked_in_by: null
+      })
+      .eq('id', ticketId)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // Get all attendees for an event (for organizer check-in view)
+  async getEventAttendees(eventId) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*, profiles:user_id(full_name, avatar_url, email)')
+      .eq('event_id', eventId)
+      .order('purchased_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  // Get check-in stats for organizer's events
+  async getCheckInStats(organizerId) {
+    const { data, error } = await supabase
+      .from('event_checkin_stats')
+      .select('*')
+      .eq('organizer_id', organizerId)
+    if (error) throw error
+    return data || []
   },
 
   // Analytics: sales summary per event for organizer
