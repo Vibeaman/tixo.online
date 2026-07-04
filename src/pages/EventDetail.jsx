@@ -125,6 +125,7 @@ export default function EventDetail() {
 
   // Cart state
   const [cart, setCart] = useState({})
+  const [reservedFreeTiers, setReservedFreeTiers] = useState({})
   const [buying, setBuying] = useState(false)
   const [floaterExpanded, setFloaterExpanded] = useState(false)
   const cartSummaryRef = useRef(null)
@@ -272,6 +273,28 @@ export default function EventDetail() {
       setHasRsvpd(true); setPurchaseSuccess(true); setShowGuestForm(false)
       toast.success('🎉 RSVP confirmed!')
     } catch (e) { toast.error(e.message || 'RSVP failed') }
+    finally { setRsvping(false) }
+  }
+
+  /* ─── Reserve free tier (1 ticket for self) ─── */
+  async function handleReserveFreeTier(tier, guestInfo = null) {
+    if (!user && !guestInfo) { triggerGuestCheckout('rsvp'); return }
+    setRsvping(true)
+    try {
+      const refCode = sessionStorage.getItem(`ref_${id}`)
+      await TicketService.purchase({
+        eventId: event.id, eventTitle: event.title,
+        tierName: tier.name, quantity: 1, totalPrice: 0,
+        userId: user?.id || null,
+        guestName: guestInfo?.name || null,
+        guestEmail: guestInfo?.email || null,
+        referralCode: refCode || null,
+        attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'),
+        isRsvp: true
+      })
+      setReservedFreeTiers(prev => ({ ...prev, [tier.name]: true }))
+      toast.success(`🎉 Spot reserved for ${tier.name}!`)
+    } catch (e) { toast.error(e.message || 'Reservation failed') }
     finally { setRsvping(false) }
   }
 
@@ -629,21 +652,25 @@ export default function EventDetail() {
                 {/* Ticket tier cards — rigitix style */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
                   {tiers.map((tier, i) => {
+                    const isTierFree = Number(tier.price) === 0
                     const qty = cartQty(tier.name)
+                    const isReserved = reservedFreeTiers[tier.name]
                     return (
                       <div key={tier.name} style={{
-                        background: qty > 0 ? 'rgba(123,78,247,0.06)' : 'rgba(255,255,255,0.03)',
-                        border: `1.5px solid ${qty > 0 ? 'rgba(123,78,247,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        background: (qty > 0 || isReserved) ? 'rgba(123,78,247,0.06)' : 'rgba(255,255,255,0.03)',
+                        border: `1.5px solid ${(qty > 0 || isReserved) ? 'rgba(123,78,247,0.3)' : 'rgba(255,255,255,0.08)'}`,
                         borderRadius: 16, padding: 24, transition: 'all 0.25s'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                           {/* Ticket icon */}
                           <div style={{
                             width: 52, height: 52, borderRadius: 14,
-                            background: 'linear-gradient(135deg, var(--purple), var(--purple-dark))',
+                            background: isTierFree
+                              ? 'linear-gradient(135deg, #16a34a, #15803d)'
+                              : 'linear-gradient(135deg, var(--purple), var(--purple-dark))',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                           }}>
-                            <Zap size={24} style={{ color: 'white' }} />
+                            {isTierFree ? <Users size={24} style={{ color: 'white' }} /> : <Zap size={24} style={{ color: 'white' }} />}
                           </div>
                           <div style={{ flex: 1 }}>
                             <h4 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white', marginBottom: 4 }}>{tier.name}</h4>
@@ -652,34 +679,63 @@ export default function EventDetail() {
                             </p>
                             <span style={{
                               display: 'inline-block', marginTop: 8,
-                              fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,255,255,0.5)',
-                              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                              fontSize: '0.72rem', fontWeight: 700,
+                              color: isTierFree ? '#4ade80' : 'rgba(255,255,255,0.5)',
+                              background: isTierFree ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.06)',
+                              border: `1px solid ${isTierFree ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'}`,
                               padding: '4px 10px', borderRadius: 999
-                            }}>Admits 1 Person</span>
+                            }}>{isTierFree ? 'Free · 1 Per Person' : 'Admits 1 Person'}</span>
                           </div>
                         </div>
 
-                        {/* Price + quantity */}
+                        {/* Price + action */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                           <div>
-                            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em', marginBottom: 2 }}>UNIT PRICE</p>
-                            <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>₦{Number(tier.price).toLocaleString()}</p>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {qty > 0 && (
-                              <button onClick={() => removeFromCart(tier.name)} style={{
-                                width: 36, height: 36, borderRadius: 10,
-                                background: 'rgba(255,255,255,0.08)', border: 'none', color: 'white',
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                              }}><Minus size={16} /></button>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em', marginBottom: 2 }}>
+                              {isTierFree ? 'PRICE' : 'UNIT PRICE'}
+                            </p>
+                            {isTierFree ? (
+                              <p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#4ade80' }}>FREE</p>
+                            ) : (
+                              <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>₦{Number(tier.price).toLocaleString()}</p>
                             )}
-                            {qty > 0 && <span style={{ fontWeight: 800, color: 'white', width: 24, textAlign: 'center' }}>{qty}</span>}
-                            <button onClick={() => addToCart(tier.name)} style={{
-                              width: 36, height: 36, borderRadius: 10,
-                              background: 'var(--purple)', border: 'none', color: 'white',
-                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                            }}><Plus size={16} /></button>
                           </div>
+
+                          {isTierFree ? (
+                            /* Free tier — single "Reserve" button, no quantity controls */
+                            <button
+                              onClick={() => handleReserveFreeTier(tier)}
+                              disabled={isReserved || rsvping}
+                              style={{
+                                background: isReserved ? 'rgba(74,222,128,0.15)' : '#16a34a',
+                                border: isReserved ? '1px solid rgba(74,222,128,0.3)' : 'none',
+                                color: isReserved ? '#4ade80' : 'white',
+                                fontWeight: 800, padding: '12px 24px', borderRadius: 12,
+                                cursor: isReserved ? 'default' : 'pointer',
+                                fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8,
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              {isReserved ? <><CheckCircle2 size={16} /> Reserved</> : rsvping ? 'Reserving...' : <><CheckCircle2 size={16} /> Reserve Spot</>}
+                            </button>
+                          ) : (
+                            /* Paid tier — quantity +/- controls */
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {qty > 0 && (
+                                <button onClick={() => removeFromCart(tier.name)} style={{
+                                  width: 36, height: 36, borderRadius: 10,
+                                  background: 'rgba(255,255,255,0.08)', border: 'none', color: 'white',
+                                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}><Minus size={16} /></button>
+                              )}
+                              {qty > 0 && <span style={{ fontWeight: 800, color: 'white', width: 24, textAlign: 'center' }}>{qty}</span>}
+                              <button onClick={() => addToCart(tier.name)} style={{
+                                width: 36, height: 36, borderRadius: 10,
+                                background: 'var(--purple)', border: 'none', color: 'white',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                              }}><Plus size={16} /></button>
+                            </div>
+                          )}
                         </div>
                         {tier.available != null && (
                           <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>{tier.available} remaining</p>
