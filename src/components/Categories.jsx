@@ -21,7 +21,7 @@ function CategoryCard({ c, i }) {
 
   return (
     <ScrollReveal direction="scale" delay={0.05 + i * 0.06}>
-      <Tilt3D intensity={15} glowColor="rgba(139,92,246,0.15)">
+      <Tilt3D intensity={15} glowColor="rgba(255,255,255,0.06)">
         <div
           onClick={() => navigate(`/category/${c.name.toLowerCase()}`)}
           className="card-3d-lift"
@@ -29,7 +29,7 @@ function CategoryCard({ c, i }) {
           onMouseLeave={() => setHovered(false)}
           style={{
             background: 'white',
-            border: '1px solid rgba(139,92,246,0.08)',
+            border: '1px solid rgba(255,255,255,0.04)',
             borderRadius: 16,
             padding: '28px 20px',
             textAlign: 'center',
@@ -41,7 +41,7 @@ function CategoryCard({ c, i }) {
           {/* Background fill on hover */}
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(167,139,250,0.04))',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(167,139,250,0.04))',
             opacity: hovered ? 1 : 0,
             transition: 'opacity 0.4s',
           }} />
@@ -49,12 +49,12 @@ function CategoryCard({ c, i }) {
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{
               width: 52, height: 52, margin: '0 auto 14px',
-              background: hovered ? 'rgba(139,92,246,0.15)' : 'var(--lavender)',
+              background: hovered ? 'rgba(255,255,255,0.06)' : 'var(--lavender)',
               borderRadius: 14,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'all 0.4s cubic-bezier(0.23,1,0.32,1)',
               transform: hovered ? 'scale(1.15) rotate(-8deg) translateY(-4px)' : 'scale(1)',
-              boxShadow: hovered ? '0 8px 20px rgba(139,92,246,0.2)' : 'none',
+              boxShadow: hovered ? '0 8px 20px rgba(255,255,255,0.07)' : 'none',
             }}>
               <c.icon size={24} style={{
                 color: 'var(--purple)',

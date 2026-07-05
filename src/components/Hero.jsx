@@ -68,7 +68,7 @@ export default function Hero() {
       {/* Mouse-following gradient spotlight */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1,
-        background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, rgba(139,92,246,0.12), transparent 50%)`,
+        background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.05), transparent 50%)`,
         pointerEvents: 'none',
       }} />
 
@@ -117,7 +117,7 @@ export default function Hero() {
         <ScrollReveal direction="scale" delay={0.1} duration={1}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'linear-gradient(135deg, rgba(233,30,140,0.15), rgba(139,92,246,0.15))',
+            background: 'linear-gradient(135deg, rgba(233,30,140,0.15), rgba(255,255,255,0.06))',
             border: '1px solid rgba(233,30,140,0.3)',
             borderRadius: 999, padding: '6px 18px', fontSize: '0.78rem', fontWeight: 700,
             color: '#E91E8C', letterSpacing: '0.06em',

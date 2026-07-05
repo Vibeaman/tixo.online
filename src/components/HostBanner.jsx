@@ -21,7 +21,7 @@ function StatCard({ val, label, sub, i }) {
   const [hovered, setHovered] = useState(false)
 
   return (
-    <Tilt3D intensity={12} glowColor="rgba(139,92,246,0.15)">
+    <Tilt3D intensity={12} glowColor="rgba(255,255,255,0.06)">
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -29,11 +29,11 @@ function StatCard({ val, label, sub, i }) {
           background: 'var(--dark)', padding: '28px 20px',
           textAlign: 'center', position: 'relative',
           borderRadius: 12,
-          border: '1px solid rgba(139,92,246,0.1)',
+          border: '1px solid rgba(255,255,255,0.05)',
           transition: 'border-color 0.3s, box-shadow 0.3s',
           ...(hovered ? {
-            borderColor: 'rgba(139,92,246,0.3)',
-            boxShadow: '0 8px 30px rgba(139,92,246,0.15)',
+            borderColor: 'rgba(255,255,255,0.1)',
+            boxShadow: '0 8px 30px rgba(255,255,255,0.06)',
           } : {}),
         }}
       >
@@ -42,7 +42,7 @@ function StatCard({ val, label, sub, i }) {
           color: i % 2 === 0 ? 'var(--purple-light)' : 'white',
           transition: 'transform 0.3s',
           transform: hovered ? 'scale(1.1)' : 'scale(1)',
-          textShadow: hovered ? '0 0 20px rgba(139,92,246,0.3)' : 'none',
+          textShadow: hovered ? '0 0 20px rgba(255,255,255,0.1)' : 'none',
         }}>{val}</div>
         <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>{label}</div>
         <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>{sub}</div>
@@ -57,18 +57,18 @@ export default function HostBanner() {
   return (
     <section className="section-dark" style={{ padding: 'clamp(60px, 8vw, 100px) 24px' }}>
       <ScrollReveal direction="up" delay={0.1} distance={60}>
-        <Tilt3D intensity={6} glowColor="rgba(139,92,246,0.1)">
+        <Tilt3D intensity={6} glowColor="rgba(255,255,255,0.05)">
           <div style={{
             maxWidth: 1200, margin: '0 auto',
-            background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(91,46,212,0.04))',
-            border: '1px solid rgba(139,92,246,0.15)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(91,46,212,0.04))',
+            border: '1px solid rgba(255,255,255,0.06)',
             borderRadius: 24,
             padding: 'clamp(40px, 5vw, 64px)',
             position: 'relative',
             overflow: 'hidden',
           }}>
             {/* Background blob */}
-            <MorphBlob size={350} color="rgba(139,92,246,0.08)" style={{ position: 'absolute', top: '-15%', right: '-10%' }} />
+            <MorphBlob size={350} color="rgba(255,255,255,0.04)" style={{ position: 'absolute', top: '-15%', right: '-10%' }} />
 
             {/* Animated accent line at top */}
             <div style={{

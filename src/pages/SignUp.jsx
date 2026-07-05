@@ -71,7 +71,7 @@ export default function SignUp() {
       <div className="min-h-screen auth-gradient-bg flex items-center justify-center px-4 py-20">
         <div className="w-full max-w-md text-center" style={{ animation: 'bounceIn 0.6s ease' }}>
           <div className="auth-card rounded-2xl p-10 space-y-5">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto" style={{ background: 'linear-gradient(135deg, rgba(233,30,140,0.2), rgba(139,92,246,0.2))' }}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto" style={{ background: 'linear-gradient(135deg, rgba(233,30,140,0.2), rgba(255,255,255,0.07))' }}>
               <CheckCircle className="w-8 h-8" style={{ color: '#E91E8C' }} />
             </div>
             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'white' }}>You're almost in! 🎉</h1>
@@ -99,7 +99,7 @@ export default function SignUp() {
       <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden">
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(135deg, rgba(0,191,255,0.06) 0%, rgba(139,92,246,0.12) 50%, rgba(233,30,140,0.08) 100%)',
+          background: 'linear-gradient(135deg, rgba(0,191,255,0.06) 0%, rgba(255,255,255,0.05) 50%, rgba(233,30,140,0.08) 100%)',
         }} />
 
         <FloatingIcon icon={Sparkles} size={36} top="12%" left="15%" delay={0} color="#00BFFF" />
@@ -110,7 +110,7 @@ export default function SignUp() {
         <div style={{
           position: 'absolute', top: '40%', left: '25%',
           width: 450, height: 450,
-          background: 'linear-gradient(135deg, rgba(0,191,255,0.08), rgba(139,92,246,0.12), rgba(233,30,140,0.06))',
+          background: 'linear-gradient(135deg, rgba(0,191,255,0.08), rgba(255,255,255,0.05), rgba(233,30,140,0.06))',
           animation: 'morphBlob 15s ease-in-out infinite',
           filter: 'blur(70px)',
         }} />

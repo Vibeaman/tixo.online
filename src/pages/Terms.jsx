@@ -4,15 +4,15 @@ import { ArrowLeft, FileText } from 'lucide-react'
 
 export default function Terms() {
   return (
-    <div className="min-h-screen bg-[#0B0B1A] pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-3xl mx-auto">
         <Link to="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Home
         </Link>
 
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center">
-            <FileText className="w-6 h-6 text-purple-400" />
+          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+            <FileText className="w-6 h-6 text-pink-400" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">Terms of Service</h1>
@@ -133,7 +133,7 @@ export default function Terms() {
             <h2 className="text-white font-bold text-xl mb-3">13. Contact Us</h2>
             <p>
               For questions about these Terms of Service, please contact us at{' '}
-              <a href="mailto:support@tixo.online" className="text-purple-400 hover:text-purple-300 transition-colors">support@tixo.online</a>.
+              <a href="mailto:bayorobertonline@gmail.com" className="text-pink-400 hover:text-pink-300 transition-colors">bayorobertonline@gmail.com</a>.
             </p>
           </section>
         </div>

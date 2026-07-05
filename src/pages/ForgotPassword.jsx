@@ -24,15 +24,15 @@ export default function ForgotPassword() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-[#0B0B1A] flex items-center justify-center px-4 py-20">
+      <div className="min-h-screen bg-[#050510] flex items-center justify-center px-4 py-20">
         <div className="w-full max-w-md text-center">
           <div className="bg-white/5 border border-white/10 rounded-2xl p-10 space-y-5">
-            <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle className="w-8 h-8 text-purple-400" />
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle className="w-8 h-8 text-pink-400" />
             </div>
             <h1 className="text-2xl font-bold text-white">Check your email</h1>
             <p className="text-gray-400">
-              We sent a password reset link to <span className="text-purple-400 font-medium">{email}</span>.
+              We sent a password reset link to <span className="text-pink-400 font-medium">{email}</span>.
               Click the link in the email to reset your password.
             </p>
             <p className="text-gray-500 text-sm">
@@ -40,7 +40,7 @@ export default function ForgotPassword() {
             </p>
             <div className="pt-2 space-y-3">
               <button onClick={() => { setSent(false); setEmail('') }}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl transition-colors">
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 rounded-xl transition-colors">
                 Try a Different Email
               </button>
               <Link to="/login"
@@ -55,7 +55,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B1A] flex items-center justify-center px-4 py-20">
+    <div className="min-h-screen bg-[#050510] flex items-center justify-center px-4 py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Forgot Password?</h1>
@@ -67,12 +67,12 @@ export default function ForgotPassword() {
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20"
                 placeholder="you@email.com" />
             </div>
           </div>
           <button type="submit" disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
             {loading ? 'Sending...' : <><Send className="w-5 h-5" /><span>Send Reset Link</span></>}
           </button>
           <Link to="/login"

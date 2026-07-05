@@ -54,7 +54,7 @@ export default function BrowseEvents() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B1A] pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold text-white mb-3">Browse Events</h1>
@@ -67,16 +67,16 @@ export default function BrowseEvents() {
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20"
                 placeholder="Search events, venues, cities..." />
             </div>
-            <button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors">Search</button>
+            <button type="submit" className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors">Search</button>
           </form>
           <div className="flex flex-wrap gap-3 items-center justify-between">
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map(c => (
                 <button key={c} onClick={() => setCategory(c)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${category === c ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${category === c ? 'bg-white/15 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                   {c}
                 </button>
               ))}
@@ -95,29 +95,29 @@ export default function BrowseEvents() {
 
         {/* Results */}
         {loading ? (
-          <div className="text-center py-20"><div className="inline-block w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="text-center py-20"><div className="inline-block w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-400 text-lg">No events found</p>
-            <button onClick={() => { setSearch(''); setCategory('All') }} className="mt-4 text-purple-400 hover:text-purple-300">Clear filters</button>
+            <button onClick={() => { setSearch(''); setCategory('All') }} className="mt-4 text-pink-400 hover:text-pink-300">Clear filters</button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map(event => (
               <div key={event.id} onClick={() => navigate(`/events/${event.id}`)}
-                className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all cursor-pointer group">
+                className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all cursor-pointer group">
                 <div className="relative h-48 overflow-hidden">
                   <img src={event.image} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <span className="absolute top-3 left-3 bg-purple-600/90 text-white text-xs font-bold px-3 py-1 rounded-full">{event.category}</span>
+                  <span className="absolute top-3 left-3 bg-gradient-to-r from-pink-500 to-purple-500/90 text-white text-xs font-bold px-3 py-1 rounded-full">{event.category}</span>
                 </div>
                 <div className="p-5">
-                  <h3 className="text-white font-bold text-lg mb-2 group-hover:text-purple-400 transition-colors">{event.title}</h3>
+                  <h3 className="text-white font-bold text-lg mb-2 group-hover:text-pink-400 transition-colors">{event.title}</h3>
                   <div className="space-y-1.5 mb-4">
                     <div className="flex items-center gap-2 text-gray-400 text-sm"><Calendar className="w-4 h-4" />{event.date}</div>
                     <div className="flex items-center gap-2 text-gray-400 text-sm"><MapPin className="w-4 h-4" />{event.location}</div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-purple-400 font-bold">₦{(event.ticket_tiers?.[0]?.price || 0).toLocaleString()}</span>
+                    <span className="text-pink-400 font-bold">₦{(event.ticket_tiers?.[0]?.price || 0).toLocaleString()}</span>
                     <span className="flex items-center gap-1 text-sm text-gray-400"><Ticket className="w-4 h-4" />Get Tickets <ArrowRight className="w-4 h-4" /></span>
                   </div>
                 </div>

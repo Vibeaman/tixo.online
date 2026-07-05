@@ -9,28 +9,28 @@ const roles = [
     icon: Ticket, title: 'Attendees',
     desc: 'Discover events, buy tickets instantly, and earn rewards for attending.',
     cta: 'Find Events', to: '/events',
-    gradient: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(167,139,250,0.05))',
+    gradient: 'linear-gradient(135deg, rgba(255,255,255,0.07), rgba(167,139,250,0.05))',
   },
   {
     num: '02', badge: 'ORGANIZER',
     icon: Mic2, title: 'Organizers',
     desc: 'Create, manage, and sell out your events with powerful tools.',
     cta: 'Start Creating', to: '/create',
-    gradient: 'linear-gradient(135deg, rgba(147,51,234,0.2), rgba(139,92,246,0.05))',
+    gradient: 'linear-gradient(135deg, rgba(233,30,140,0.12), rgba(255,255,255,0.03))',
   },
   {
     num: '03', badge: 'PROMOTER',
     icon: Users, title: 'Promoters',
     desc: 'Share events, build tribes around shared passions. Earn commission on every ticket sold.',
     cta: 'Join Network', to: '/signup',
-    gradient: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.05))',
+    gradient: 'linear-gradient(135deg, rgba(233,30,140,0.1), rgba(255,255,255,0.03))',
   },
   {
     num: '04', badge: 'VENDOR',
     icon: Store, title: 'Vendors',
     desc: 'Showcase your brand at top events. Connect with thousands of attendees.',
     cta: 'Learn More', to: '/signup',
-    gradient: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.05))',
+    gradient: 'linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03))',
   },
 ]
 
@@ -40,7 +40,7 @@ function RoleCard({ r, i }) {
 
   return (
     <ScrollReveal direction={i % 2 === 0 ? 'left' : 'right'} delay={0.15 + i * 0.12} rotate={i % 2 === 0 ? -2 : 2}>
-      <Tilt3D intensity={22} glowColor="rgba(139,92,246,0.25)">
+      <Tilt3D intensity={22} glowColor="rgba(255,255,255,0.08)">
         <div
           onClick={() => navigate(r.to)}
           className="card-3d-lift"
@@ -49,7 +49,7 @@ function RoleCard({ r, i }) {
           style={{
             background: 'var(--dark)',
             borderRadius: 16,
-            border: '1.5px solid rgba(139,92,246,0.15)',
+            border: '1.5px solid rgba(255,255,255,0.06)',
             padding: '28px 24px',
             cursor: 'pointer',
             position: 'relative',
@@ -69,7 +69,7 @@ function RoleCard({ r, i }) {
           <div style={{
             position: 'absolute', top: -30, right: -30,
             width: 80, height: 80, borderRadius: '50%',
-            background: 'rgba(139,92,246,0.1)',
+            background: 'rgba(255,255,255,0.05)',
             transform: hovered ? 'scale(3)' : 'scale(1)',
             transition: 'transform 0.6s cubic-bezier(0.23,1,0.32,1)',
             zIndex: 0,
@@ -86,7 +86,7 @@ function RoleCard({ r, i }) {
               </span>
               <span style={{
                 fontSize: '0.65rem', fontWeight: 800, color: 'var(--purple-light)',
-                background: 'rgba(139,92,246,0.15)', padding: '4px 10px', borderRadius: 999,
+                background: 'rgba(255,255,255,0.06)', padding: '4px 10px', borderRadius: 999,
                 letterSpacing: '0.06em',
                 transform: hovered ? 'scale(1.1)' : 'scale(1)',
                 transition: 'transform 0.3s',
@@ -97,13 +97,13 @@ function RoleCard({ r, i }) {
 
             <div style={{
               width: 48, height: 48,
-              background: hovered ? 'rgba(139,92,246,0.3)' : 'rgba(139,92,246,0.12)',
+              background: hovered ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)',
               borderRadius: 14,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               marginBottom: 16,
               transition: 'all 0.4s cubic-bezier(0.23,1,0.32,1)',
               transform: hovered ? 'rotate(-12deg) scale(1.15) translateY(-4px)' : 'rotate(0) scale(1)',
-              boxShadow: hovered ? '0 8px 25px rgba(139,92,246,0.3)' : 'none',
+              boxShadow: hovered ? '0 8px 25px rgba(255,255,255,0.1)' : 'none',
             }}>
               <r.icon size={22} style={{
                 color: 'var(--purple-light)',
@@ -119,9 +119,9 @@ function RoleCard({ r, i }) {
             }}>{r.title}</h3>
 
             <div style={{
-              borderTop: '2px dashed rgba(139,92,246,0.2)', margin: '12px 0', width: '100%',
+              borderTop: '2px dashed rgba(255,255,255,0.07)', margin: '12px 0', width: '100%',
               transition: 'border-color 0.3s',
-              borderColor: hovered ? 'rgba(139,92,246,0.4)' : 'rgba(139,92,246,0.2)',
+              borderColor: hovered ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.07)',
             }} />
 
             <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{r.desc}</p>
@@ -149,17 +149,17 @@ export default function RoleCards() {
     <section style={{ padding: 'clamp(60px, 8vw, 100px) 24px', background: 'var(--lavender)', position: 'relative', overflow: 'hidden' }}>
       {/* Background decorative elements */}
       <div style={{ position: 'absolute', top: '10%', right: '-5%', opacity: 0.5 }}>
-        <MorphBlob size={300} color="rgba(139,92,246,0.06)" />
+        <MorphBlob size={300} color="rgba(255,255,255,0.03)" />
       </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         {/* Vision card */}
         <ScrollReveal direction="up" delay={0.1} distance={50}>
-          <Tilt3D intensity={8} glowColor="rgba(139,92,246,0.15)">
+          <Tilt3D intensity={8} glowColor="rgba(255,255,255,0.06)">
             <div style={{
               background: 'var(--dark)',
               borderRadius: 20,
-              border: '1.5px solid rgba(139,92,246,0.25)',
+              border: '1.5px solid rgba(255,255,255,0.08)',
               padding: 'clamp(32px, 5vw, 48px)',
               marginBottom: 48,
               position: 'relative',

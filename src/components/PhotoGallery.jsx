@@ -234,7 +234,7 @@ export default function PhotoGallery({ eventId, eventTitle }) {
       {/* Loading */}
       {loading && (
         <div style={{ textAlign: 'center', padding: 40 }}>
-          <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" style={{ display: 'inline-block' }} />
+          <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" style={{ display: 'inline-block' }} />
         </div>
       )}
 

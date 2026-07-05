@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react'
    TILT 3D — DRAMATIC mouse-following 3D card tilt
    Much more intense with shine reflection + depth shadow
    ═══════════════════════════════════════════════════════════ */
-export function Tilt3D({ children, intensity = 20, glowColor = 'rgba(139,92,246,0.25)', className = '', style = {} }) {
+export function Tilt3D({ children, intensity = 20, glowColor = 'rgba(255,255,255,0.08)', className = '', style = {} }) {
   const ref = useRef(null)
   const [transform, setTransform] = useState('')
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 })
@@ -142,7 +142,7 @@ export function ScrollReveal({ children, direction = 'up', delay = 0, duration =
 /* ═══════════════════════════════════════════════════════════
    FLOATING PARTICLES — Bigger, glowing, interactive
    ═══════════════════════════════════════════════════════════ */
-export function FloatingParticles({ count = 35, color = 'rgba(139,92,246,0.4)', minSize = 2, maxSize = 7, speed = 1 }) {
+export function FloatingParticles({ count = 35, color = 'rgba(255,255,255,0.15)', minSize = 2, maxSize = 7, speed = 1 }) {
   const canvasRef = useRef(null)
   const particlesRef = useRef([])
   const animRef = useRef(null)
@@ -202,8 +202,8 @@ export function FloatingParticles({ count = 35, color = 'rgba(139,92,246,0.4)', 
         // Glowing particle
         const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, pulsedSize * 3)
         gradient.addColorStop(0, `rgba(167,139,250,${opacity})`)
-        gradient.addColorStop(0.4, `rgba(139,92,246,${opacity * 0.5})`)
-        gradient.addColorStop(1, 'rgba(139,92,246,0)')
+        gradient.addColorStop(0.4, `rgba(255,255,255,${opacity * 0.3})`)
+        gradient.addColorStop(1, 'rgba(255,255,255,0)')
         ctx.beginPath()
         ctx.arc(p.x, p.y, pulsedSize * 3, 0, Math.PI * 2)
         ctx.fillStyle = gradient
@@ -316,9 +316,9 @@ export function FloatingShapes({ count = 6 }) {
             top: `${s.y}%`,
             width: s.size,
             height: s.size,
-            border: `2px solid rgba(139,92,246,${s.opacity * 4})`,
+            border: `2px solid rgba(255,255,255,${s.opacity * 2})`,
             borderRadius: s.type === 'circle' ? '50%' : s.type === 'square' ? '8px' : '0',
-            background: `rgba(139,92,246,${s.opacity})`,
+            background: `rgba(255,255,255,${s.opacity * 0.5})`,
             animation: `floatShape ${s.duration}s ease-in-out ${s.delay}s infinite`,
             clipPath: s.type === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : undefined,
           }}
@@ -407,7 +407,7 @@ export function RippleButton({ children, className = '', style = {}, onClick, ..
 /* ═══════════════════════════════════════════════════════════
    MORPH BLOB — Animated morphing background blob
    ═══════════════════════════════════════════════════════════ */
-export function MorphBlob({ size = 400, color = 'rgba(139,92,246,0.15)', style = {} }) {
+export function MorphBlob({ size = 400, color = 'rgba(255,255,255,0.06)', style = {} }) {
   return (
     <div style={{
       ...style,

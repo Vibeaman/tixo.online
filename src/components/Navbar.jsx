@@ -27,24 +27,32 @@ export default function Navbar() {
     <nav
       className="fixed top-0 w-full z-50 transition-all duration-300"
       style={{
-        background: scrolled ? 'rgba(11,11,26,0.95)' : 'rgba(11,11,26,0.6)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: scrolled ? '1px solid rgba(139,92,246,0.15)' : '1px solid rgba(255,255,255,0.05)',
+        background: scrolled ? 'rgba(5,5,16,0.97)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(20px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.04)' : '1px solid transparent',
       }}
     >
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
-          <img src="/tixo-logo.png" alt="Tixo" style={{ height: 30 }} className="transition-transform duration-300 group-hover:scale-105" />
+          <img src="/tixo-logo.png" alt="Tixo" style={{ height: 28 }} className="transition-transform duration-300 group-hover:scale-105" />
         </Link>
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/events" className="text-gray-300 hover:text-white text-sm font-medium transition-colors relative group">
+          <Link to="/events" className="text-sm font-medium transition-colors relative group"
+            style={{ color: 'rgba(255,255,255,0.6)' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'white'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+          >
             Browse Events
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-purple-500 group-hover:w-full transition-all duration-300" />
           </Link>
-          <Link to="/create" className="text-gray-300 hover:text-white text-sm font-medium transition-colors relative group">
+          <Link to="/create" className="text-sm font-medium transition-colors relative group"
+            style={{ color: 'rgba(255,255,255,0.6)' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'white'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+          >
             Create Event
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-400 group-hover:w-full transition-all duration-300" />
           </Link>
@@ -52,17 +60,19 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(233,30,140,0.15), rgba(139,92,246,0.15))',
-                  border: '1px solid rgba(139,92,246,0.25)',
-                  color: '#A78BFA',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.8)',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(233,30,140,0.25), rgba(139,92,246,0.25))'
-                  e.currentTarget.style.borderColor = 'rgba(233,30,140,0.4)'
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+                  e.currentTarget.style.color = 'white'
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(233,30,140,0.15), rgba(139,92,246,0.15))'
-                  e.currentTarget.style.borderColor = 'rgba(139,92,246,0.25)'
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.8)'
                 }}
               >
                 {profile?.avatar_url ? (
@@ -72,11 +82,18 @@ export default function Navbar() {
                 )}
                 {profile?.full_name?.split(' ')[0] || 'Dashboard'}
               </Link>
-              <button onClick={handleLogout} className="text-gray-400 hover:text-white p-2 transition-colors"><LogOut className="w-4 h-4" /></button>
+              <button onClick={handleLogout} className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'white'}
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+              ><LogOut className="w-4 h-4" /></button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <Link to="/login" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Log In</Link>
+              <Link to="/login" className="text-sm font-medium transition-colors"
+                style={{ color: 'rgba(255,255,255,0.6)' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'white'}
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+              >Log In</Link>
               <Link to="/signup" className="text-sm font-semibold px-5 py-2 rounded-full transition-all duration-300"
                 style={{
                   background: 'linear-gradient(135deg, #E91E8C, #8B5CF6)',
@@ -98,21 +115,26 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden px-4 py-6 space-y-4" style={{
-          background: 'rgba(11,11,26,0.98)',
+          background: 'rgba(5,5,16,0.98)',
           backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(139,92,246,0.1)',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
           animation: 'slideUp 0.3s ease',
         }}>
-          <Link to="/events" onClick={() => setOpen(false)} className="block text-gray-300 hover:text-white font-medium">Browse Events</Link>
-          <Link to="/create" onClick={() => setOpen(false)} className="block text-gray-300 hover:text-white font-medium">Create Event</Link>
+          <Link to="/events" onClick={() => setOpen(false)} className="block font-medium"
+            style={{ color: 'rgba(255,255,255,0.6)' }}>Browse Events</Link>
+          <Link to="/create" onClick={() => setOpen(false)} className="block font-medium"
+            style={{ color: 'rgba(255,255,255,0.6)' }}>Create Event</Link>
           {user ? (
             <>
-              <Link to="/dashboard" onClick={() => setOpen(false)} className="block text-gray-300 hover:text-white font-medium">Dashboard</Link>
-              <button onClick={() => { handleLogout(); setOpen(false) }} className="block text-gray-400 hover:text-white font-medium">Log Out</button>
+              <Link to="/dashboard" onClick={() => setOpen(false)} className="block font-medium"
+                style={{ color: 'rgba(255,255,255,0.6)' }}>Dashboard</Link>
+              <button onClick={() => { handleLogout(); setOpen(false) }} className="block font-medium"
+                style={{ color: 'rgba(255,255,255,0.4)' }}>Log Out</button>
             </>
           ) : (
             <>
-              <Link to="/login" onClick={() => setOpen(false)} className="block text-gray-300 hover:text-white font-medium">Log In</Link>
+              <Link to="/login" onClick={() => setOpen(false)} className="block font-medium"
+                style={{ color: 'rgba(255,255,255,0.6)' }}>Log In</Link>
               <Link to="/signup" onClick={() => setOpen(false)} className="block text-center py-2.5 rounded-full font-semibold" style={{ background: 'linear-gradient(135deg, #E91E8C, #8B5CF6)', color: 'white' }}>Sign Up</Link>
             </>
           )}

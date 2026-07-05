@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Twitter, Instagram, Youtube } from 'lucide-react'
+import { ArrowRight, Twitter, Instagram, Youtube, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const linkGroups = [
@@ -45,9 +45,9 @@ export default function Footer() {
   }
 
   return (
-    <footer style={{ background: 'var(--dark)', borderTop: '1px solid rgba(139,92,246,0.1)' }}>
+    <footer style={{ background: '#050510', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
       {/* Newsletter strip */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
           <div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Stay in the loop</h3>
@@ -87,6 +87,17 @@ export default function Footer() {
             <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
               Africa's premier event discovery and ticketing platform. Discover. Book. Experience.
             </p>
+            {/* Contact email */}
+            <a href="mailto:bayorobertonline@gmail.com" style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)',
+              textDecoration: 'none', marginTop: 14, transition: 'color 0.2s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.color = 'white'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+            >
+              <Mail size={14} /> bayorobertonline@gmail.com
+            </a>
             <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
               {[
                 { Icon: Twitter, url: 'https://twitter.com' },
@@ -96,11 +107,11 @@ export default function Footer() {
                 <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
                   width: 36, height: 36,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
                   color: 'rgba(255,255,255,0.5)', transition: 'all 0.2s', borderRadius: 8,
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, #E91E8C, #8B5CF6)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'transparent' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)' }}
                 >
                   <Icon size={16} />
                 </a>
@@ -111,7 +122,7 @@ export default function Footer() {
           {/* Link columns */}
           {linkGroups.map((g, i) => (
             <div key={i}>
-              <h4 style={{ fontSize: '0.82rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }} className="tixo-gradient-text">{g.title}</h4>
+              <h4 style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16, color: 'rgba(255,255,255,0.25)' }}>{g.title}</h4>
               {g.links.map((l, j) => (
                 <Link key={j} to={l.to} style={{
                   display: 'block', padding: '5px 0', fontSize: '0.82rem',
@@ -129,7 +140,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div style={{
           marginTop: 48, paddingTop: 24,
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
           display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12,
           fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)'
         }}>

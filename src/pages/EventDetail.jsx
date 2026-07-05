@@ -429,7 +429,7 @@ export default function EventDetail() {
   }
 
   /* ─── Loading ─── */
-  if (loading) return <div className="min-h-screen bg-[#0B0B1A] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (loading) return <div className="min-h-screen bg-[#050510] flex items-center justify-center"><div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!event) return null
 
   const startDate = formatDate(event.date)
@@ -442,7 +442,7 @@ export default function EventDetail() {
   const showVirtualLink = purchaseSuccess && (isVirtual || (isHybrid && attendanceMode === 'virtual')) && event.virtual_link
 
   return (
-    <div className="min-h-screen bg-[#0B0B1A]" style={{ paddingTop: 64 }}>
+    <div className="min-h-screen bg-[#050510]" style={{ paddingTop: 64 }}>
 
       {/* ═══ COUNTDOWN TIMER ═══ */}
       {event.date && <Countdown date={event.date} time={event.time} />}
@@ -540,7 +540,7 @@ export default function EventDetail() {
 
           {event.event_type !== 'virtual' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(139,92,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <MapPin size={18} style={{ color: 'var(--purple-light)' }} />
               </div>
               <div>
@@ -551,7 +551,7 @@ export default function EventDetail() {
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(139,92,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Calendar size={18} style={{ color: 'var(--purple-light)' }} />
             </div>
             <div>
@@ -599,11 +599,11 @@ export default function EventDetail() {
         {event.reshare_enabled && (
           <div style={{ marginBottom: 32 }}>
             <div style={{
-              background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.06))',
-              border: '1px solid rgba(139,92,246,0.2)', borderRadius: 16, padding: 24
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(236,72,153,0.06))',
+              border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 24
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <DollarSign size={18} style={{ color: 'var(--purple-light)' }} />
                 </div>
                 <div>
@@ -720,8 +720,8 @@ export default function EventDetail() {
                     const isReserved = reservedFreeTiers[tier.name]
                     return (
                       <div key={tier.name} style={{
-                        background: (qty > 0 || isReserved) ? 'rgba(139,92,246,0.06)' : 'rgba(255,255,255,0.03)',
-                        border: `1.5px solid ${(qty > 0 || isReserved) ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        background: (qty > 0 || isReserved) ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.03)',
+                        border: `1.5px solid ${(qty > 0 || isReserved) ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.08)'}`,
                         borderRadius: 16, padding: 24, transition: 'all 0.25s'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
@@ -811,7 +811,7 @@ export default function EventDetail() {
                 {/* ═══ GUEST CHECKOUT FORM ═══ */}
                 {showGuestForm && !user && (
                   <div style={{
-                    background: 'rgba(139,92,246,0.06)', border: '1.5px solid rgba(139,92,246,0.2)',
+                    background: 'rgba(255,255,255,0.03)', border: '1.5px solid rgba(255,255,255,0.07)',
                     borderRadius: 16, padding: 24, marginBottom: 16
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -858,7 +858,7 @@ export default function EventDetail() {
                 {/* ═══ ATTENDEE DETAILS FORM (Buy for Others) ═══ */}
                 {showAttendeeForm && (
                   <div style={{
-                    background: 'rgba(139,92,246,0.06)', border: '1.5px solid rgba(139,92,246,0.2)',
+                    background: 'rgba(255,255,255,0.03)', border: '1.5px solid rgba(255,255,255,0.07)',
                     borderRadius: 16, padding: 24, marginBottom: 16
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -894,7 +894,7 @@ export default function EventDetail() {
                               style={{
                                 width: '100%', boxSizing: 'border-box',
                                 background: 'rgba(0,0,0,0.3)',
-                                border: `1px solid ${i === 0 ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.12)'}`,
+                                border: `1px solid ${i === 0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.12)'}`,
                                 borderRadius: 10, padding: '14px 16px',
                                 paddingRight: i === 0 ? 60 : 16,
                                 color: 'white', fontSize: '0.9rem', outline: 'none'
@@ -904,7 +904,7 @@ export default function EventDetail() {
                               <span style={{
                                 position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                                 fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)',
-                                background: 'rgba(139,92,246,0.15)', padding: '3px 8px', borderRadius: 6
+                                background: 'rgba(255,255,255,0.06)', padding: '3px 8px', borderRadius: 6
                               }}>You</span>
                             )}
                           </div>
@@ -1030,7 +1030,7 @@ export default function EventDetail() {
             </div>
             <div style={{
               borderRadius: 16, overflow: 'hidden',
-              border: '1.5px solid rgba(139,92,246,0.15)',
+              border: '1.5px solid rgba(255,255,255,0.06)',
               background: 'rgba(200,240,220,0.06)'
             }}>
               <iframe
@@ -1067,7 +1067,7 @@ export default function EventDetail() {
           <form onSubmit={handlePostComment} style={{ marginBottom: 24 }}>
             <div style={{ display: 'flex', gap: 12 }}>
               <div style={{
-                width: 36, height: 36, borderRadius: '50%', background: 'rgba(139,92,246,0.2)',
+                width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.07)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden'
               }}>
                 {user && profile?.avatar_url ? (
@@ -1098,7 +1098,7 @@ export default function EventDetail() {
           </form>
 
           {loadingComments ? (
-            <div style={{ textAlign: 'center', padding: 32 }}><div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" style={{ display: 'inline-block' }} /></div>
+            <div style={{ textAlign: 'center', padding: 32 }}><div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" style={{ display: 'inline-block' }} /></div>
           ) : comments.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16 }}>
               <MessageCircle size={32} style={{ color: 'rgba(255,255,255,0.15)', margin: '0 auto 12px' }} />
@@ -1111,7 +1111,7 @@ export default function EventDetail() {
                   className="group"
                 >
                   <div style={{
-                    width: 32, height: 32, borderRadius: '50%', background: 'rgba(139,92,246,0.15)',
+                    width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.06)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden',
                     fontSize: '0.72rem', fontWeight: 800, color: 'var(--purple-light)'
                   }}>

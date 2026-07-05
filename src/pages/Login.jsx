@@ -56,7 +56,7 @@ export default function Login() {
         {/* Animated gradient background */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(135deg, rgba(233,30,140,0.08) 0%, rgba(139,92,246,0.12) 50%, rgba(0,191,255,0.06) 100%)',
+          background: 'linear-gradient(135deg, rgba(233,30,140,0.08) 0%, rgba(255,255,255,0.05) 50%, rgba(0,191,255,0.06) 100%)',
         }} />
 
         {/* Floating icons */}
@@ -69,7 +69,7 @@ export default function Login() {
         <div style={{
           position: 'absolute', top: '30%', left: '30%',
           width: 400, height: 400,
-          background: 'linear-gradient(135deg, rgba(233,30,140,0.12), rgba(139,92,246,0.1), rgba(0,191,255,0.08))',
+          background: 'linear-gradient(135deg, rgba(233,30,140,0.12), rgba(255,255,255,0.05), rgba(0,191,255,0.08))',
           animation: 'morphBlob 12s ease-in-out infinite',
           filter: 'blur(60px)',
         }} />

@@ -51,7 +51,7 @@ function Layout() {
   const hideNavFooter = ['/signup', '/login', '/forgot-password', '/reset-password'].includes(pathname)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0B0B1A' }}>
+    <div style={{ minHeight: '100vh', background: '#050510' }}>
       {!hideNavFooter && <Navbar />}
       <Routes>
         <Route path="/" element={<Landing />} />
@@ -83,7 +83,7 @@ export default function App() {
           position="top-center"
           toastOptions={{
             style: {
-              background: '#0B0B1A',
+              background: '#050510',
               color: 'white',
               border: '1px solid rgba(233,30,140,0.3)',
               fontWeight: 600,

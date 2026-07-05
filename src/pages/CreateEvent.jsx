@@ -127,7 +127,7 @@ export default function CreateEvent() {
   const standardPlatform = Math.round(samplePrice * 0.05)
 
   return (
-    <div className="min-h-screen bg-[#0B0B1A] pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-2 text-center">Create Event</h1>
         <p className="text-gray-400 text-center mb-8">Fill in the details to publish your event</p>
@@ -136,10 +136,10 @@ export default function CreateEvent() {
         <div className="flex items-center justify-center gap-4 mb-10">
           {[1, 2, 3].map(s => (
             <React.Fragment key={s}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${step >= s ? 'bg-purple-600 text-white' : 'bg-white/10 text-gray-500'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${step >= s ? 'bg-white/15 text-white' : 'bg-white/10 text-gray-500'}`}>
                 {step > s ? <Check className="w-5 h-5" /> : s}
               </div>
-              {s < 3 && <div className={`w-16 h-0.5 ${step > s ? 'bg-purple-600' : 'bg-white/10'}`} />}
+              {s < 3 && <div className={`w-16 h-0.5 ${step > s ? 'bg-gradient-to-r from-pink-500 to-purple-500' : 'bg-white/10'}`} />}
             </React.Fragment>
           ))}
         </div>
@@ -151,17 +151,17 @@ export default function CreateEvent() {
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Event Title *</label>
                 <input name="title" value={form.title} onChange={update} placeholder="e.g. Afrobeats Night Live"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" />
               </div>
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Description</label>
                 <textarea name="description" value={form.description} onChange={update} rows={4} placeholder="Tell people what to expect..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none" />
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 resize-none" />
               </div>
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Category</label>
                 <select name="category" value={form.category} onChange={update}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500">
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20">
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
@@ -172,8 +172,8 @@ export default function CreateEvent() {
                 <div className="grid grid-cols-3 gap-3">
                   {EVENT_TYPES.map(et => (
                     <button key={et.value} type="button" onClick={() => setForm(f => ({ ...f, event_type: et.value }))}
-                      className={`p-3 rounded-xl border text-center transition-all ${form.event_type === et.value ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
-                      <et.icon className={`w-5 h-5 mx-auto mb-1 ${form.event_type === et.value ? 'text-purple-400' : 'text-gray-500'}`} />
+                      className={`p-3 rounded-xl border text-center transition-all ${form.event_type === et.value ? 'border-white/20 bg-white/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
+                      <et.icon className={`w-5 h-5 mx-auto mb-1 ${form.event_type === et.value ? 'text-pink-400' : 'text-gray-500'}`} />
                       <p className={`text-sm font-medium ${form.event_type === et.value ? 'text-white' : 'text-gray-400'}`}>{et.label}</p>
                       <p className="text-[10px] text-gray-500 mt-0.5">{et.desc}</p>
                     </button>
@@ -186,24 +186,24 @@ export default function CreateEvent() {
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">Start Date *</label>
                   <input name="date" type="date" value={form.date} onChange={update}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">Start Time</label>
                   <input name="time" type="time" value={form.time} onChange={update}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">End Date</label>
                   <input name="end_date" type="date" value={form.end_date} onChange={update} min={form.date}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">End Time</label>
                   <input name="end_time" type="time" value={form.end_time} onChange={update}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" />
                 </div>
               </div>
 
@@ -212,7 +212,7 @@ export default function CreateEvent() {
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">Location *</label>
                   <input name="location" value={form.location} onChange={update} placeholder="Venue, City"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" />
                 </div>
               )}
 
@@ -221,12 +221,12 @@ export default function CreateEvent() {
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">Virtual Meeting Link *</label>
                   <input name="virtual_link" value={form.virtual_link} onChange={update} placeholder="https://zoom.us/... or https://meet.google.com/..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" />
                 </div>
               )}
 
               <button onClick={() => { if (validateStep1()) setStep(2) }}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
                 Next <ArrowRight className="w-5 h-5" />
               </button>
             </div>
@@ -242,12 +242,12 @@ export default function CreateEvent() {
                     {form.tiers.length > 1 && <button onClick={() => removeTier(i)} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></button>}
                   </div>
                   <input value={tier.name} onChange={e => updateTier(i, 'name', e.target.value)} placeholder="Tier name (e.g. VIP)"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm" />
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                   <div className="grid grid-cols-2 gap-3">
                     <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (₦)"
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm" />
+                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                     <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm" />
+                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                   </div>
                 </div>
               ))}
@@ -259,7 +259,7 @@ export default function CreateEvent() {
               <div className="border-t border-white/10 pt-5 mt-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <Share2 className="w-5 h-5 text-purple-400" />
+                    <Share2 className="w-5 h-5 text-pink-400" />
                     <div>
                       <p className="text-white font-semibold">Enable Public Reshare</p>
                       <p className="text-gray-500 text-xs">Let anyone earn commissions promoting your event</p>
@@ -268,7 +268,7 @@ export default function CreateEvent() {
                   <button
                     type="button"
                     onClick={() => setForm(f => ({ ...f, reshare_enabled: !f.reshare_enabled }))}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${form.reshare_enabled ? 'bg-purple-600' : 'bg-white/10'}`}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${form.reshare_enabled ? 'bg-gradient-to-r from-pink-500 to-purple-500' : 'bg-white/10'}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${form.reshare_enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
                   </button>
@@ -276,10 +276,10 @@ export default function CreateEvent() {
 
                 {/* Revenue split preview */}
                 {form.reshare_enabled && (
-                  <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-4 mt-3">
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-3">
                     <div className="flex items-center gap-2 mb-3">
-                      <Info className="w-4 h-4 text-purple-400" />
-                      <p className="text-purple-300 text-sm font-medium">Revenue Split (per ticket)</p>
+                      <Info className="w-4 h-4 text-pink-400" />
+                      <p className="text-pink-300 text-sm font-medium">Revenue Split (per ticket)</p>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
@@ -292,10 +292,10 @@ export default function CreateEvent() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-400">Referrer (Affiliate)</span>
-                        <span className="text-purple-400 font-bold">2.5%{samplePrice > 0 ? ` · ₦${reshareReferrer.toLocaleString()}` : ''}</span>
+                        <span className="text-pink-400 font-bold">2.5%{samplePrice > 0 ? ` · ₦${reshareReferrer.toLocaleString()}` : ''}</span>
                       </div>
                     </div>
-                    <div className="border-t border-purple-500/10 mt-3 pt-3">
+                    <div className="border-t border-white/5 mt-3 pt-3">
                       <p className="text-gray-500 text-xs">Without reshare: You get 95%, Tixo.io gets 5%{samplePrice > 0 ? ` (₦${standardOrganizer.toLocaleString()} / ₦${standardPlatform.toLocaleString()})` : ''}</p>
                     </div>
                   </div>
@@ -306,7 +306,7 @@ export default function CreateEvent() {
                 <button onClick={() => setStep(1)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
                   <ArrowLeft className="w-5 h-5" /> Back
                 </button>
-                <button onClick={() => setStep(3)} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
+                <button onClick={() => setStep(3)} className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
                   Next <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
@@ -320,11 +320,11 @@ export default function CreateEvent() {
                 <label className="text-sm text-gray-300 mb-2 block">Cover Image</label>
                 <div className="flex gap-2 mb-3">
                   <button onClick={() => { setImageMode('upload'); setForm(f => ({ ...f, image: '' })) }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${imageMode === 'upload' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${imageMode === 'upload' ? 'bg-white/15 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
                     <Upload className="w-4 h-4" /> Upload
                   </button>
                   <button onClick={() => { setImageMode('url'); clearImage() }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${imageMode === 'url' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${imageMode === 'url' ? 'bg-white/15 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
                     <Link className="w-4 h-4" /> URL
                   </button>
                 </div>
@@ -332,7 +332,7 @@ export default function CreateEvent() {
                   <div>
                     {!imageFile ? (
                       <div onClick={() => fileInputRef.current?.click()}
-                        className="w-full border-2 border-dashed border-white/20 rounded-xl p-8 text-center cursor-pointer hover:border-purple-500/50 hover:bg-white/5 transition-all">
+                        className="w-full border-2 border-dashed border-white/20 rounded-xl p-8 text-center cursor-pointer hover:border-white/20 hover:bg-white/5 transition-all">
                         <Upload className="w-10 h-10 text-gray-500 mx-auto mb-3" />
                         <p className="text-gray-400 text-sm">Click to upload an image</p>
                         <p className="text-gray-600 text-xs mt-1">JPG, PNG, WebP — Max 5MB</p>
@@ -349,7 +349,7 @@ export default function CreateEvent() {
                 ) : (
                   <div>
                     <input name="image" value={form.image} onChange={update} placeholder="https://..."
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" />
                     {form.image && <img src={form.image} alt="preview" className="mt-3 rounded-xl h-40 w-full object-cover" />}
                   </div>
                 )}
@@ -357,7 +357,7 @@ export default function CreateEvent() {
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Tags (comma separated)</label>
                 <input name="tags" value={form.tags} onChange={update} placeholder="music, lagos, nightlife"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" />
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <h3 className="text-white font-medium mb-2">Summary</h3>
@@ -382,7 +382,7 @@ export default function CreateEvent() {
                   {submitting ? '...' : '💾 Save Draft'}
                 </button>
                 <button onClick={() => handleSubmit('published')} disabled={submitting}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
+                  className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
                   {uploading ? '📤 Uploading image...' : submitting ? 'Publishing...' : '🎉 Publish Event'}
                 </button>
               </div>

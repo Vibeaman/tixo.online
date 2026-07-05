@@ -25,7 +25,7 @@ function EventTypeBadge({ type }) {
   return null
 }
 
-function StatCard({ icon: Icon, label, value, color = 'text-purple-400', sub }) {
+function StatCard({ icon: Icon, label, value, color = 'text-pink-400', sub }) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl p-4">
       <div className="flex items-center gap-2 mb-2">
@@ -39,7 +39,7 @@ function StatCard({ icon: Icon, label, value, color = 'text-purple-400', sub }) 
 }
 
 // Simple bar chart component
-function BarChart({ data, labelKey, valueKey, color = 'bg-purple-500' }) {
+function BarChart({ data, labelKey, valueKey, color = 'bg-pink-500' }) {
   if (!data || data.length === 0) return <p className="text-gray-500 text-sm text-center py-8">No data yet</p>
   const maxVal = Math.max(...data.map(d => Number(d[valueKey]) || 0), 1)
   return (
@@ -128,7 +128,7 @@ function QRModal({ ticket, onClose }) {
         </button>
         <h3 className="text-white font-bold text-lg mb-1 text-center">{ticket.event_title}</h3>
         {ticket.attendee_name && (
-          <p className="text-purple-400 text-sm text-center font-semibold mb-1">🎫 {ticket.attendee_name}</p>
+          <p className="text-pink-400 text-sm text-center font-semibold mb-1">🎫 {ticket.attendee_name}</p>
         )}
         <p className="text-gray-400 text-sm text-center mb-6">{ticket.tier_name}{ticket.quantity > 1 ? ` · x${ticket.quantity}` : ''}</p>
         <div className="flex justify-center mb-4" ref={qrRef}>
@@ -136,9 +136,9 @@ function QRModal({ ticket, onClose }) {
             <QRCodeSVG value={ticket.check_in_code || ticket.id} size={200} level="H" />
           </div>
         </div>
-        <p className="text-center text-purple-400 font-mono font-bold text-lg tracking-wider mb-2">{ticket.check_in_code || '—'}</p>
+        <p className="text-center text-pink-400 font-mono font-bold text-lg tracking-wider mb-2">{ticket.check_in_code || '—'}</p>
         <button onClick={handleDownload}
-          className="w-full mt-2 mb-3 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors">
+          className="w-full mt-2 mb-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors">
           <Download className="w-5 h-5" /> Download Ticket QR
         </button>
         {ticket.checked_in ? (
@@ -323,7 +323,7 @@ export default function Dashboard() {
     } finally { setUploadingAvatar(false) }
   }
 
-  if (authLoading || loading) return <div className="min-h-screen bg-[#0B0B1A] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (authLoading || loading) return <div className="min-h-screen bg-[#050510] flex items-center justify-center"><div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
 
   const avatarUrl = profile?.avatar_url
 
@@ -393,14 +393,14 @@ export default function Dashboard() {
     tickets
 
   const ticketSubTabs = [
-    { id: 'all', label: 'All Tickets', count: tickets.length, color: 'text-purple-400' },
+    { id: 'all', label: 'All Tickets', count: tickets.length, color: 'text-pink-400' },
     { id: 'upcoming', label: 'Upcoming', count: upcomingTickets.length, color: 'text-blue-400' },
     { id: 'attended', label: 'Attended', count: attendedTickets.length, color: 'text-green-400' },
     { id: 'missed', label: 'Missed', count: missedTickets.length, color: 'text-red-400' },
   ]
 
   return (
-    <div className="min-h-screen bg-[#0B0B1A] pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
         {/* QR Modal */}
         {qrTicket && <QRModal ticket={qrTicket} onClose={() => setQrTicket(null)} />}
@@ -409,7 +409,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
-              <div className="w-14 h-14 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-xl font-bold overflow-hidden border-2 border-purple-500/30">
+              <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-pink-400 text-xl font-bold overflow-hidden border-2 border-white/15">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -439,7 +439,7 @@ export default function Dashboard() {
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-colors ${tab === t.id ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white/15 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
               <t.icon className="w-4 h-4" />{t.label}
             </button>
           ))}
@@ -452,7 +452,7 @@ export default function Dashboard() {
               <div className="text-center py-16 bg-white/5 border border-white/10 rounded-2xl">
                 <Ticket className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400 mb-4">No tickets yet</p>
-                <Link to="/events" className="text-purple-400 hover:text-purple-300 font-medium">Browse Events →</Link>
+                <Link to="/events" className="text-pink-400 hover:text-pink-300 font-medium">Browse Events →</Link>
               </div>
             ) : (
               <>
@@ -470,7 +470,7 @@ export default function Dashboard() {
                     <button key={st.id} onClick={() => setTicketFilter(st.id)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${ticketFilter === st.id ? 'bg-white/10 text-white border border-white/20' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300 border border-transparent'}`}>
                       {st.label}
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${ticketFilter === st.id ? 'bg-purple-500/30 text-purple-300' : 'bg-white/5 text-gray-600'}`}>{st.count}</span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${ticketFilter === st.id ? 'bg-white/10 text-pink-300' : 'bg-white/5 text-gray-600'}`}>{st.count}</span>
                     </button>
                   ))}
                 </div>
@@ -481,7 +481,7 @@ export default function Dashboard() {
                     {ticketFilter === 'upcoming' && <>
                       <Calendar className="w-10 h-10 text-blue-500/40 mx-auto mb-3" />
                       <p className="text-gray-400 text-sm">No upcoming events</p>
-                      <Link to="/events" className="text-purple-400 hover:text-purple-300 text-sm font-medium mt-2 inline-block">Browse Events →</Link>
+                      <Link to="/events" className="text-pink-400 hover:text-pink-300 text-sm font-medium mt-2 inline-block">Browse Events →</Link>
                     </>}
                     {ticketFilter === 'attended' && <>
                       <CheckCircle2 className="w-10 h-10 text-green-500/40 mx-auto mb-3" />
@@ -502,7 +502,7 @@ export default function Dashboard() {
                       const isAttended = t.checked_in
 
                       return (
-                        <div key={t.id} className={`bg-white/5 border rounded-xl p-5 flex items-center justify-between transition ${isMissed ? 'border-red-500/20 opacity-70' : isAttended ? 'border-green-500/20' : 'border-white/10 hover:border-purple-500/30'}`}>
+                        <div key={t.id} className={`bg-white/5 border rounded-xl p-5 flex items-center justify-between transition ${isMissed ? 'border-red-500/20 opacity-70' : isAttended ? 'border-green-500/20' : 'border-white/10 hover:border-white/15'}`}>
                           <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => navigate(`/events/${t.event_id}`)}>
                             {/* Event image thumbnail */}
                             {t.events?.image && (
@@ -529,7 +529,7 @@ export default function Dashboard() {
                                 )}
                               </div>
                               {t.attendee_name && (
-                                <p className="text-purple-400 text-sm font-medium">🎫 {t.attendee_name}</p>
+                                <p className="text-pink-400 text-sm font-medium">🎫 {t.attendee_name}</p>
                               )}
                               <p className="text-gray-400 text-sm">{t.tier_name}{t.quantity > 1 ? ` · x${t.quantity}` : ''}</p>
                               <div className="flex items-center gap-3 mt-1">
@@ -566,7 +566,7 @@ export default function Dashboard() {
                               {t.is_rsvp ? (
                                 <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Free</span>
                               ) : (
-                                <p className="text-purple-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>
+                                <p className="text-pink-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>
                               )}
                               {isAttended ? (
                                 <span className="text-xs text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">Attended ✓</span>
@@ -591,7 +591,7 @@ export default function Dashboard() {
         {tab === 'events' && (
           <div>
             <div className="flex justify-end mb-4">
-              <Link to="/create" className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-medium text-sm transition-colors">
+              <Link to="/create" className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-4 py-2 rounded-xl font-medium text-sm transition-colors">
                 <Plus className="w-4 h-4" /> New Event
               </Link>
             </div>
@@ -599,7 +599,7 @@ export default function Dashboard() {
               <div className="text-center py-16 bg-white/5 border border-white/10 rounded-2xl">
                 <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400 mb-4">You haven't created any events</p>
-                <Link to="/create" className="text-purple-400 hover:text-purple-300 font-medium">Create Your First Event →</Link>
+                <Link to="/create" className="text-pink-400 hover:text-pink-300 font-medium">Create Your First Event →</Link>
               </div>
             ) : (
               <div className="space-y-4">
@@ -692,7 +692,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                       <button onClick={() => navigate(`/edit-event/${ev.id}`)}
-                        className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition" title="Edit event">
+                        className="text-pink-400 hover:text-pink-300 p-2 hover:bg-white/5 rounded-lg transition" title="Edit event">
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button onClick={() => handleDeleteEvent(ev.id)}
@@ -711,35 +711,35 @@ export default function Dashboard() {
         {tab === 'checkin' && (
           <div>
             {loadingCheckIn ? (
-              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
             ) : (
               <>
                 {/* Scanner link */}
-                <div className="bg-purple-600/10 border border-purple-500/30 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="bg-white/5 border border-white/15 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-600/30 flex items-center justify-center flex-shrink-0">
-                      <ScanLine className="w-6 h-6 text-purple-400" />
+                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                      <ScanLine className="w-6 h-6 text-pink-400" />
                     </div>
                     <div>
                       <h3 className="text-white font-bold text-lg">QR Code Scanner</h3>
                       <p className="text-gray-400 text-sm">Scan attendee tickets to check them in</p>
                     </div>
                   </div>
-                  <Link to="/scan" className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium text-sm transition-colors whitespace-nowrap">
+                  <Link to="/scan" className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-6 py-3 rounded-xl font-medium text-sm transition-colors whitespace-nowrap">
                     <ScanLine className="w-4 h-4" /> Open Scanner
                   </Link>
                 </div>
 
                 {/* Overview Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                  <StatCard icon={Users} label="Total Attendees" value={totalTicketsAll} color="text-purple-400" />
+                  <StatCard icon={Users} label="Total Attendees" value={totalTicketsAll} color="text-pink-400" />
                   <StatCard icon={CheckCircle2} label="Checked In" value={totalCheckedIn} color="text-green-400" />
                   <StatCard icon={Clock} label="Not Checked In" value={totalTicketsAll - totalCheckedIn} color="text-amber-400" />
                 </div>
 
                 {/* Per-event check-in stats */}
                 <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-purple-400" /> Check-in by Event
+                  <BarChart3 className="w-5 h-5 text-pink-400" /> Check-in by Event
                 </h3>
 
                 {checkInStats.length === 0 ? (
@@ -754,7 +754,7 @@ export default function Dashboard() {
                       const checked = Number(stat.checked_in_count) || 0
                       const pct = total > 0 ? Math.round((checked / total) * 100) : 0
                       return (
-                        <div key={stat.event_id} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-purple-500/30 transition">
+                        <div key={stat.event_id} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-white/15 transition">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3 min-w-0">
                               {stat.event_image && <img src={stat.event_image} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />}
@@ -769,7 +769,7 @@ export default function Dashboard() {
                                 <p className="text-gray-500 text-[10px]">{checked}/{total} checked in</p>
                               </div>
                               <Link to={`/scan?event=${stat.event_id}`}
-                                className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition"
+                                className="text-pink-400 hover:text-pink-300 p-2 hover:bg-white/5 rounded-lg transition"
                                 title="Scan for this event">
                                 <ScanLine className="w-5 h-5" />
                               </Link>
@@ -778,7 +778,7 @@ export default function Dashboard() {
                           {/* Progress bar */}
                           <div className="w-full bg-white/5 rounded-full h-3 overflow-hidden">
                             <div
-                              className={`h-full rounded-full transition-all duration-500 ${pct === 100 ? 'bg-green-500' : pct > 50 ? 'bg-purple-500' : 'bg-amber-500'}`}
+                              className={`h-full rounded-full transition-all duration-500 ${pct === 100 ? 'bg-green-500' : pct > 50 ? 'bg-pink-500' : 'bg-amber-500'}`}
                               style={{ width: `${Math.max(pct, 1)}%` }}
                             />
                           </div>
@@ -800,12 +800,12 @@ export default function Dashboard() {
         {tab === 'analytics' && (
           <div>
             {loadingAnalytics ? (
-              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
             ) : myEvents.length === 0 ? (
               <div className="text-center py-16 bg-white/5 border border-white/10 rounded-2xl">
                 <BarChart3 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400 mb-4">Create events to see your analytics</p>
-                <Link to="/create" className="text-purple-400 hover:text-purple-300 font-medium">Create Event →</Link>
+                <Link to="/create" className="text-pink-400 hover:text-pink-300 font-medium">Create Event →</Link>
               </div>
             ) : (
               <>
@@ -821,7 +821,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-4 mb-8">
                   <div className="bg-white/5 border border-white/10 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-3">
-                      <MapPin className="w-4 h-4 text-purple-400" />
+                      <MapPin className="w-4 h-4 text-pink-400" />
                       <span className="text-gray-400 text-sm">In-Person Attendees</span>
                     </div>
                     <p className="text-white font-bold text-3xl">{totalInPersonAttendees}</p>
@@ -846,9 +846,9 @@ export default function Dashboard() {
                 {/* Tickets by Event */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
                   <h3 className="text-white font-bold text-lg mb-5 flex items-center gap-2">
-                    <Ticket className="w-5 h-5 text-purple-400" /> Tickets Sold by Event
+                    <Ticket className="w-5 h-5 text-pink-400" /> Tickets Sold by Event
                   </h3>
-                  <BarChart data={ticketsByEvent} labelKey="label" valueKey="value" color="bg-purple-500" />
+                  <BarChart data={ticketsByEvent} labelKey="label" valueKey="value" color="bg-pink-500" />
                 </div>
 
                 {/* Daily Sales Trend */}
@@ -864,11 +864,11 @@ export default function Dashboard() {
                 {/* Per-event detail cards */}
                 <div className="mb-6">
                   <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                    <PieChart className="w-5 h-5 text-purple-400" /> Event Breakdown
+                    <PieChart className="w-5 h-5 text-pink-400" /> Event Breakdown
                   </h3>
                   <div className="grid md:grid-cols-2 gap-4">
                     {salesSummary.map(s => (
-                      <div key={s.event_id} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-purple-500/30 transition cursor-pointer"
+                      <div key={s.event_id} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-white/15 transition cursor-pointer"
                         onClick={() => navigate(`/events/${s.event_id}`)}>
                         <div className="flex items-center gap-3 mb-4">
                           {s.event_image && <img src={s.event_image} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />}
@@ -904,7 +904,7 @@ export default function Dashboard() {
         {tab === 'referrals' && (
           <div>
             {loadingReferrals ? (
-              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
             ) : (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -930,7 +930,7 @@ export default function Dashboard() {
                 {reshareEvents.length > 0 && (
                   <div className="mb-8">
                     <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5 text-purple-400" /> Your Reshare Events
+                      <BarChart3 className="w-5 h-5 text-pink-400" /> Your Reshare Events
                     </h3>
                     <div className="space-y-3">
                       {reshareEvents.map(ev => (
@@ -944,7 +944,7 @@ export default function Dashboard() {
                               </div>
                             </div>
                             <button onClick={() => loadEventReferralStats(ev.id)} disabled={loadingEventStats}
-                              className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center gap-1">
+                              className="text-pink-400 hover:text-pink-300 text-sm font-medium flex items-center gap-1">
                               <Eye className="w-3.5 h-3.5" /> View Stats
                             </button>
                           </div>
@@ -984,14 +984,14 @@ export default function Dashboard() {
 
                 <div>
                   <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                    <Share2 className="w-5 h-5 text-purple-400" /> Your Referral Links
+                    <Share2 className="w-5 h-5 text-pink-400" /> Your Referral Links
                   </h3>
                   {referralLinks.length === 0 ? (
                     <div className="text-center py-12 bg-white/5 border border-white/10 rounded-2xl">
                       <Share2 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                       <p className="text-gray-400 mb-2">No referral links yet</p>
                       <p className="text-gray-500 text-sm mb-4">Browse events with Reshare enabled and start earning!</p>
-                      <Link to="/events" className="text-purple-400 hover:text-purple-300 font-medium">Browse Events →</Link>
+                      <Link to="/events" className="text-pink-400 hover:text-pink-300 font-medium">Browse Events →</Link>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1015,7 +1015,7 @@ export default function Dashboard() {
                                   navigator.clipboard.writeText(`${window.location.origin}/events/${link.event_id}?ref=${link.referral_code}`)
                                   toast.success('Link copied!')
                                 }}
-                                className="text-purple-400 hover:text-purple-300 p-2 hover:bg-white/5 rounded-lg transition">
+                                className="text-pink-400 hover:text-pink-300 p-2 hover:bg-white/5 rounded-lg transition">
                                 <ExternalLink className="w-4 h-4" />
                               </button>
                             </div>
@@ -1063,7 +1063,7 @@ export default function Dashboard() {
             <h2 className="text-xl font-bold text-white mb-6">Your Profile</h2>
             <div className="flex items-center gap-5 mb-8">
               <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
-                <div className="w-20 h-20 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 text-2xl font-bold overflow-hidden border-2 border-purple-500/30">
+                <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center text-pink-400 text-2xl font-bold overflow-hidden border-2 border-white/15">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -1087,14 +1087,14 @@ export default function Dashboard() {
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Full Name</label>
                 <input value={profileForm.full_name} onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" />
               </div>
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Email</label>
                 <input value={user?.email || ''} disabled className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed" />
               </div>
               <button onClick={handleUpdateProfile}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors">
+                className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors">
                 Save Changes
               </button>
             </div>

@@ -66,7 +66,7 @@ function ScanResultCard({ ticket, onCheckIn, onDismiss, checking }) {
             <Ticket className="w-4 h-4 text-white/40" />
             <span>{ticket.tier_name || ticket.ticket_tier?.name || 'General'}</span>
             {ticket.quantity > 1 && (
-              <span className="ml-1 bg-purple-600/40 text-purple-300 text-xs px-2 py-0.5 rounded-full">
+              <span className="ml-1 bg-white/10 text-pink-300 text-xs px-2 py-0.5 rounded-full">
                 x{ticket.quantity}
               </span>
             )}
@@ -127,7 +127,7 @@ function CheckedInOverlay({ ticket, onContinue }) {
         </div>
         <button
           onClick={onContinue}
-          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition-colors"
+          className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 rounded-xl transition-colors"
         >
           Scan Next
         </button>
@@ -198,9 +198,9 @@ function AttendeeList({ eventId, userId, onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B1A] text-white">
+    <div className="min-h-screen bg-[#050510] text-white">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#0B0B1A]/90 backdrop-blur-lg border-b border-white/10">
+      <div className="sticky top-0 z-30 bg-[#050510]/90 backdrop-blur-lg border-b border-white/10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -211,7 +211,7 @@ function AttendeeList({ eventId, userId, onBack }) {
               {checkedInCount}/{attendees.length} checked in
             </p>
           </div>
-          <div className="bg-purple-600/20 text-purple-400 text-xs font-semibold px-3 py-1 rounded-full">
+          <div className="bg-white/10 text-pink-400 text-xs font-semibold px-3 py-1 rounded-full">
             {attendees.length}
           </div>
         </div>
@@ -225,7 +225,7 @@ function AttendeeList({ eventId, userId, onBack }) {
               placeholder="Search by name, tier, or code…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-purple-500/50 transition-colors"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-colors"
             />
           </div>
         </div>
@@ -235,7 +235,7 @@ function AttendeeList({ eventId, userId, onBack }) {
       <div className="max-w-lg mx-auto px-4 pt-3">
         <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all duration-500"
+            className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-500"
             style={{ width: `${attendees.length ? (checkedInCount / attendees.length) * 100 : 0}%` }}
           />
         </div>
@@ -245,7 +245,7 @@ function AttendeeList({ eventId, userId, onBack }) {
       <div className="max-w-lg mx-auto px-4 py-4 space-y-2">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 text-white/40">
@@ -301,7 +301,7 @@ function AttendeeList({ eventId, userId, onBack }) {
                   <button
                     onClick={() => handleCheckIn(ticket)}
                     disabled={isBusy}
-                    className="text-xs font-semibold bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors"
+                    className="text-xs font-semibold bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors"
                   >
                     {isBusy ? '…' : 'Check In'}
                   </button>
@@ -515,9 +515,9 @@ export default function ScanTickets() {
 
   if (!selectedEvent) {
     return (
-      <div className="min-h-screen bg-[#0B0B1A] text-white">
+      <div className="min-h-screen bg-[#050510] text-white">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-[#0B0B1A]/90 backdrop-blur-lg border-b border-white/10">
+        <div className="sticky top-0 z-30 bg-[#050510]/90 backdrop-blur-lg border-b border-white/10">
           <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
               <ArrowLeft className="w-5 h-5" />
@@ -532,7 +532,7 @@ export default function ScanTickets() {
         <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
           {eventsLoading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : events.length === 0 ? (
             <div className="text-center py-20 text-white/40">
@@ -545,7 +545,7 @@ export default function ScanTickets() {
               <button
                 key={event.id}
                 onClick={() => handleSelectEvent(event)}
-                className="w-full text-left bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500/40 rounded-2xl p-4 transition-all group"
+                className="w-full text-left bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/15 rounded-2xl p-4 transition-all group"
               >
                 <div className="flex items-start gap-4">
                   {event.banner_url || event.image_url ? (
@@ -555,12 +555,12 @@ export default function ScanTickets() {
                       className="w-16 h-16 rounded-xl object-cover shrink-0"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-xl bg-purple-600/20 flex items-center justify-center shrink-0">
-                      <Ticket className="w-6 h-6 text-purple-400" />
+                    <div className="w-16 h-16 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                      <Ticket className="w-6 h-6 text-pink-400" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white group-hover:text-purple-400 transition-colors truncate">
+                    <h3 className="font-semibold text-white group-hover:text-pink-400 transition-colors truncate">
                       {event.title || event.name}
                     </h3>
                     <p className="text-sm text-white/50 mt-0.5">
@@ -576,7 +576,7 @@ export default function ScanTickets() {
                       <p className="text-xs text-white/30 mt-0.5 truncate">{event.venue}</p>
                     )}
                   </div>
-                  <QrCode className="w-5 h-5 text-white/20 group-hover:text-purple-400 transition-colors shrink-0 mt-1" />
+                  <QrCode className="w-5 h-5 text-white/20 group-hover:text-pink-400 transition-colors shrink-0 mt-1" />
                 </div>
               </button>
             ))
@@ -589,7 +589,7 @@ export default function ScanTickets() {
   // ── Scanner View ───────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0B0B1A] text-white flex flex-col">
+    <div className="min-h-screen bg-[#050510] text-white flex flex-col">
       {/* Confirmed overlay */}
       {showConfirmed && (
         <CheckedInOverlay
@@ -599,7 +599,7 @@ export default function ScanTickets() {
       )}
 
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#0B0B1A]/90 backdrop-blur-lg border-b border-white/10">
+      <div className="sticky top-0 z-30 bg-[#050510]/90 backdrop-blur-lg border-b border-white/10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={handleBackToEvents} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -612,7 +612,7 @@ export default function ScanTickets() {
           </div>
           <button
             onClick={() => setShowAttendees(true)}
-            className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-purple-400 transition-colors relative"
+            className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-pink-400 transition-colors relative"
             title="View attendees"
           >
             <Users className="w-5 h-5" />
@@ -628,7 +628,7 @@ export default function ScanTickets() {
             onClick={() => setCameraActive(true)}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-colors ${
               cameraActive
-                ? 'bg-purple-600 text-white'
+                ? 'bg-white/15 text-white'
                 : 'bg-white/5 border border-white/10 text-white/60 hover:text-white'
             }`}
           >
@@ -639,7 +639,7 @@ export default function ScanTickets() {
             onClick={() => setCameraActive(false)}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-colors ${
               !cameraActive
-                ? 'bg-purple-600 text-white'
+                ? 'bg-white/15 text-white'
                 : 'bg-white/5 border border-white/10 text-white/60 hover:text-white'
             }`}
           >
@@ -656,19 +656,19 @@ export default function ScanTickets() {
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
               <div className="w-[250px] h-[250px] relative">
                 {/* Corner markers */}
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500 rounded-tl-lg" />
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-500 rounded-tr-lg" />
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500 rounded-bl-lg" />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500 rounded-br-lg" />
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-pink-500 rounded-tl-lg" />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-pink-500 rounded-tr-lg" />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-pink-500 rounded-bl-lg" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-pink-500 rounded-br-lg" />
                 {/* Animated scan line */}
-                <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-pulse"
+                <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-pink-500 to-transparent animate-pulse"
                   style={{ top: '50%' }}
                 />
               </div>
             </div>
             {scanLoading && (
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
               </div>
             )}
           </div>
@@ -677,7 +677,7 @@ export default function ScanTickets() {
           <form onSubmit={handleManualLookup} className="space-y-3">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
               <div className="text-center">
-                <ScanLine className="w-10 h-10 mx-auto text-purple-400 mb-2" />
+                <ScanLine className="w-10 h-10 mx-auto text-pink-400 mb-2" />
                 <h3 className="font-semibold text-white">Enter Check-In Code</h3>
                 <p className="text-sm text-white/40 mt-1">
                   Type or paste the code from the ticket
@@ -689,14 +689,14 @@ export default function ScanTickets() {
                   placeholder="e.g. ABC123XYZ"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white placeholder:text-white/20 focus:outline-none focus:border-purple-500/50 transition-colors"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 transition-colors"
                   autoFocus
                 />
               </div>
               <button
                 type="submit"
                 disabled={!manualCode.trim() || scanLoading}
-                className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
                 {scanLoading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
