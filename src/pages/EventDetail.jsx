@@ -8,6 +8,7 @@ import CommentService from '../services/CommentService'
 import PhotoGallery from '../components/PhotoGallery'
 import ReferralService from '../services/ReferralService'
 import { useAuth } from '../context/AuthContext'
+import ShareButton from '../components/ShareButton'
 
 /* ─── Helpers ─── */
 function formatDate(dateStr) {
@@ -466,11 +467,7 @@ export default function EventDetail() {
               width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}><Heart size={18} fill={liked ? 'currentColor' : 'none'} /></button>
-            <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!') }} style={{
-              background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', border: 'none', color: 'white',
-              width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}><Share2 size={18} /></button>
+            <ShareButton event={event} variant="icon" />
           </div>
         </div>
 
@@ -478,6 +475,12 @@ export default function EventDetail() {
         <div style={{ position: 'relative', zIndex: 4, padding: '200px 24px 32px', maxWidth: 800, margin: '0 auto' }}>
           <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, color: 'white', lineHeight: 1.1, marginBottom: 16 }}>
             {event.title}
+            {event.is_recurring && <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              background: 'rgba(168,85,247,0.15)', color: '#c084fc',
+              padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700,
+              marginLeft: 12, verticalAlign: 'middle'
+            }}>🔄 {event.recurrence_pattern ? event.recurrence_pattern.charAt(0).toUpperCase() + event.recurrence_pattern.slice(1) : 'Recurring'}</span>}
           </h1>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
             {event.event_type !== 'virtual' && (
@@ -503,6 +506,7 @@ export default function EventDetail() {
               display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: '0.82rem',
               backdropFilter: 'blur(8px)'
             }}><Eye size={15} /> VIEW FLYER</button>
+            <ShareButton event={event} variant="button" />
           </div>
 
           {/* Save the date row */}
@@ -759,6 +763,18 @@ export default function EventDetail() {
                             </p>
                             {isTierFree ? (
                               <p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#4ade80' }}>FREE</p>
+                            ) : tier.early_bird && tier.early_bird_end_date && new Date(tier.early_bird_end_date) > new Date() ? (
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>₦{Number(tier.early_bird_price || tier.price).toLocaleString()}</p>
+                                  <span style={{
+                                    background: 'rgba(250,204,21,0.15)', color: '#facc15',
+                                    padding: '3px 8px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700
+                                  }}>🐦 Early Bird</span>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through', marginTop: 2 }}>₦{Number(tier.price).toLocaleString()}</p>
+                                <p style={{ fontSize: '0.72rem', color: 'rgba(250,204,21,0.7)', marginTop: 2 }}>Early bird ends {new Date(tier.early_bird_end_date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</p>
+                              </div>
                             ) : (
                               <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>₦{Number(tier.price).toLocaleString()}</p>
                             )}

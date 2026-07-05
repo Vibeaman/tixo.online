@@ -117,6 +117,53 @@ const EventService = {
       .single()
     if (error) throw error
     return data
+  },
+
+  async searchAdvanced({ query, category, location, dateFrom, dateTo, eventType }) {
+    let q = supabase.from('events').select('*').or('status.eq.published,status.is.null')
+    if (query) q = q.or(`title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`)
+    if (category && category !== 'All') q = q.ilike('category', category)
+    if (location) q = q.ilike('location', `%${location}%`)
+    if (dateFrom) q = q.gte('date', dateFrom)
+    if (dateTo) q = q.lte('date', dateTo)
+    if (eventType && eventType !== 'all') q = q.eq('event_type', eventType)
+    const { data, error } = await q.order('created_at', { ascending: false })
+    if (error) throw error
+    return data
+  },
+
+  async getRecurringEvents(organizerId) {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('organizer_id', organizerId)
+      .eq('is_recurring', true)
+      .order('date', { ascending: true })
+    if (error) throw error
+    return data
+  },
+
+  async getUpcoming(limit = 12) {
+    const today = new Date().toISOString().split('T')[0]
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .or('status.eq.published,status.is.null')
+      .gte('date', today)
+      .order('date', { ascending: true })
+      .limit(limit)
+    if (error) throw error
+    return data
+  },
+
+  async getEventStats(organizerId) {
+    const { data, error } = await supabase
+      .from('events')
+      .select('id, title, watchers, demand')
+      .eq('organizer_id', organizerId)
+      .order('watchers', { ascending: false })
+    if (error) throw error
+    return data || []
   }
 }
 

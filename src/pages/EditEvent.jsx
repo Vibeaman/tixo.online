@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link } from 'lucide-react'
+import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Repeat, Clock, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
@@ -11,6 +11,12 @@ const EVENT_TYPES = [
   { value: 'in-person', label: 'In Person', icon: MapPin, desc: 'Physical venue' },
   { value: 'virtual', label: 'Virtual', icon: Video, desc: 'Online event' },
   { value: 'hybrid', label: 'Hybrid', icon: Globe, desc: 'Both in person & online' },
+]
+
+const RECURRENCE_OPTIONS = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'bi-weekly', label: 'Bi-Weekly' },
+  { value: 'monthly', label: 'Monthly' },
 ]
 
 export default function EditEvent() {
@@ -31,7 +37,10 @@ export default function EditEvent() {
     location: '', category: 'Music',
     event_type: 'in-person', virtual_link: '',
     image: '', tags: '',
-    tiers: [{ name: 'General', price: 0, available: 100 }]
+    is_recurring: false,
+    recurrence_pattern: 'weekly',
+    recurrence_end_date: '',
+    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }]
   })
 
   useEffect(() => {
@@ -56,7 +65,20 @@ export default function EditEvent() {
           virtual_link: ev.virtual_link || '',
           image: ev.image || '',
           tags: ev.tags?.join(', ') || '',
-          tiers: ev.ticket_tiers?.length ? ev.ticket_tiers : [{ name: 'General', price: 0, available: 100 }]
+          is_recurring: ev.is_recurring || false,
+          recurrence_pattern: ev.recurrence_pattern || 'weekly',
+          recurrence_end_date: ev.recurrence_end_date || '',
+          tiers: ev.ticket_tiers?.length
+            ? ev.ticket_tiers.map(t => ({
+                name: t.name || '',
+                price: t.price || 0,
+                available: t.available || 100,
+                description: t.description || '',
+                early_bird: t.early_bird || false,
+                early_bird_price: t.early_bird_price || 0,
+                early_bird_end_date: t.early_bird_end_date || '',
+              }))
+            : [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }]
         })
         if (ev.image) setImagePreview(ev.image)
       } catch (e) {
@@ -75,7 +97,7 @@ export default function EditEvent() {
       const tiers = [...f.tiers]; tiers[i] = { ...tiers[i], [field]: val }; return { ...f, tiers }
     })
   }
-  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50 }] })) }
+  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }] })) }
   function removeTier(i) { setForm(f => ({ ...f, tiers: f.tiers.filter((_, idx) => idx !== i) })) }
 
   function handleFileSelect(e) {
@@ -101,6 +123,8 @@ export default function EditEvent() {
     if (form.event_type !== 'virtual' && !form.location) { toast.error('Location is required'); return false }
     if ((form.event_type === 'virtual' || form.event_type === 'hybrid') && !form.virtual_link) { toast.error('Virtual link is required'); return false }
     if (form.end_date && form.end_date < form.date) { toast.error('End date cannot be before start date'); return false }
+    if (form.is_recurring && !form.recurrence_end_date) { toast.error('Recurrence end date is required'); return false }
+    if (form.is_recurring && form.recurrence_end_date && form.recurrence_end_date < form.date) { toast.error('Recurrence end date cannot be before start date'); return false }
     return true
   }
 
@@ -127,7 +151,18 @@ export default function EditEvent() {
         event_type: form.event_type,
         virtual_link: form.virtual_link || null,
         image: finalImage,
-        ticket_tiers: form.tiers.map(t => ({ name: t.name, price: Number(t.price), available: Number(t.available) })),
+        is_recurring: form.is_recurring,
+        recurrence_pattern: form.is_recurring ? form.recurrence_pattern : null,
+        recurrence_end_date: form.is_recurring ? form.recurrence_end_date : null,
+        ticket_tiers: form.tiers.map(t => ({
+          name: t.name,
+          price: Number(t.price),
+          available: Number(t.available),
+          description: t.description || '',
+          early_bird: t.early_bird || false,
+          early_bird_price: t.early_bird ? Number(t.early_bird_price) : 0,
+          early_bird_end_date: t.early_bird ? t.early_bird_end_date : '',
+        })),
         tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
       }
       await EventService.update(id, updates)
@@ -205,6 +240,59 @@ export default function EditEvent() {
                 <div><label className="text-sm text-gray-300 mb-1 block">End Time</label>
                   <input name="end_time" type="time" value={form.end_time} onChange={update} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" /></div>
               </div>
+
+              {/* Recurring Events */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, is_recurring: !f.is_recurring }))}
+                  className="w-full flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${form.is_recurring ? 'bg-purple-500/20' : 'bg-white/5'}`}>
+                      <Repeat className={`w-4 h-4 ${form.is_recurring ? 'text-purple-400' : 'text-gray-500'}`} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-white text-sm font-medium">This is a recurring event</p>
+                      <p className="text-gray-500 text-xs">Repeats on a schedule</p>
+                    </div>
+                  </div>
+                  <div className={`w-11 h-6 rounded-full transition-colors relative ${form.is_recurring ? 'bg-purple-500' : 'bg-white/10'}`}>
+                    <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.is_recurring ? 'translate-x-5.5 left-[1px]' : 'left-[2px]'}`}
+                      style={{ transform: form.is_recurring ? 'translateX(22px)' : 'translateX(0)' }} />
+                  </div>
+                </button>
+
+                {form.is_recurring && (
+                  <div className="space-y-3 pt-2 border-t border-white/10">
+                    <div>
+                      <label className="text-sm text-gray-300 mb-1 block">Recurrence Pattern</label>
+                      <select
+                        name="recurrence_pattern"
+                        value={form.recurrence_pattern}
+                        onChange={update}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20"
+                      >
+                        {RECURRENCE_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-300 mb-1 block">Recurrence End Date *</label>
+                      <input
+                        name="recurrence_end_date"
+                        type="date"
+                        value={form.recurrence_end_date}
+                        onChange={update}
+                        min={form.date}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {form.event_type !== 'virtual' && (
                 <div><label className="text-sm text-gray-300 mb-1 block">Location *</label>
                   <input name="location" value={form.location} onChange={update} placeholder="Venue, City" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" /></div>
@@ -237,6 +325,65 @@ export default function EditEvent() {
                     <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty"
                       className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                   </div>
+
+                  {/* Tier Description */}
+                  <textarea
+                    value={tier.description}
+                    onChange={e => updateTier(i, 'description', e.target.value)}
+                    placeholder="What's included in this tier? (optional)"
+                    rows={2}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm resize-none"
+                  />
+
+                  {/* Early Bird Pricing — only for paid tiers */}
+                  {Number(tier.price) > 0 && (
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => updateTier(i, 'early_bird', !tier.early_bird)}
+                        className="w-full flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${tier.early_bird ? 'bg-yellow-500/20' : 'bg-white/5'}`}>
+                            <Sparkles className={`w-3.5 h-3.5 ${tier.early_bird ? 'text-yellow-400' : 'text-gray-500'}`} />
+                          </div>
+                          <span className="text-white text-sm font-medium">Early Bird Pricing</span>
+                        </div>
+                        <div className={`w-9 h-5 rounded-full transition-colors relative ${tier.early_bird ? 'bg-yellow-500' : 'bg-white/10'}`}>
+                          <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform"
+                            style={{ left: '2px', transform: tier.early_bird ? 'translateX(16px)' : 'translateX(0)' }} />
+                        </div>
+                      </button>
+
+                      {tier.early_bird && (
+                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/10">
+                          <div>
+                            <label className="text-xs text-gray-400 mb-1 block flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-yellow-400" /> Early Bird Price (₦)
+                            </label>
+                            <input
+                              type="number"
+                              value={tier.early_bird_price}
+                              onChange={e => updateTier(i, 'early_bird_price', e.target.value)}
+                              placeholder="0"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-400 mb-1 block flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-yellow-400" /> Ends On
+                            </label>
+                            <input
+                              type="date"
+                              value={tier.early_bird_end_date}
+                              onChange={e => updateTier(i, 'early_bird_end_date', e.target.value)}
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/20 text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
               <button onClick={addTier} className="w-full border border-dashed border-white/20 text-gray-400 hover:text-white hover:border-white/40 py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-colors">

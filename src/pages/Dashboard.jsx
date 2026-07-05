@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -9,6 +9,7 @@ import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
 import UserService from '../services/UserService'
 import ReferralService from '../services/ReferralService'
+import NotificationService from '../services/NotificationService'
 
 const BASE_TABS = [
   { id: 'tickets', label: 'My Tickets', icon: Ticket },
@@ -16,6 +17,7 @@ const BASE_TABS = [
   { id: 'checkin', label: 'Check-in', icon: ScanLine },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'referrals', label: 'Referrals', icon: Share2 },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'profile', label: 'Profile', icon: User },
 ]
 
@@ -198,6 +200,19 @@ export default function Dashboard() {
   const [dailySales, setDailySales] = useState([])
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
 
+  // Notification state
+  const [notifications, setNotifications] = useState([])
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
+  const [notifPrefs, setNotifPrefs] = useState({
+    ticket_confirmations: true,
+    event_reminders: true,
+    reminder_timing: '24',
+    new_ticket_sold: true,
+    daily_summary: false,
+    marketing_updates: false,
+  })
+  const [savingPrefs, setSavingPrefs] = useState(false)
+
   useEffect(() => {
     if (!authLoading && !user) { navigate('/login'); return }
     if (!user) return
@@ -231,6 +246,11 @@ export default function Dashboard() {
     if (tab === 'checkin' && user) loadCheckInStats()
   }, [tab, user])
 
+  // Load notification data
+  useEffect(() => {
+    if (tab === 'notifications' && user) loadNotificationData()
+  }, [tab, user])
+
   async function loadCheckInStats() {
     setLoadingCheckIn(true)
     try {
@@ -238,6 +258,57 @@ export default function Dashboard() {
       setCheckInStats(stats || [])
     } catch (e) { console.error(e) }
     finally { setLoadingCheckIn(false) }
+  }
+
+  async function loadNotificationData() {
+    setLoadingNotifications(true)
+    try {
+      const [notifs, prefs] = await Promise.all([
+        NotificationService.getNotifications(user.id).catch(() => []),
+        NotificationService.getPreferences(user.id).catch(() => null),
+      ])
+      setNotifications(notifs || [])
+      if (prefs) setNotifPrefs(p => ({ ...p, ...prefs }))
+    } catch (e) { console.error('Failed to load notifications:', e) }
+    finally { setLoadingNotifications(false) }
+  }
+
+  async function handleMarkAllRead() {
+    try {
+      await NotificationService.markAllRead(user.id)
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+      toast.success('All notifications marked as read')
+    } catch (e) { console.error(e) }
+  }
+
+  async function handleUpdateNotifPrefs(key, value) {
+    const updated = { ...notifPrefs, [key]: value }
+    setNotifPrefs(updated)
+    setSavingPrefs(true)
+    try {
+      await NotificationService.updatePreferences(user.id, updated)
+    } catch (e) { console.error('Failed to save preferences:', e) }
+    finally { setSavingPrefs(false) }
+  }
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return ''
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'Just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    const days = Math.floor(hrs / 24)
+    if (days < 7) return `${days}d ago`
+    return new Date(dateStr).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+  }
+
+  function getNotifIcon(type) {
+    if (type === 'ticket_confirmation') return Ticket
+    if (type === 'event_reminder') return Clock
+    if (type === 'new_ticket_sold') return DollarSign
+    return Bell
   }
 
   async function loadReferralData() {
@@ -861,6 +932,98 @@ export default function Dashboard() {
                   </div>
                 )}
 
+                {/* Enhanced Analytics: Key Metrics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                  <StatCard
+                    icon={TrendingUp}
+                    label="Conversion Rate"
+                    value={(() => {
+                      const totalViews = salesSummary.reduce((sum, s) => sum + Number(s.total_views || 0), 0)
+                      return totalViews > 0 ? `${((totalTicketsSold / totalViews) * 100).toFixed(1)}%` : '—'
+                    })()}
+                    color="text-purple-400"
+                    sub="Tickets sold / event views"
+                  />
+                  <StatCard
+                    icon={CheckCircle2}
+                    label="Check-in Rate"
+                    value={totalTicketsSold > 0 ? `${Math.round((checkInStats.reduce((sum, s) => sum + Number(s.checked_in_count || 0), 0) / totalTicketsSold) * 100)}%` : '—'}
+                    color="text-green-400"
+                    sub="Checked in / tickets sold"
+                  />
+                  <StatCard
+                    icon={ArrowUpRight}
+                    label="Revenue Growth"
+                    value={(() => {
+                      const now = new Date()
+                      const thisMonth = dailySales.filter(d => {
+                        const dd = new Date(d.sale_date)
+                        return dd.getMonth() === now.getMonth() && dd.getFullYear() === now.getFullYear()
+                      }).reduce((s, d) => s + Number(d.revenue || 0), 0)
+                      const lastMonth = dailySales.filter(d => {
+                        const dd = new Date(d.sale_date)
+                        const lm = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+                        const ly = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+                        return dd.getMonth() === lm && dd.getFullYear() === ly
+                      }).reduce((s, d) => s + Number(d.revenue || 0), 0)
+                      if (lastMonth === 0 && thisMonth === 0) return '—'
+                      if (lastMonth === 0) return '+100%'
+                      const pct = ((thisMonth - lastMonth) / lastMonth * 100).toFixed(0)
+                      return `${Number(pct) >= 0 ? '+' : ''}${pct}%`
+                    })()}
+                    color="text-blue-400"
+                    sub="This month vs last month"
+                  />
+                  <StatCard
+                    icon={Activity}
+                    label="Avg Revenue/Event"
+                    value={myEvents.length > 0 ? `₦${Math.round(totalRevenue / myEvents.length).toLocaleString()}` : '—'}
+                    color="text-amber-400"
+                    sub={`Across ${myEvents.length} events`}
+                  />
+                </div>
+
+                {/* Top Performing Events */}
+                {salesSummary.length > 0 && (
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+                    <h3 className="text-white font-bold text-lg mb-5 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-purple-400" /> Top Performing Events
+                    </h3>
+                    <div className="space-y-3">
+                      {[...salesSummary]
+                        .sort((a, b) => Number(b.total_revenue) - Number(a.total_revenue))
+                        .slice(0, 5)
+                        .map((s, idx) => {
+                          const rev = Number(s.total_revenue || 0)
+                          const qty = Number(s.total_quantity || 0)
+                          const maxRev = Number(salesSummary.reduce((m, x) => Math.max(m, Number(x.total_revenue || 0)), 0)) || 1
+                          return (
+                            <div key={s.event_id} className="flex items-center gap-4 group">
+                              <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-xs ${
+                                idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                                idx === 1 ? 'bg-gray-400/20 text-gray-300' :
+                                idx === 2 ? 'bg-amber-600/20 text-amber-500' :
+                                'bg-white/5 text-gray-500'
+                              }`}>#{idx + 1}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <h4 className="text-white text-sm font-semibold truncate group-hover:text-pink-400 transition-colors">{s.event_title}</h4>
+                                  <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                                    <span className="text-gray-500 text-xs">{qty} tickets</span>
+                                    <span className="text-green-400 font-bold text-sm">₦{rev.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                                  <div className="bg-gradient-to-r from-pink-500 to-purple-500 h-full rounded-full transition-all" style={{ width: `${Math.max((rev / maxRev) * 100, 3)}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Per-event detail cards */}
                 <div className="mb-6">
                   <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
@@ -1052,6 +1215,206 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ============ NOTIFICATIONS TAB ============ */}
+        {tab === 'notifications' && (
+          <div>
+            {loadingNotifications ? (
+              <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
+            ) : (
+              <>
+                {/* Notification List */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                      <Bell className="w-5 h-5 text-pink-400" /> Notifications
+                      {notifications.filter(n => !n.read).length > 0 && (
+                        <span className="text-[10px] font-bold bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded-full">
+                          {notifications.filter(n => !n.read).length} new
+                        </span>
+                      )}
+                    </h3>
+                    {notifications.some(n => !n.read) && (
+                      <button onClick={handleMarkAllRead}
+                        className="text-pink-400 hover:text-pink-300 text-sm font-medium flex items-center gap-1.5 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  {notifications.length === 0 ? (
+                    <div className="text-center py-12 bg-white/5 border border-white/10 rounded-2xl">
+                      <Bell className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-400 mb-2">No notifications yet</p>
+                      <p className="text-gray-600 text-sm">You'll see ticket confirmations, event reminders, and more here</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+                      {notifications.map(n => {
+                        const IconComp = getNotifIcon(n.type)
+                        return (
+                          <div key={n.id}
+                            className={`bg-white/5 border rounded-xl p-4 flex items-start gap-4 hover:bg-white/[0.07] transition-all cursor-default backdrop-blur-sm ${
+                              !n.read ? 'border-l-2 border-l-pink-500 border-t-white/10 border-r-white/10 border-b-white/10' : 'border-white/10'
+                            }`}>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              n.type === 'ticket_confirmation' ? 'bg-pink-500/15' :
+                              n.type === 'event_reminder' ? 'bg-blue-500/15' :
+                              n.type === 'new_ticket_sold' ? 'bg-green-500/15' : 'bg-white/10'
+                            }`}>
+                              <IconComp className={`w-4 h-4 ${
+                                n.type === 'ticket_confirmation' ? 'text-pink-400' :
+                                n.type === 'event_reminder' ? 'text-blue-400' :
+                                n.type === 'new_ticket_sold' ? 'text-green-400' : 'text-gray-400'
+                              }`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className={`text-sm font-semibold truncate ${!n.read ? 'text-white' : 'text-gray-300'}`}>{n.title}</h4>
+                                {!n.read && <span className="w-2 h-2 rounded-full bg-pink-500 flex-shrink-0" />}
+                              </div>
+                              <p className="text-gray-400 text-sm mt-0.5">{n.message}</p>
+                              <p className="text-gray-600 text-xs mt-1.5">{timeAgo(n.created_at)}</p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Notification Preferences */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-pink-400" /> Notification Preferences
+                    </h3>
+                    {savingPrefs && <span className="text-gray-500 text-xs">Saving...</span>}
+                  </div>
+
+                  <div className="space-y-5">
+                    {/* Ticket Confirmations */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-pink-500/15 flex items-center justify-center">
+                          <Ticket className="w-4 h-4 text-pink-400" />
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">Ticket Confirmations</p>
+                          <p className="text-gray-500 text-xs">Get notified when you purchase a ticket</p>
+                        </div>
+                      </div>
+                      <button onClick={() => handleUpdateNotifPrefs('ticket_confirmations', !notifPrefs.ticket_confirmations)}
+                        className={`w-11 h-6 rounded-full transition-all duration-200 flex items-center ${
+                          notifPrefs.ticket_confirmations ? 'bg-gradient-to-r from-pink-500 to-purple-500 justify-end' : 'bg-white/10 justify-start'
+                        }`}>
+                        <span className={`w-5 h-5 rounded-full bg-white shadow-sm mx-0.5 transition-transform`} />
+                      </button>
+                    </div>
+
+                    {/* Event Reminders */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                          <Clock className="w-4 h-4 text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">Event Reminders</p>
+                          <p className="text-gray-500 text-xs">Reminders before events you have tickets for</p>
+                        </div>
+                      </div>
+                      <button onClick={() => handleUpdateNotifPrefs('event_reminders', !notifPrefs.event_reminders)}
+                        className={`w-11 h-6 rounded-full transition-all duration-200 flex items-center ${
+                          notifPrefs.event_reminders ? 'bg-gradient-to-r from-pink-500 to-purple-500 justify-end' : 'bg-white/10 justify-start'
+                        }`}>
+                        <span className={`w-5 h-5 rounded-full bg-white shadow-sm mx-0.5 transition-transform`} />
+                      </button>
+                    </div>
+
+                    {/* Reminder Timing */}
+                    {notifPrefs.event_reminders && (
+                      <div className="flex items-center justify-between pl-11">
+                        <div>
+                          <p className="text-gray-300 text-sm font-medium">Remind me before event</p>
+                        </div>
+                        <div className="relative">
+                          <select
+                            value={notifPrefs.reminder_timing}
+                            onChange={e => handleUpdateNotifPrefs('reminder_timing', e.target.value)}
+                            className="appearance-none bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white pr-8 focus:outline-none focus:border-white/20 cursor-pointer">
+                            <option value="1">1 hour</option>
+                            <option value="3">3 hours</option>
+                            <option value="12">12 hours</option>
+                            <option value="24">24 hours</option>
+                            <option value="48">48 hours</option>
+                          </select>
+                          <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New Ticket Sold */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-green-500/15 flex items-center justify-center">
+                          <DollarSign className="w-4 h-4 text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">New Ticket Sold</p>
+                          <p className="text-gray-500 text-xs">Alert when someone buys a ticket to your event</p>
+                        </div>
+                      </div>
+                      <button onClick={() => handleUpdateNotifPrefs('new_ticket_sold', !notifPrefs.new_ticket_sold)}
+                        className={`w-11 h-6 rounded-full transition-all duration-200 flex items-center ${
+                          notifPrefs.new_ticket_sold ? 'bg-gradient-to-r from-pink-500 to-purple-500 justify-end' : 'bg-white/10 justify-start'
+                        }`}>
+                        <span className={`w-5 h-5 rounded-full bg-white shadow-sm mx-0.5 transition-transform`} />
+                      </button>
+                    </div>
+
+                    {/* Daily Summary */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
+                          <Mail className="w-4 h-4 text-purple-400" />
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">Daily Summary</p>
+                          <p className="text-gray-500 text-xs">Receive a daily digest of activity on your events</p>
+                        </div>
+                      </div>
+                      <button onClick={() => handleUpdateNotifPrefs('daily_summary', !notifPrefs.daily_summary)}
+                        className={`w-11 h-6 rounded-full transition-all duration-200 flex items-center ${
+                          notifPrefs.daily_summary ? 'bg-gradient-to-r from-pink-500 to-purple-500 justify-end' : 'bg-white/10 justify-start'
+                        }`}>
+                        <span className={`w-5 h-5 rounded-full bg-white shadow-sm mx-0.5 transition-transform`} />
+                      </button>
+                    </div>
+
+                    {/* Marketing Updates */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                          <Megaphone className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">Marketing Updates</p>
+                          <p className="text-gray-500 text-xs">Tips, features, and promotions from Tixo</p>
+                        </div>
+                      </div>
+                      <button onClick={() => handleUpdateNotifPrefs('marketing_updates', !notifPrefs.marketing_updates)}
+                        className={`w-11 h-6 rounded-full transition-all duration-200 flex items-center ${
+                          notifPrefs.marketing_updates ? 'bg-gradient-to-r from-pink-500 to-purple-500 justify-end' : 'bg-white/10 justify-start'
+                        }`}>
+                        <span className={`w-5 h-5 rounded-full bg-white shadow-sm mx-0.5 transition-transform`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
           </div>
