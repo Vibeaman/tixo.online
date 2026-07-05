@@ -28,6 +28,8 @@ const linkGroups = [
       { label: 'About Planam', to: '/' },
       { label: 'Sign Up', to: '/signup' },
       { label: 'Login', to: '/login' },
+      { label: 'Privacy Policy', to: '/privacy' },
+      { label: 'Terms of Service', to: '/terms' },
     ],
   },
 ]
@@ -128,9 +130,9 @@ export default function Footer() {
         }}>
           <span>© 2026 planam.io — All rights reserved.</span>
           <div style={{ display: 'flex', gap: 20 }}>
-            <a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy</a>
-            <a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Terms</a>
-            <a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Cookies</a>
+            <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy</Link>
+            <Link to="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>Terms</Link>
+            <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Cookies</Link>
           </div>
         </div>
       </div>

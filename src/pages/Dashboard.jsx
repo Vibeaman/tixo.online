@@ -176,6 +176,9 @@ export default function Dashboard() {
   // QR modal state
   const [qrTicket, setQrTicket] = useState(null)
 
+  // Ticket sub-filter: all | upcoming | attended | missed
+  const [ticketFilter, setTicketFilter] = useState('all')
+
   // Check-in stats state
   const [checkInStats, setCheckInStats] = useState([])
   const [loadingCheckIn, setLoadingCheckIn] = useState(false)
@@ -367,6 +370,35 @@ export default function Dashboard() {
   const totalCheckedIn = checkInStats.reduce((sum, s) => sum + Number(s.checked_in_count || 0), 0)
   const totalTicketsAll = checkInStats.reduce((sum, s) => sum + Number(s.total_tickets || 0), 0)
 
+  // ─── Ticket categorization ───
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const upcomingTickets = tickets.filter(t => {
+    const eventDate = t.events?.date ? new Date(t.events.date + 'T23:59:59') : null
+    return eventDate && eventDate >= today && !t.checked_in
+  })
+
+  const attendedTickets = tickets.filter(t => t.checked_in)
+
+  const missedTickets = tickets.filter(t => {
+    const eventDate = t.events?.date ? new Date(t.events.date + 'T23:59:59') : null
+    return eventDate && eventDate < today && !t.checked_in
+  })
+
+  const filteredTickets =
+    ticketFilter === 'upcoming' ? upcomingTickets :
+    ticketFilter === 'attended' ? attendedTickets :
+    ticketFilter === 'missed' ? missedTickets :
+    tickets
+
+  const ticketSubTabs = [
+    { id: 'all', label: 'All Tickets', count: tickets.length, color: 'text-purple-400' },
+    { id: 'upcoming', label: 'Upcoming', count: upcomingTickets.length, color: 'text-blue-400' },
+    { id: 'attended', label: 'Attended', count: attendedTickets.length, color: 'text-green-400' },
+    { id: 'missed', label: 'Missed', count: missedTickets.length, color: 'text-red-400' },
+  ]
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
@@ -423,59 +455,134 @@ export default function Dashboard() {
                 <Link to="/events" className="text-purple-400 hover:text-purple-300 font-medium">Browse Events →</Link>
               </div>
             ) : (
-              <div className="space-y-4">
-                {tickets.map(t => (
-                  <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center justify-between hover:border-purple-500/30 transition">
-                    <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => navigate(`/events/${t.event_id}`)}>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-white font-bold">{t.event_title}</h3>
-                          {t.is_rsvp && <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">RSVP</span>}
-                          {t.attendance_mode === 'virtual' && <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>}
-                          {/* Check-in status badge */}
-                          {t.checked_in ? (
-                            <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                              <CheckCircle2 className="w-2.5 h-2.5" /> Checked In
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                              <Clock className="w-2.5 h-2.5" /> Pending
-                            </span>
-                          )}
-                        </div>
-                        {t.attendee_name && (
-                          <p className="text-purple-400 text-sm font-medium">🎫 {t.attendee_name}</p>
-                        )}
-                        <p className="text-gray-400 text-sm">{t.tier_name}{t.quantity > 1 ? ` · x${t.quantity}` : ''}</p>
-                        <p className="text-gray-500 text-xs mt-1">
-                          {new Date(t.purchased_at).toLocaleDateString()}
-                          {t.checked_in && t.checked_in_at && (
-                            <span className="text-green-500 ml-2">· Checked in {new Date(t.checked_in_at).toLocaleString()}</span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 flex-shrink-0 ml-4">
-                      {/* QR Code thumbnail */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setQrTicket(t) }}
-                        className="bg-white rounded-lg p-1.5 hover:scale-105 transition-transform cursor-pointer flex-shrink-0"
-                        title="View QR code"
-                      >
-                        <QRCodeSVG value={t.check_in_code || t.id} size={48} level="M" />
-                      </button>
-                      <div className="text-right">
-                        {t.is_rsvp ? (
-                          <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Free</span>
-                        ) : (
-                          <p className="text-purple-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>
-                        )}
-                        <span className="text-xs text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">Confirmed</span>
-                      </div>
-                    </div>
+              <>
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <StatCard icon={Ticket} label="Total Tickets" value={tickets.length} />
+                  <StatCard icon={Calendar} label="Upcoming" value={upcomingTickets.length} color="text-blue-400" />
+                  <StatCard icon={CheckCircle2} label="Attended" value={attendedTickets.length} color="text-green-400" />
+                  <StatCard icon={X} label="Missed" value={missedTickets.length} color="text-red-400" />
+                </div>
+
+                {/* Sub-filter tabs */}
+                <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+                  {ticketSubTabs.map(st => (
+                    <button key={st.id} onClick={() => setTicketFilter(st.id)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${ticketFilter === st.id ? 'bg-white/10 text-white border border-white/20' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300 border border-transparent'}`}>
+                      {st.label}
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${ticketFilter === st.id ? 'bg-purple-500/30 text-purple-300' : 'bg-white/5 text-gray-600'}`}>{st.count}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Ticket list */}
+                {filteredTickets.length === 0 ? (
+                  <div className="text-center py-12 bg-white/5 border border-white/10 rounded-2xl">
+                    {ticketFilter === 'upcoming' && <>
+                      <Calendar className="w-10 h-10 text-blue-500/40 mx-auto mb-3" />
+                      <p className="text-gray-400 text-sm">No upcoming events</p>
+                      <Link to="/events" className="text-purple-400 hover:text-purple-300 text-sm font-medium mt-2 inline-block">Browse Events →</Link>
+                    </>}
+                    {ticketFilter === 'attended' && <>
+                      <CheckCircle2 className="w-10 h-10 text-green-500/40 mx-auto mb-3" />
+                      <p className="text-gray-400 text-sm">No events attended yet</p>
+                      <p className="text-gray-600 text-xs mt-1">Once you check in at an event, it'll show up here</p>
+                    </>}
+                    {ticketFilter === 'missed' && <>
+                      <Clock className="w-10 h-10 text-red-500/40 mx-auto mb-3" />
+                      <p className="text-gray-400 text-sm">No missed events — great track record! 🎉</p>
+                    </>}
                   </div>
-                ))}
-              </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredTickets.map(t => {
+                      const eventDate = t.events?.date ? new Date(t.events.date + 'T23:59:59') : null
+                      const isPast = eventDate && eventDate < today
+                      const isMissed = isPast && !t.checked_in
+                      const isAttended = t.checked_in
+
+                      return (
+                        <div key={t.id} className={`bg-white/5 border rounded-xl p-5 flex items-center justify-between transition ${isMissed ? 'border-red-500/20 opacity-70' : isAttended ? 'border-green-500/20' : 'border-white/10 hover:border-purple-500/30'}`}>
+                          <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => navigate(`/events/${t.event_id}`)}>
+                            {/* Event image thumbnail */}
+                            {t.events?.image && (
+                              <img src={t.events.image} alt="" className={`w-14 h-14 rounded-lg object-cover hidden sm:block flex-shrink-0 ${isMissed ? 'opacity-50 grayscale' : ''}`} />
+                            )}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="text-white font-bold">{t.event_title}</h3>
+                                {t.is_rsvp && <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">RSVP</span>}
+                                {t.attendance_mode === 'virtual' && <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>}
+                                {/* Status badge */}
+                                {isAttended ? (
+                                  <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <CheckCircle2 className="w-2.5 h-2.5" /> Attended
+                                  </span>
+                                ) : isMissed ? (
+                                  <span className="text-[10px] font-bold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <X className="w-2.5 h-2.5" /> Missed
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <Clock className="w-2.5 h-2.5" /> Upcoming
+                                  </span>
+                                )}
+                              </div>
+                              {t.attendee_name && (
+                                <p className="text-purple-400 text-sm font-medium">🎫 {t.attendee_name}</p>
+                              )}
+                              <p className="text-gray-400 text-sm">{t.tier_name}{t.quantity > 1 ? ` · x${t.quantity}` : ''}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                {t.events?.date && (
+                                  <p className="text-gray-500 text-xs flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(t.events.date + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                                  </p>
+                                )}
+                                {t.events?.location && (
+                                  <p className="text-gray-500 text-xs flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    <span className="truncate max-w-[150px]">{t.events.location}</span>
+                                  </p>
+                                )}
+                              </div>
+                              {isAttended && t.checked_in_at && (
+                                <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" /> Checked in {new Date(t.checked_in_at).toLocaleString()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+                            {/* QR Code thumbnail */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setQrTicket(t) }}
+                              className={`bg-white rounded-lg p-1.5 hover:scale-105 transition-transform cursor-pointer flex-shrink-0 ${isMissed ? 'opacity-40' : ''}`}
+                              title="View QR code"
+                            >
+                              <QRCodeSVG value={t.check_in_code || t.id} size={48} level="M" />
+                            </button>
+                            <div className="text-right">
+                              {t.is_rsvp ? (
+                                <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Free</span>
+                              ) : (
+                                <p className="text-purple-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>
+                              )}
+                              {isAttended ? (
+                                <span className="text-xs text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">Attended ✓</span>
+                              ) : isMissed ? (
+                                <span className="text-xs text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full">Missed</span>
+                              ) : (
+                                <span className="text-xs text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">Confirmed</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

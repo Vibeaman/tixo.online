@@ -24,6 +24,8 @@ import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import ScanTickets from './pages/ScanTickets'
 import CategoryView from './pages/CategoryView'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 
 function Landing() {
   return (
@@ -64,6 +66,8 @@ function Layout() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/scan" element={<ScanTickets />} />
         <Route path="/category/:name" element={<CategoryView />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
       </Routes>
       {!hideNavFooter && <Footer />}
     </div>
