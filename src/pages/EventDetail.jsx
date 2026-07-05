@@ -7,6 +7,7 @@ import TicketService from '../services/TicketService'
 import CommentService from '../services/CommentService'
 import PhotoGallery from '../components/PhotoGallery'
 import ReferralService from '../services/ReferralService'
+import PaystackService from '../services/PaystackService'
 import { useAuth } from '../context/AuthContext'
 import ShareButton from '../components/ShareButton'
 
@@ -139,6 +140,9 @@ export default function EventDetail() {
   const [hasRsvpd, setHasRsvpd] = useState(false)
   const [rsvping, setRsvping] = useState(false)
   const [purchaseSuccess, setPurchaseSuccess] = useState(false)
+
+  // Payment processing
+  const [paymentProcessing, setPaymentProcessing] = useState(false)
 
   // Comments
   const [comments, setComments] = useState([])
@@ -274,7 +278,8 @@ export default function EventDetail() {
         referralCode: refCode || null,
         attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'),
         isRsvp: true,
-        attendeeName: profile?.full_name || guestInfo?.name || null
+        attendeeName: profile?.full_name || guestInfo?.name || null,
+        paymentStatus: 'free'
       })
       sessionStorage.removeItem(`ref_${id}`)
       setHasRsvpd(true); setPurchaseSuccess(true); setShowGuestForm(false)
@@ -298,7 +303,8 @@ export default function EventDetail() {
         referralCode: refCode || null,
         attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'),
         isRsvp: true,
-        attendeeName: profile?.full_name || guestInfo?.name || null
+        attendeeName: profile?.full_name || guestInfo?.name || null,
+        paymentStatus: 'free'
       })
       setReservedFreeTiers(prev => ({ ...prev, [tier.name]: true }))
       toast.success(`🎉 Spot reserved for ${tier.name}!`)
@@ -353,12 +359,69 @@ export default function EventDetail() {
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
       const mode = event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person')
+
+      // Payment fields — default to free
+      let paymentReference = null
+      let paymentStatus = 'free'
+      let paymentChannel = null
+      let paidAmount = 0
+
+      // Paystack payment for paid tickets
+      if (cartTotal > 0) {
+        setPaymentProcessing(true)
+        const buyerEmail = user?.email || effectiveGuestInfo?.email
+        const buyerNameForPayment = profile?.full_name || effectiveGuestInfo?.name || ''
+
+        try {
+          const result = await PaystackService.pay({
+            email: buyerEmail,
+            amount: cartTotal,
+            name: buyerNameForPayment,
+            metadata: {
+              event_id: event.id,
+              event_title: event.title,
+              user_id: user?.id || null,
+              guest_name: effectiveGuestInfo?.name || null,
+              guest_email: effectiveGuestInfo?.email || null,
+              attendance_mode: mode,
+              tickets: purchaseItems.map(item => ({
+                tier_name: item.tierName,
+                quantity: item.quantity,
+                total_price: item.totalPrice,
+                attendee_name: item.attendeeName
+              }))
+            }
+          })
+          paymentReference = result.reference
+          paymentStatus = 'verified'
+          paymentChannel = result.channel
+          paidAmount = result.amount
+        } catch (payErr) {
+          setPaymentProcessing(false)
+          setBuying(false)
+          if (payErr.message === 'Payment cancelled') {
+            // User closed the popup — silently dismiss
+            return
+          }
+          if (payErr.message && payErr.message.includes('Payment made but verification failed')) {
+            toast.error(payErr.message + ' Please contact support with your reference number.')
+          } else {
+            toast.error(payErr.message || 'Payment failed')
+          }
+          return
+        }
+      }
+
       const tickets = await TicketService.purchaseMultiple({
         eventId: event.id, eventTitle: event.title, items: purchaseItems,
         userId: user?.id || null,
         guestName: effectiveGuestInfo?.name || null,
         guestEmail: effectiveGuestInfo?.email || null,
-        referralCode: refCode || null, attendanceMode: mode, isRsvp: false
+        referralCode: refCode || null, attendanceMode: mode, isRsvp: false,
+        paymentReference,
+        paymentStatus,
+        paymentChannel,
+        paidAmount
       })
       if (refCode && event.reshare_enabled) {
         try {
@@ -377,7 +440,7 @@ export default function EventDetail() {
       setAttendeeSlots([]); setPendingGuestInfo(null)
       toast.success(`🎉 ${purchaseItems.length} ticket${purchaseItems.length > 1 ? 's' : ''} purchased!`)
     } catch (e) { toast.error(e.message || 'Purchase failed') }
-    finally { setBuying(false) }
+    finally { setBuying(false); setPaymentProcessing(false) }
   }
 
   /* ─── Attendee form handlers ─── */
@@ -853,11 +916,11 @@ export default function EventDetail() {
                         />
                       </div>
                       <div style={{ display: 'flex', gap: 10 }}>
-                        <button type="submit" disabled={buying || rsvping} style={{
+                        <button type="submit" disabled={buying || rsvping || paymentProcessing} style={{
                           flex: 1, background: 'var(--purple)', border: 'none', color: 'white',
                           fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer', fontSize: '0.9rem'
                         }}>
-                          {(buying || rsvping) ? 'Processing...' : guestAction === 'rsvp' ? 'Confirm RSVP' : `Pay ₦${cartTotal.toLocaleString()}`}
+                          {paymentProcessing ? 'Processing Payment...' : (buying || rsvping) ? 'Processing...' : guestAction === 'rsvp' ? 'Confirm RSVP' : `Pay ₦${cartTotal.toLocaleString()}`}
                         </button>
                         <button type="button" onClick={() => setShowGuestForm(false)} style={{
                           background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
@@ -947,12 +1010,12 @@ export default function EventDetail() {
                         }}>
                           <ArrowLeft size={14} /> Back
                         </button>
-                        <button onClick={handleAttendeeConfirm} disabled={buying} style={{
+                        <button onClick={handleAttendeeConfirm} disabled={buying || paymentProcessing} style={{
                           flex: 1, background: 'var(--purple)', border: 'none', color: 'white',
                           fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer',
                           fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                         }}>
-                          {buying ? 'Processing...' : <><ShoppingCart size={18} /> Confirm & Pay – ₦{cartTotal.toLocaleString()}</>}
+                          {paymentProcessing ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing Payment...</> : buying ? 'Processing...' : <><ShoppingCart size={18} /> Confirm & Pay – ₦{cartTotal.toLocaleString()}</>}
                         </button>
                       </div>
                     </div>
@@ -990,13 +1053,13 @@ export default function EventDetail() {
                       <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginTop: 2 }}>{cartCount} ticket{cartCount > 1 ? 's' : ''}</p>
                     </div>
 
-                    <button onClick={() => handleCheckout()} disabled={buying} style={{
+                    <button onClick={() => handleCheckout()} disabled={buying || paymentProcessing} style={{
                       width: '100%', marginTop: 20,
                       background: 'var(--purple)', border: 'none', color: 'white',
                       fontWeight: 800, padding: '16px', borderRadius: 12, cursor: 'pointer',
                       fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                     }}>
-                      {buying ? 'Processing...' : <><ShoppingCart size={18} /> Checkout – ₦{cartTotal.toLocaleString()}</>}
+                      {paymentProcessing ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" style={{ display: 'inline-block' }} /> Processing Payment...</> : buying ? 'Processing...' : <><ShoppingCart size={18} /> Checkout – ₦{cartTotal.toLocaleString()}</>}
                     </button>
                   </div>
                 )}
@@ -1228,12 +1291,12 @@ export default function EventDetail() {
                 </div>
                 <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.4)', transform: floaterExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </button>
-              <button onClick={() => handleCheckout()} disabled={buying} style={{
+              <button onClick={() => handleCheckout()} disabled={buying || paymentProcessing} style={{
                 background: 'var(--purple)', border: 'none', color: 'white',
                 fontWeight: 800, padding: '14px 24px', borderRadius: 12, cursor: 'pointer',
                 fontSize: '0.88rem', whiteSpace: 'nowrap'
               }}>
-                {buying ? 'Wait...' : 'Checkout'}
+                {paymentProcessing ? 'Paying...' : buying ? 'Wait...' : 'Checkout'}
               </button>
             </div>
           </div>

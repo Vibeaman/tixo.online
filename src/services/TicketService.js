@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase'
 
 const TicketService = {
   // Single tier purchase (supports guest checkout)
-  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, attendeeName }) {
+  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, attendeeName, paymentReference, paymentStatus, paymentChannel, paidAmount }) {
     // Generate a unique 8-char check-in code
     const checkInCode = Array.from(crypto.getRandomValues(new Uint8Array(4)))
       .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
@@ -17,7 +17,11 @@ const TicketService = {
       is_rsvp: isRsvp || false,
       check_in_code: checkInCode,
       checked_in: false,
-      attendee_name: attendeeName || guestName || null
+      attendee_name: attendeeName || guestName || null,
+      payment_reference: paymentReference || null,
+      payment_status: paymentStatus || (totalPrice > 0 ? 'pending' : 'free'),
+      payment_channel: paymentChannel || null,
+      paid_amount: paidAmount || 0
     }
 
     if (userId) {
@@ -41,7 +45,7 @@ const TicketService = {
 
   // Multi-tier purchase (cart checkout — supports guest checkout)
   // Each item can include an attendeeName for the individual ticket holder
-  async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp }) {
+  async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, paymentReference, paymentStatus, paymentChannel, paidAmount }) {
     const inserts = items.map(item => {
       const code = Array.from(crypto.getRandomValues(new Uint8Array(4)))
         .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
@@ -57,6 +61,10 @@ const TicketService = {
         check_in_code: code,
         checked_in: false,
         attendee_name: item.attendeeName || guestName || null,
+        payment_reference: paymentReference || null,
+        payment_status: paymentStatus || (item.totalPrice > 0 ? 'pending' : 'free'),
+        payment_channel: paymentChannel || null,
+        paid_amount: paidAmount || 0,
         ...(referralCode ? { referral_code: referralCode } : {})
       }
 
@@ -199,6 +207,16 @@ const TicketService = {
       .order('purchased_at', { ascending: false })
     if (error) throw error
     return data || []
+  },
+
+  // Look up tickets by payment reference
+  async getByReference(reference) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('payment_reference', reference)
+    if (error) throw error
+    return data
   }
 }
 
