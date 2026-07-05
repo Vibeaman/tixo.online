@@ -54,9 +54,14 @@ function ScanResultCard({ ticket, onCheckIn, onDismiss, checking }) {
           <div className="flex items-center gap-2 text-white">
             <User className="w-4 h-4 text-white/50" />
             <span className="font-medium truncate">
-              {ticket.profile?.full_name || ticket.profile?.username || 'Guest'}
+              {ticket.attendee_name || ticket.profile?.full_name || ticket.profile?.username || 'Guest'}
             </span>
           </div>
+          {ticket.attendee_name && ticket.profile?.full_name && ticket.attendee_name !== ticket.profile?.full_name && (
+            <div className="flex items-center gap-2 text-white/50 text-xs">
+              <span>Purchased by {ticket.profile.full_name}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-white/70 text-sm">
             <Ticket className="w-4 h-4 text-white/40" />
             <span>{ticket.tier_name || ticket.ticket_tier?.name || 'General'}</span>
@@ -117,7 +122,7 @@ function CheckedInOverlay({ ticket, onContinue }) {
         <div>
           <h3 className="text-xl font-bold text-white">Checked In!</h3>
           <p className="text-white/60 mt-1 text-sm">
-            {ticket?.profile?.full_name || 'Guest'} is good to go
+            {ticket?.attendee_name || ticket?.profile?.full_name || 'Guest'} is good to go
           </p>
         </div>
         <button
@@ -158,7 +163,7 @@ function AttendeeList({ eventId, userId, onBack }) {
   const filtered = attendees.filter((a) => {
     if (!search.trim()) return true
     const q = search.toLowerCase()
-    const name = (a.profile?.full_name || a.profile?.username || '').toLowerCase()
+    const name = (a.attendee_name || a.profile?.full_name || a.profile?.username || '').toLowerCase()
     const tier = (a.tier_name || a.ticket_tier?.name || '').toLowerCase()
     const code = (a.check_in_code || '').toLowerCase()
     return name.includes(q) || tier.includes(q) || code.includes(q)
@@ -170,7 +175,7 @@ function AttendeeList({ eventId, userId, onBack }) {
     try {
       setCheckingId(ticket.id)
       await TicketService.checkIn(ticket.id, userId)
-      toast.success(`${ticket.profile?.full_name || 'Guest'} checked in`)
+      toast.success(`${ticket.attendee_name || ticket.profile?.full_name || 'Guest'} checked in`)
       fetchAttendees()
     } catch (err) {
       toast.error('Check-in failed')
@@ -249,7 +254,7 @@ function AttendeeList({ eventId, userId, onBack }) {
           </div>
         ) : (
           filtered.map((ticket) => {
-            const name = ticket.profile?.full_name || ticket.profile?.username || 'Guest'
+            const name = ticket.attendee_name || ticket.profile?.full_name || ticket.profile?.username || 'Guest'
             const tier = ticket.tier_name || ticket.ticket_tier?.name || 'General'
             const isCheckedIn = !!ticket.checked_in_at
             const isBusy = checkingId === ticket.id

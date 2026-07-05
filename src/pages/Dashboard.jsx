@@ -99,7 +99,17 @@ function QRModal({ ticket, onClose }) {
       ctx.fillText(ticket.check_in_code || '', canvas.width / 2, img.height + pad * 2 + 55)
       ctx.fillStyle = '#9ca3af'
       ctx.font = '14px sans-serif'
-      ctx.fillText(ticket.tier_name ? `${ticket.tier_name} · x${ticket.quantity}` : '', canvas.width / 2, img.height + pad * 2 + 80)
+      // Attendee name
+      if (ticket.attendee_name) {
+        ctx.fillStyle = '#c084fc'
+        ctx.font = 'bold 16px sans-serif'
+        ctx.fillText(ticket.attendee_name, canvas.width / 2, img.height + pad * 2 + 78)
+        ctx.fillStyle = '#9ca3af'
+        ctx.font = '14px sans-serif'
+        ctx.fillText(ticket.tier_name || '', canvas.width / 2, img.height + pad * 2 + 98)
+      } else {
+        ctx.fillText(ticket.tier_name ? `${ticket.tier_name}${ticket.quantity > 1 ? ` · x${ticket.quantity}` : ''}` : '', canvas.width / 2, img.height + pad * 2 + 80)
+      }
       ctx.fillText('Planam Events', canvas.width / 2, img.height + pad * 2 + 105)
       // Download
       const link = document.createElement('a')
@@ -117,7 +127,10 @@ function QRModal({ ticket, onClose }) {
           <X className="w-5 h-5" />
         </button>
         <h3 className="text-white font-bold text-lg mb-1 text-center">{ticket.event_title}</h3>
-        <p className="text-gray-400 text-sm text-center mb-6">{ticket.tier_name} · x{ticket.quantity}</p>
+        {ticket.attendee_name && (
+          <p className="text-purple-400 text-sm text-center font-semibold mb-1">🎫 {ticket.attendee_name}</p>
+        )}
+        <p className="text-gray-400 text-sm text-center mb-6">{ticket.tier_name}{ticket.quantity > 1 ? ` · x${ticket.quantity}` : ''}</p>
         <div className="flex justify-center mb-4" ref={qrRef}>
           <div className="bg-white rounded-xl p-4">
             <QRCodeSVG value={ticket.check_in_code || ticket.id} size={200} level="H" />
@@ -430,7 +443,10 @@ export default function Dashboard() {
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-400 text-sm">{t.tier_name} · x{t.quantity}</p>
+                        {t.attendee_name && (
+                          <p className="text-purple-400 text-sm font-medium">🎫 {t.attendee_name}</p>
+                        )}
+                        <p className="text-gray-400 text-sm">{t.tier_name}{t.quantity > 1 ? ` · x${t.quantity}` : ''}</p>
                         <p className="text-gray-500 text-xs mt-1">
                           {new Date(t.purchased_at).toLocaleDateString()}
                           {t.checked_in && t.checked_in_at && (

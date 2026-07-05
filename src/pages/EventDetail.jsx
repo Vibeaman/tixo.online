@@ -157,6 +157,11 @@ export default function EventDetail() {
   const [guestEmail, setGuestEmail] = useState('')
   const [guestAction, setGuestAction] = useState('') // 'checkout' or 'rsvp'
 
+  // Buy-for-others: attendee names
+  const [showAttendeeForm, setShowAttendeeForm] = useState(false)
+  const [attendeeSlots, setAttendeeSlots] = useState([]) // [{tierName, price, name}]
+  const [pendingGuestInfo, setPendingGuestInfo] = useState(null)
+
   // View flyer
   const [showFlyer, setShowFlyer] = useState(false)
 
@@ -225,7 +230,7 @@ export default function EventDetail() {
   }).filter(i => i.quantity > 0)
   const cartTotal = cartItems.reduce((s, i) => s + i.totalPrice, 0)
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0)
-  const showFloatingCart = cartCount > 0 && !isFreeEvent && !purchaseSuccess && !cartSummaryVisible
+  const showFloatingCart = cartCount > 0 && !isFreeEvent && !purchaseSuccess && !cartSummaryVisible && !showAttendeeForm
 
   function scrollToCart() { cartSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setFloaterExpanded(false) }
 
@@ -267,7 +272,8 @@ export default function EventDetail() {
         guestEmail: guestInfo?.email || null,
         referralCode: refCode || null,
         attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'),
-        isRsvp: true
+        isRsvp: true,
+        attendeeName: profile?.full_name || guestInfo?.name || null
       })
       sessionStorage.removeItem(`ref_${id}`)
       setHasRsvpd(true); setPurchaseSuccess(true); setShowGuestForm(false)
@@ -290,7 +296,8 @@ export default function EventDetail() {
         guestEmail: guestInfo?.email || null,
         referralCode: refCode || null,
         attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'),
-        isRsvp: true
+        isRsvp: true,
+        attendeeName: profile?.full_name || guestInfo?.name || null
       })
       setReservedFreeTiers(prev => ({ ...prev, [tier.name]: true }))
       toast.success(`🎉 Spot reserved for ${tier.name}!`)
@@ -302,15 +309,54 @@ export default function EventDetail() {
   async function handleCheckout(guestInfo = null) {
     if (!user && !guestInfo) { triggerGuestCheckout('checkout'); return }
     if (cartItems.length === 0) return
+
+    const buyerName = profile?.full_name || guestInfo?.name || pendingGuestInfo?.name || ''
+
+    // Multiple tickets → show attendee form first (if not already filled)
+    if (cartCount > 1 && !showAttendeeForm) {
+      const slots = []
+      cartItems.forEach(item => {
+        for (let i = 0; i < item.quantity; i++) {
+          slots.push({ tierName: item.tierName, price: item.price, name: '' })
+        }
+      })
+      if (slots.length > 0) slots[0].name = buyerName
+      setAttendeeSlots(slots)
+      setPendingGuestInfo(guestInfo)
+      setShowAttendeeForm(true)
+      setShowGuestForm(false)
+      return
+    }
+
+    // Build individual items for purchase (1 row per ticket, each with attendee name)
+    const effectiveGuestInfo = guestInfo || pendingGuestInfo
+    let purchaseItems
+    if (showAttendeeForm && attendeeSlots.length > 0) {
+      purchaseItems = attendeeSlots.map(slot => ({
+        tierName: slot.tierName,
+        quantity: 1,
+        totalPrice: slot.price,
+        attendeeName: slot.name.trim() || buyerName
+      }))
+    } else {
+      // Single ticket — auto-assign buyer name
+      purchaseItems = cartItems.map(item => ({
+        tierName: item.tierName,
+        quantity: 1,
+        totalPrice: item.price,
+        attendeeName: buyerName
+      }))
+    }
+
     setBuying(true)
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
       const mode = event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person')
       const tickets = await TicketService.purchaseMultiple({
-        eventId: event.id, eventTitle: event.title, items: cartItems,
+        eventId: event.id, eventTitle: event.title, items: purchaseItems,
         userId: user?.id || null,
-        guestName: guestInfo?.name || null,
-        guestEmail: guestInfo?.email || null,
+        guestName: effectiveGuestInfo?.name || null,
+        guestEmail: effectiveGuestInfo?.email || null,
         referralCode: refCode || null, attendanceMode: mode, isRsvp: false
       })
       if (refCode && event.reshare_enabled) {
@@ -325,10 +371,27 @@ export default function EventDetail() {
         } catch (e) { console.error('Commission tracking error:', e) }
       }
       sessionStorage.removeItem(`ref_${id}`)
-      setPurchaseSuccess(true); setCart({}); setFloaterExpanded(false); setShowGuestForm(false)
-      toast.success(`🎉 ${cartCount} ticket${cartCount > 1 ? 's' : ''} purchased!`)
+      setPurchaseSuccess(true); setCart({}); setFloaterExpanded(false)
+      setShowGuestForm(false); setShowAttendeeForm(false)
+      setAttendeeSlots([]); setPendingGuestInfo(null)
+      toast.success(`🎉 ${purchaseItems.length} ticket${purchaseItems.length > 1 ? 's' : ''} purchased!`)
     } catch (e) { toast.error(e.message || 'Purchase failed') }
     finally { setBuying(false) }
+  }
+
+  /* ─── Attendee form handlers ─── */
+  function handleAttendeeConfirm() {
+    if (!attendeeSlots[0]?.name?.trim()) {
+      toast.error('Please enter at least your name for the first ticket')
+      return
+    }
+    handleCheckout(pendingGuestInfo)
+  }
+
+  function handleAttendeeBack() {
+    setShowAttendeeForm(false)
+    setAttendeeSlots([])
+    setPendingGuestInfo(null)
   }
 
   /* ─── Guest form submit ─── */
@@ -792,8 +855,96 @@ export default function EventDetail() {
                   </div>
                 )}
 
+                {/* ═══ ATTENDEE DETAILS FORM (Buy for Others) ═══ */}
+                {showAttendeeForm && (
+                  <div style={{
+                    background: 'rgba(123,78,247,0.06)', border: '1.5px solid rgba(123,78,247,0.2)',
+                    borderRadius: 16, padding: 24, marginBottom: 16
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <Users size={20} style={{ color: 'var(--purple-light)' }} />
+                      <h3 style={{ fontWeight: 800, color: 'white', fontSize: '1.05rem' }}>Who's Coming?</h3>
+                    </div>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 20 }}>
+                      Enter a name for each ticket so everyone gets their own QR code at the gate.
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {attendeeSlots.map((slot, i) => (
+                        <div key={i}>
+                          {/* Show tier label when tier changes */}
+                          {(i === 0 || slot.tierName !== attendeeSlots[i - 1].tierName) && (
+                            <p style={{
+                              fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)',
+                              letterSpacing: '0.06em', marginBottom: 8, marginTop: i > 0 ? 12 : 0
+                            }}>
+                              {slot.tierName.toUpperCase()} — ₦{Number(slot.price).toLocaleString()}
+                            </p>
+                          )}
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              type="text"
+                              placeholder={i === 0 ? 'Your name' : `Attendee ${i + 1} name`}
+                              value={slot.name}
+                              onChange={e => {
+                                const updated = [...attendeeSlots]
+                                updated[i] = { ...updated[i], name: e.target.value }
+                                setAttendeeSlots(updated)
+                              }}
+                              style={{
+                                width: '100%', boxSizing: 'border-box',
+                                background: 'rgba(0,0,0,0.3)',
+                                border: `1px solid ${i === 0 ? 'rgba(123,78,247,0.3)' : 'rgba(255,255,255,0.12)'}`,
+                                borderRadius: 10, padding: '14px 16px',
+                                paddingRight: i === 0 ? 60 : 16,
+                                color: 'white', fontSize: '0.9rem', outline: 'none'
+                              }}
+                            />
+                            {i === 0 && (
+                              <span style={{
+                                position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                                fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)',
+                                background: 'rgba(123,78,247,0.15)', padding: '3px 8px', borderRadius: 6
+                              }}>You</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Summary + actions */}
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 20, paddingTop: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>Total</span>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--purple-light)' }}>₦{cartTotal.toLocaleString()}</span>
+                          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginTop: 2 }}>
+                            {attendeeSlots.length} ticket{attendeeSlots.length > 1 ? 's' : ''} · {attendeeSlots.filter(s => s.name.trim()).length} named
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button type="button" onClick={handleAttendeeBack} style={{
+                          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                          color: 'rgba(255,255,255,0.6)', padding: '14px 18px', borderRadius: 12,
+                          cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6
+                        }}>
+                          <ArrowLeft size={14} /> Back
+                        </button>
+                        <button onClick={handleAttendeeConfirm} disabled={buying} style={{
+                          flex: 1, background: 'var(--purple)', border: 'none', color: 'white',
+                          fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer',
+                          fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                        }}>
+                          {buying ? 'Processing...' : <><ShoppingCart size={18} /> Confirm & Pay – ₦{cartTotal.toLocaleString()}</>}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Static cart summary / checkout */}
-                {cartCount > 0 && !showGuestForm && (
+                {cartCount > 0 && !showGuestForm && !showAttendeeForm && (
                   <div ref={cartSummaryRef} style={{
                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
                     borderRadius: 16, padding: 24

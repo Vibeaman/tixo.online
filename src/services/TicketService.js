@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase'
 
 const TicketService = {
   // Single tier purchase (supports guest checkout)
-  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp }) {
+  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, attendeeName }) {
     // Generate a unique 8-char check-in code
     const checkInCode = Array.from(crypto.getRandomValues(new Uint8Array(4)))
       .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
@@ -16,7 +16,8 @@ const TicketService = {
       attendance_mode: attendanceMode || 'in-person',
       is_rsvp: isRsvp || false,
       check_in_code: checkInCode,
-      checked_in: false
+      checked_in: false,
+      attendee_name: attendeeName || guestName || null
     }
 
     if (userId) {
@@ -39,6 +40,7 @@ const TicketService = {
   },
 
   // Multi-tier purchase (cart checkout — supports guest checkout)
+  // Each item can include an attendeeName for the individual ticket holder
   async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp }) {
     const inserts = items.map(item => {
       const code = Array.from(crypto.getRandomValues(new Uint8Array(4)))
@@ -54,6 +56,7 @@ const TicketService = {
         is_rsvp: isRsvp || false,
         check_in_code: code,
         checked_in: false,
+        attendee_name: item.attendeeName || guestName || null,
         ...(referralCode ? { referral_code: referralCode } : {})
       }
 
