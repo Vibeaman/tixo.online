@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Repeat, Clock, Sparkles } from 'lucide-react'
+import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Repeat, Clock, Sparkles, ClipboardList, Phone, Share2, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
@@ -40,7 +40,15 @@ export default function EditEvent() {
     is_recurring: false,
     recurrence_pattern: 'weekly',
     recurrence_end_date: '',
-    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }]
+    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }],
+    registration_fields: [
+      { id: 'phone', label: 'Phone Number', type: 'tel', enabled: false, required: false },
+      { id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Non-binary', 'Prefer not to say'], enabled: false, required: false },
+      { id: 'age', label: 'Age', type: 'number', enabled: false, required: false },
+      { id: 'organization', label: 'Organization / Company', type: 'text', enabled: false, required: false },
+      { id: 'address', label: 'Address', type: 'text', enabled: false, required: false },
+    ],
+    custom_fields: [],
   })
 
   useEffect(() => {
@@ -78,7 +86,29 @@ export default function EditEvent() {
                 early_bird_price: t.early_bird_price || 0,
                 early_bird_end_date: t.early_bird_end_date || '',
               }))
-            : [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }]
+            : [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }],
+          registration_fields: (() => {
+            const savedFields = ev.registration_fields || []
+            const presetDefaults = [
+              { id: 'phone', label: 'Phone Number', type: 'tel', enabled: false, required: false },
+              { id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Non-binary', 'Prefer not to say'], enabled: false, required: false },
+              { id: 'age', label: 'Age', type: 'number', enabled: false, required: false },
+              { id: 'organization', label: 'Organization / Company', type: 'text', enabled: false, required: false },
+              { id: 'address', label: 'Address', type: 'text', enabled: false, required: false },
+            ]
+            const presetIds = presetDefaults.map(f => f.id)
+            return presetDefaults.map(preset => {
+              const saved = savedFields.find(s => s.id === preset.id)
+              return saved ? { ...preset, enabled: true, required: saved.required || false } : preset
+            })
+          })(),
+          custom_fields: (() => {
+            const savedFields = ev.registration_fields || []
+            const presetIds = ['phone', 'gender', 'age', 'organization', 'address']
+            return savedFields.filter(f => !presetIds.includes(f.id)).map(f => ({
+              id: f.id, label: f.label, type: f.type, enabled: true, required: f.required || false
+            }))
+          })(),
         })
         if (ev.image) setImagePreview(ev.image)
       } catch (e) {
@@ -99,6 +129,41 @@ export default function EditEvent() {
   }
   function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }] })) }
   function removeTier(i) { setForm(f => ({ ...f, tiers: f.tiers.filter((_, idx) => idx !== i) })) }
+
+  function toggleRegField(id) {
+    setForm(f => ({
+      ...f,
+      registration_fields: f.registration_fields.map(field =>
+        field.id === id ? { ...field, enabled: !field.enabled, required: !field.enabled ? field.required : false } : field
+      )
+    }))
+  }
+  function toggleRegFieldRequired(id) {
+    setForm(f => ({
+      ...f,
+      registration_fields: f.registration_fields.map(field =>
+        field.id === id ? { ...field, required: !field.required } : field
+      )
+    }))
+  }
+  function addCustomField() {
+    const newId = 'custom_' + Date.now()
+    setForm(f => ({
+      ...f,
+      custom_fields: [...f.custom_fields, { id: newId, label: '', type: 'text', enabled: true, required: false }]
+    }))
+  }
+  function updateCustomField(id, key, val) {
+    setForm(f => ({
+      ...f,
+      custom_fields: f.custom_fields.map(field =>
+        field.id === id ? { ...field, [key]: val } : field
+      )
+    }))
+  }
+  function removeCustomField(id) {
+    setForm(f => ({ ...f, custom_fields: f.custom_fields.filter(field => field.id !== id) }))
+  }
 
   function handleFileSelect(e) {
     const file = e.target.files?.[0]
@@ -164,6 +229,15 @@ export default function EditEvent() {
           early_bird_end_date: t.early_bird ? t.early_bird_end_date : '',
         })),
         tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        registration_fields: [
+          ...form.registration_fields.filter(f => f.enabled).map(f => ({
+            id: f.id, label: f.label, type: f.type, required: f.required,
+            ...(f.options ? { options: f.options } : {})
+          })),
+          ...form.custom_fields.filter(f => f.label.trim()).map(f => ({
+            id: f.id, label: f.label.trim(), type: f.type, required: f.required
+          }))
+        ],
       }
       await EventService.update(id, updates)
       toast.success('✅ Event updated!')
@@ -389,6 +463,81 @@ export default function EditEvent() {
               <button onClick={addTier} className="w-full border border-dashed border-white/20 text-gray-400 hover:text-white hover:border-white/40 py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-colors">
                 <Plus className="w-4 h-4" /> Add Tier
               </button>
+
+              {/* ============ REGISTRATION FIELDS ============ */}
+              <div className="border-t border-white/10 pt-5 mt-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <ClipboardList className="w-5 h-5 text-blue-400" />
+                  <div>
+                    <p className="text-white font-semibold">Registration Fields</p>
+                    <p className="text-gray-500 text-xs">Name & Email are always collected. Add more fields below.</p>
+                  </div>
+                </div>
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                    <span className="text-white text-sm">Full Name</span>
+                    <span className="text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded-full">Always collected</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                    <span className="text-white text-sm">Email Address</span>
+                    <span className="text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded-full">Always collected</span>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-xs mb-2 uppercase tracking-wider">Optional Fields</p>
+                <div className="space-y-2 mb-4">
+                  {form.registration_fields.map(field => (
+                    <div key={field.id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                      <span className="text-white text-sm">{field.label}</span>
+                      <div className="flex items-center gap-3">
+                        {field.enabled && (
+                          <button type="button" onClick={() => toggleRegFieldRequired(field.id)}
+                            className={`text-xs px-2 py-1 rounded-full transition-colors ${field.required ? 'bg-red-400/20 text-red-300' : 'bg-white/5 text-gray-500 hover:text-gray-300'}`}>
+                            {field.required ? 'Required' : 'Optional'}
+                          </button>
+                        )}
+                        <button type="button" onClick={() => toggleRegField(field.id)}
+                          className={`relative w-10 h-5 rounded-full transition-colors ${field.enabled ? 'bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-white/10'}`}>
+                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${field.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {form.custom_fields.length > 0 && (
+                  <>
+                    <p className="text-gray-400 text-xs mb-2 uppercase tracking-wider">Custom Fields</p>
+                    <div className="space-y-2 mb-4">
+                      {form.custom_fields.map(field => (
+                        <div key={field.id} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <input type="text" placeholder="Field name (e.g. T-shirt Size)" value={field.label}
+                              onChange={e => updateCustomField(field.id, 'label', e.target.value)}
+                              className="flex-1 bg-transparent border-none text-white text-sm placeholder-gray-500 focus:outline-none" />
+                            <select value={field.type} onChange={e => updateCustomField(field.id, 'type', e.target.value)}
+                              className="bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-white text-xs focus:outline-none">
+                              <option value="text">Text</option>
+                              <option value="number">Number</option>
+                              <option value="tel">Phone</option>
+                            </select>
+                            <button type="button" onClick={() => updateCustomField(field.id, 'required', !field.required)}
+                              className={`text-xs px-2 py-1 rounded-full transition-colors ${field.required ? 'bg-red-400/20 text-red-300' : 'bg-white/5 text-gray-500 hover:text-gray-300'}`}>
+                              {field.required ? 'Required' : 'Optional'}
+                            </button>
+                            <button type="button" onClick={() => removeCustomField(field.id)} className="text-red-400 hover:text-red-300">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <button type="button" onClick={addCustomField}
+                  className="w-full border border-dashed border-white/20 text-gray-400 hover:text-white hover:border-white/40 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-colors">
+                  <Plus className="w-4 h-4" /> Add Custom Field
+                </button>
+              </div>
+
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2"><ArrowLeft className="w-5 h-5" /> Back</button>
                 <button onClick={() => setStep(3)} className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">Next <ArrowRight className="w-5 h-5" /></button>

@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase'
 
 const TicketService = {
   // Single tier purchase (supports guest checkout)
-  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, attendeeName, paymentReference, paymentStatus, paymentChannel, paidAmount }) {
+  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, attendeeName, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData }) {
     // Generate a unique 8-char check-in code
     const checkInCode = Array.from(crypto.getRandomValues(new Uint8Array(4)))
       .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
@@ -21,7 +21,8 @@ const TicketService = {
       payment_reference: paymentReference || null,
       payment_status: paymentStatus || (totalPrice > 0 ? 'pending' : 'free'),
       payment_channel: paymentChannel || null,
-      paid_amount: paidAmount || 0
+      paid_amount: paidAmount || 0,
+      registration_data: registrationData && Object.keys(registrationData).length > 0 ? registrationData : null
     }
 
     if (userId) {
@@ -45,7 +46,7 @@ const TicketService = {
 
   // Multi-tier purchase (cart checkout — supports guest checkout)
   // Each item can include an attendeeName for the individual ticket holder
-  async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, paymentReference, paymentStatus, paymentChannel, paidAmount }) {
+  async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData }) {
     const inserts = items.map(item => {
       const code = Array.from(crypto.getRandomValues(new Uint8Array(4)))
         .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
@@ -65,6 +66,7 @@ const TicketService = {
         payment_status: paymentStatus || (item.totalPrice > 0 ? 'pending' : 'free'),
         payment_channel: paymentChannel || null,
         paid_amount: paidAmount || 0,
+        registration_data: registrationData && Object.keys(registrationData).length > 0 ? registrationData : null,
         ...(referralCode ? { referral_code: referralCode } : {})
       }
 

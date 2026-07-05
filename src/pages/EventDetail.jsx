@@ -161,6 +161,7 @@ export default function EventDetail() {
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [guestAction, setGuestAction] = useState('') // 'checkout' or 'rsvp'
+  const [registrationData, setRegistrationData] = useState({})
 
   // Buy-for-others: attendee names
   const [showAttendeeForm, setShowAttendeeForm] = useState(false)
@@ -228,6 +229,7 @@ export default function EventDetail() {
   function clearCart() { setCart({}); setFloaterExpanded(false) }
 
   const tiers = event?.ticket_tiers || []
+  const registrationFields = event?.registration_fields || []
   const isFreeEvent = tiers.length > 0 && tiers.every(t => Number(t.price) === 0)
   const cartItems = Object.entries(cart).map(([name, qty]) => {
     const tier = tiers.find(t => t.name === name)
@@ -266,6 +268,13 @@ export default function EventDetail() {
   /* ─── RSVP handler ─── */
   async function handleRsvp(guestInfo = null) {
     if (!user && !guestInfo) { triggerGuestCheckout('rsvp'); return }
+    if (user && registrationFields.length > 0 && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) {
+      setGuestAction('rsvp')
+      setGuestName(profile?.full_name || '')
+      setGuestEmail(user.email || '')
+      setShowGuestForm(true)
+      return
+    }
     setRsvping(true)
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
@@ -279,7 +288,8 @@ export default function EventDetail() {
         attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'),
         isRsvp: true,
         attendeeName: profile?.full_name || guestInfo?.name || null,
-        paymentStatus: 'free'
+        paymentStatus: 'free',
+        registrationData: guestInfo?.registrationData || registrationData
       })
       sessionStorage.removeItem(`ref_${id}`)
       setHasRsvpd(true); setPurchaseSuccess(true); setShowGuestForm(false)
@@ -291,6 +301,13 @@ export default function EventDetail() {
   /* ─── Reserve free tier (1 ticket for self) ─── */
   async function handleReserveFreeTier(tier, guestInfo = null) {
     if (!user && !guestInfo) { triggerGuestCheckout('rsvp'); return }
+    if (user && registrationFields.length > 0 && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) {
+      setGuestAction('rsvp')
+      setGuestName(profile?.full_name || '')
+      setGuestEmail(user.email || '')
+      setShowGuestForm(true)
+      return
+    }
     setRsvping(true)
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
@@ -304,7 +321,8 @@ export default function EventDetail() {
         attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'),
         isRsvp: true,
         attendeeName: profile?.full_name || guestInfo?.name || null,
-        paymentStatus: 'free'
+        paymentStatus: 'free',
+        registrationData: guestInfo?.registrationData || registrationData
       })
       setReservedFreeTiers(prev => ({ ...prev, [tier.name]: true }))
       toast.success(`🎉 Spot reserved for ${tier.name}!`)
@@ -315,6 +333,14 @@ export default function EventDetail() {
   /* ─── Cart checkout handler ─── */
   async function handleCheckout(guestInfo = null) {
     if (!user && !guestInfo) { triggerGuestCheckout('checkout'); return }
+    // Show registration form for logged-in users if there are extra fields to collect
+    if (user && registrationFields.length > 0 && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) {
+      setGuestAction('checkout')
+      setGuestName(profile?.full_name || '')
+      setGuestEmail(user.email || '')
+      setShowGuestForm(true)
+      return
+    }
     if (cartItems.length === 0) return
 
     const buyerName = profile?.full_name || guestInfo?.name || pendingGuestInfo?.name || ''
@@ -421,7 +447,8 @@ export default function EventDetail() {
         paymentReference,
         paymentStatus,
         paymentChannel,
-        paidAmount
+        paidAmount,
+        registrationData: effectiveGuestInfo?.registrationData || registrationData
       })
       if (refCode && event.reshare_enabled) {
         try {
@@ -458,13 +485,24 @@ export default function EventDetail() {
     setPendingGuestInfo(null)
   }
 
+  function updateRegistrationField(fieldId, value) {
+    setRegistrationData(prev => ({ ...prev, [fieldId]: value }))
+  }
+
   /* ─── Guest form submit ─── */
   function handleGuestSubmit(e) {
     e.preventDefault()
     if (!guestName.trim() || !guestEmail.trim()) { toast.error('Please fill in your name and email'); return }
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRe.test(guestEmail)) { toast.error('Please enter a valid email'); return }
-    const info = { name: guestName.trim(), email: guestEmail.trim() }
+    // Validate required registration fields
+    for (const field of registrationFields) {
+      if (field.required && !registrationData[field.id]?.toString().trim()) {
+        toast.error(`${field.label} is required`)
+        return
+      }
+    }
+    const info = { name: guestName.trim(), email: guestEmail.trim(), registrationData: { ...registrationData } }
     if (guestAction === 'rsvp') handleRsvp(info)
     else handleCheckout(info)
   }
@@ -888,7 +926,7 @@ export default function EventDetail() {
                 </div>
 
                 {/* ═══ GUEST CHECKOUT FORM ═══ */}
-                {showGuestForm && !user && (
+                {showGuestForm && (
                   <div style={{
                     background: 'rgba(255,255,255,0.03)', border: '1.5px solid rgba(255,255,255,0.07)',
                     borderRadius: 16, padding: 24, marginBottom: 16
@@ -898,23 +936,63 @@ export default function EventDetail() {
                       <h3 style={{ fontWeight: 800, color: 'white', fontSize: '1rem' }}>Guest Checkout</h3>
                     </div>
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 16 }}>
-                      Enter your details to {guestAction === 'rsvp' ? 'confirm your RSVP' : 'complete your purchase'}. No account needed!
+                      {user ? 'Please fill in the additional information required for this event.' : `Enter your details to ${guestAction === 'rsvp' ? 'confirm your RSVP' : 'complete your purchase'}. No account needed!`}
                     </p>
                     <form onSubmit={handleGuestSubmit}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
                         <input type="text" placeholder="Full Name" value={guestName} onChange={e => setGuestName(e.target.value)}
+                          disabled={!!user}
                           style={{
                             background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none'
+                            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none',
+                            opacity: user ? 0.6 : 1
                           }}
                         />
                         <input type="email" placeholder="Email Address" value={guestEmail} onChange={e => setGuestEmail(e.target.value)}
+                          disabled={!!user}
                           style={{
                             background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none'
+                            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none',
+                            opacity: user ? 0.6 : 1
                           }}
                         />
                       </div>
+                      {/* Dynamic registration fields */}
+                      {registrationFields.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                          {registrationFields.map(field => (
+                            <div key={field.id}>
+                              {field.type === 'select' ? (
+                                <select
+                                  value={registrationData[field.id] || ''}
+                                  onChange={e => updateRegistrationField(field.id, e.target.value)}
+                                  style={{
+                                    width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
+                                    borderRadius: 10, padding: '14px 16px', color: registrationData[field.id] ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '0.9rem', outline: 'none',
+                                    appearance: 'none', WebkitAppearance: 'none'
+                                  }}
+                                >
+                                  <option value="" style={{ background: '#1a1a2e' }}>{field.label}{field.required ? ' *' : ''}</option>
+                                  {(field.options || []).map(opt => (
+                                    <option key={opt} value={opt} style={{ background: '#1a1a2e', color: 'white' }}>{opt}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  type={field.type || 'text'}
+                                  placeholder={`${field.label}${field.required ? ' *' : ''}`}
+                                  value={registrationData[field.id] || ''}
+                                  onChange={e => updateRegistrationField(field.id, e.target.value)}
+                                  style={{
+                                    width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
+                                    borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none'
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div style={{ display: 'flex', gap: 10 }}>
                         <button type="submit" disabled={buying || rsvping || paymentProcessing} style={{
                           flex: 1, background: 'var(--purple)', border: 'none', color: 'white',
@@ -928,9 +1006,11 @@ export default function EventDetail() {
                         }}>Cancel</button>
                       </div>
                     </form>
-                    <p style={{ marginTop: 12, fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>
-                      Already have an account? <Link to="/login" style={{ color: 'var(--purple-light)' }}>Log in</Link>
-                    </p>
+                    {!user && (
+                      <p style={{ marginTop: 12, fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>
+                        Already have an account? <Link to="/login" style={{ color: 'var(--purple-light)' }}>Log in</Link>
+                      </p>
+                    )}
                   </div>
                 )}
 
