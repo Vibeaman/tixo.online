@@ -15,15 +15,15 @@ function StepCard({ s, i }) {
 
   return (
     <ScrollReveal direction="up" delay={0.1 + i * 0.15} distance={50} rotate={i % 2 === 0 ? -1 : 1}>
-      <Tilt3D intensity={16} glowColor="rgba(123,78,247,0.2)">
+      <Tilt3D intensity={16} glowColor="rgba(139,92,246,0.2)">
         <div
           className="card-3d-lift"
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           style={{
             position: 'relative',
-            background: 'rgba(123,78,247,0.04)',
-            border: '1px solid rgba(123,78,247,0.1)',
+            background: 'rgba(139,92,246,0.04)',
+            border: '1px solid rgba(139,92,246,0.1)',
             borderRadius: 16,
             padding: '32px 24px',
             overflow: 'hidden',
@@ -33,7 +33,7 @@ function StepCard({ s, i }) {
           <span style={{
             fontSize: 'clamp(4rem, 6vw, 6rem)', fontWeight: 900,
             color: 'transparent',
-            WebkitTextStroke: hovered ? '2px rgba(123,78,247,0.35)' : '1.5px rgba(123,78,247,0.15)',
+            WebkitTextStroke: hovered ? '2px rgba(139,92,246,0.35)' : '1.5px rgba(139,92,246,0.15)',
             lineHeight: 1, display: 'block', marginBottom: -20,
             position: 'relative', zIndex: 0,
             transition: 'all 0.4s',
@@ -59,7 +59,7 @@ function StepCard({ s, i }) {
           <div style={{
             position: 'absolute', bottom: 0, left: 0,
             height: 3,
-            background: 'linear-gradient(90deg, var(--purple), var(--purple-light))',
+            background: 'linear-gradient(90deg, #E91E8C, #8B5CF6, #00BFFF)',
             width: hovered ? '100%' : '0%',
             transition: 'width 0.5s cubic-bezier(0.23,1,0.32,1)',
           }} />

@@ -21,13 +21,13 @@ export default function CategoryView() {
   }, [name])
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-[#0B0B1A] pt-24 pb-16 px-4">
       <div className="max-w-7xl mx-auto">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors">
           <ArrowLeft className="w-5 h-5" /> Back
         </button>
         <h1 className="text-4xl font-bold text-white mb-2 capitalize">{name} Events</h1>
-        <p className="text-gray-400 mb-10">Browse all {name.toLowerCase()} events on Planam</p>
+        <p className="text-gray-400 mb-10">Browse all {name.toLowerCase()} events on Tixo</p>
 
         {loading ? (
           <div className="text-center py-20"><div className="inline-block w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>

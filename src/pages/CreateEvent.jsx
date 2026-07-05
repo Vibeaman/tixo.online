@@ -127,7 +127,7 @@ export default function CreateEvent() {
   const standardPlatform = Math.round(samplePrice * 0.05)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-[#0B0B1A] pt-24 pb-16 px-4">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-2 text-center">Create Event</h1>
         <p className="text-gray-400 text-center mb-8">Fill in the details to publish your event</p>
@@ -287,7 +287,7 @@ export default function CreateEvent() {
                         <span className="text-green-400 font-bold">90%{samplePrice > 0 ? ` · ₦${reshareOrganizer.toLocaleString()}` : ''}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">PlanAm.io</span>
+                        <span className="text-gray-400">Tixo.io</span>
                         <span className="text-gray-300 font-medium">7.5%{samplePrice > 0 ? ` · ₦${resharePlatform.toLocaleString()}` : ''}</span>
                       </div>
                       <div className="flex justify-between text-sm">
@@ -296,7 +296,7 @@ export default function CreateEvent() {
                       </div>
                     </div>
                     <div className="border-t border-purple-500/10 mt-3 pt-3">
-                      <p className="text-gray-500 text-xs">Without reshare: You get 95%, PlanAm.io gets 5%{samplePrice > 0 ? ` (₦${standardOrganizer.toLocaleString()} / ₦${standardPlatform.toLocaleString()})` : ''}</p>
+                      <p className="text-gray-500 text-xs">Without reshare: You get 95%, Tixo.io gets 5%{samplePrice > 0 ? ` (₦${standardOrganizer.toLocaleString()} / ₦${standardPlatform.toLocaleString()})` : ''}</p>
                     </div>
                   </div>
                 )}

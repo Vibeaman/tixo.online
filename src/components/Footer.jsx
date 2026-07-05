@@ -25,7 +25,7 @@ const linkGroups = [
   {
     title: 'Company',
     links: [
-      { label: 'About Planam', to: '/' },
+      { label: 'About Tixo', to: '/' },
       { label: 'Sign Up', to: '/signup' },
       { label: 'Login', to: '/login' },
       { label: 'Privacy Policy', to: '/privacy' },
@@ -45,7 +45,7 @@ export default function Footer() {
   }
 
   return (
-    <footer style={{ background: 'var(--dark)', borderTop: '1px solid rgba(123,78,247,0.1)' }}>
+    <footer style={{ background: 'var(--dark)', borderTop: '1px solid rgba(139,92,246,0.1)' }}>
       {/* Newsletter strip */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
@@ -61,9 +61,14 @@ export default function Footer() {
                 outline: 'none', minWidth: 220
               }}
             />
-            <button type="submit" className="btn btn-purple" style={{ fontSize: '0.75rem' }}>
-              <span className="btn-label" style={{ padding: '12px 18px' }}>SUBSCRIBE</span>
-              <span className="btn-arrow" style={{ padding: '0 12px' }}><ArrowRight size={14} /></span>
+            <button type="submit" style={{
+              background: 'linear-gradient(135deg, #E91E8C, #8B5CF6)',
+              border: 'none', color: 'white', padding: '12px 18px',
+              fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.03em',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              textTransform: 'uppercase',
+            }}>
+              SUBSCRIBE <ArrowRight size={14} />
             </button>
           </form>
         </div>
@@ -78,9 +83,9 @@ export default function Footer() {
         }}>
           {/* Brand col */}
           <div>
-            <img src="/logo-white.svg" alt="planam.io" style={{ height: 30, marginBottom: 16 }} />
+            <img src="/tixo-logo.png" alt="Tixo" style={{ height: 32, marginBottom: 16 }} />
             <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-              Africa's premier event discovery and ticketing platform.
+              Africa's premier event discovery and ticketing platform. Discover. Book. Experience.
             </p>
             <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
               {[
@@ -92,9 +97,9 @@ export default function Footer() {
                   width: 36, height: 36,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'rgba(255,255,255,0.5)', transition: 'all 0.2s'
+                  color: 'rgba(255,255,255,0.5)', transition: 'all 0.2s', borderRadius: 8,
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--purple)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'var(--purple)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, #E91E8C, #8B5CF6)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'transparent' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
                 >
                   <Icon size={16} />
@@ -106,7 +111,7 @@ export default function Footer() {
           {/* Link columns */}
           {linkGroups.map((g, i) => (
             <div key={i}>
-              <h4 style={{ fontSize: '0.82rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--purple-light)', marginBottom: 16 }}>{g.title}</h4>
+              <h4 style={{ fontSize: '0.82rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }} className="tixo-gradient-text">{g.title}</h4>
               {g.links.map((l, j) => (
                 <Link key={j} to={l.to} style={{
                   display: 'block', padding: '5px 0', fontSize: '0.82rem',
@@ -128,11 +133,10 @@ export default function Footer() {
           display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12,
           fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)'
         }}>
-          <span>© 2026 planam.io — All rights reserved.</span>
+          <span>© 2026 Tixo.online — All rights reserved.</span>
           <div style={{ display: 'flex', gap: 20 }}>
             <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy</Link>
             <Link to="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>Terms</Link>
-            <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Cookies</Link>
           </div>
         </div>
       </div>

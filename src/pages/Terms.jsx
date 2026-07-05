@@ -4,7 +4,7 @@ import { ArrowLeft, FileText } from 'lucide-react'
 
 export default function Terms() {
   return (
-    <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-[#0B0B1A] pt-24 pb-16 px-4">
       <div className="max-w-3xl mx-auto">
         <Link to="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Home
@@ -24,14 +24,14 @@ export default function Terms() {
           <section>
             <h2 className="text-white font-bold text-xl mb-3">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using Planam.io ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Platform.
+              By accessing or using Tixo.io ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Platform.
             </p>
           </section>
 
           <section>
             <h2 className="text-white font-bold text-xl mb-3">2. Description of Service</h2>
             <p>
-              Planam.io is an event discovery and ticketing platform that allows users to browse events, purchase tickets, RSVP to free events, create and manage events, and check in attendees via QR codes. The Platform serves the African event market and is operated from Nigeria.
+              Tixo.io is an event discovery and ticketing platform that allows users to browse events, purchase tickets, RSVP to free events, create and manage events, and check in attendees via QR codes. The Platform serves the African event market and is operated from Nigeria.
             </p>
           </section>
 
@@ -61,7 +61,7 @@ export default function Terms() {
           <section>
             <h2 className="text-white font-bold text-xl mb-3">5. Ticket Purchases</h2>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
-              <li>All ticket sales are between the event organizer and the ticket purchaser. Planam.io acts as a facilitator.</li>
+              <li>All ticket sales are between the event organizer and the ticket purchaser. Tixo.io acts as a facilitator.</li>
               <li>Ticket prices are set by event organizers and displayed in Nigerian Naira (₦).</li>
               <li>Each ticket includes a unique QR code and check-in code for event entry.</li>
               <li>When purchasing tickets for others, you must provide the attendee's name for each ticket.</li>
@@ -76,7 +76,7 @@ export default function Terms() {
               <li>Event organizers can enable resharing with a commission percentage.</li>
               <li>Promoters earn commissions on ticket sales made through their referral links.</li>
               <li>Commission rates are set by event organizers and clearly displayed.</li>
-              <li>Planam.io reserves the right to void commissions earned through fraudulent activity.</li>
+              <li>Tixo.io reserves the right to void commissions earned through fraudulent activity.</li>
             </ul>
           </section>
 
@@ -97,14 +97,14 @@ export default function Terms() {
           <section>
             <h2 className="text-white font-bold text-xl mb-3">8. Intellectual Property</h2>
             <p>
-              The Planam.io name, logo, design, and all Platform content are the property of Planam.io. Event organizers retain ownership of their event content (descriptions, images, etc.) but grant Planam.io a license to display it on the Platform.
+              The Tixo.io name, logo, design, and all Platform content are the property of Tixo.io. Event organizers retain ownership of their event content (descriptions, images, etc.) but grant Tixo.io a license to display it on the Platform.
             </p>
           </section>
 
           <section>
             <h2 className="text-white font-bold text-xl mb-3">9. Limitation of Liability</h2>
             <p>
-              Planam.io is provided "as is" without warranties of any kind. We are not liable for any damages arising from the use of the Platform, including but not limited to event cancellations, disputes between organizers and attendees, or technical issues. Our total liability is limited to the amount you paid to us (if any) in the 12 months preceding the claim.
+              Tixo.io is provided "as is" without warranties of any kind. We are not liable for any damages arising from the use of the Platform, including but not limited to event cancellations, disputes between organizers and attendees, or technical issues. Our total liability is limited to the amount you paid to us (if any) in the 12 months preceding the claim.
             </p>
           </section>
 
@@ -133,7 +133,7 @@ export default function Terms() {
             <h2 className="text-white font-bold text-xl mb-3">13. Contact Us</h2>
             <p>
               For questions about these Terms of Service, please contact us at{' '}
-              <a href="mailto:support@planam.io" className="text-purple-400 hover:text-purple-300 transition-colors">support@planam.io</a>.
+              <a href="mailto:support@tixo.online" className="text-purple-400 hover:text-purple-300 transition-colors">support@tixo.online</a>.
             </p>
           </section>
         </div>

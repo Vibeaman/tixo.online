@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react'
    TILT 3D — DRAMATIC mouse-following 3D card tilt
    Much more intense with shine reflection + depth shadow
    ═══════════════════════════════════════════════════════════ */
-export function Tilt3D({ children, intensity = 20, glowColor = 'rgba(123,78,247,0.25)', className = '', style = {} }) {
+export function Tilt3D({ children, intensity = 20, glowColor = 'rgba(139,92,246,0.25)', className = '', style = {} }) {
   const ref = useRef(null)
   const [transform, setTransform] = useState('')
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 })
@@ -75,7 +75,7 @@ export function Tilt3D({ children, intensity = 20, glowColor = 'rgba(123,78,247,
 /* ═══════════════════════════════════════════════════════════
    GLOW CARD — Animated glowing border that rotates
    ═══════════════════════════════════════════════════════════ */
-export function GlowCard({ children, className = '', style = {}, glowColor1 = '#7B4EF7', glowColor2 = '#9D7AFA', borderRadius = 16 }) {
+export function GlowCard({ children, className = '', style = {}, glowColor1 = '#8B5CF6', glowColor2 = '#A78BFA', borderRadius = 16 }) {
   return (
     <div className={`glow-card-wrapper ${className}`} style={{ ...style, position: 'relative', borderRadius, padding: 2 }}>
       <div className="glow-card-border" style={{
@@ -142,7 +142,7 @@ export function ScrollReveal({ children, direction = 'up', delay = 0, duration =
 /* ═══════════════════════════════════════════════════════════
    FLOATING PARTICLES — Bigger, glowing, interactive
    ═══════════════════════════════════════════════════════════ */
-export function FloatingParticles({ count = 35, color = 'rgba(123,78,247,0.4)', minSize = 2, maxSize = 7, speed = 1 }) {
+export function FloatingParticles({ count = 35, color = 'rgba(139,92,246,0.4)', minSize = 2, maxSize = 7, speed = 1 }) {
   const canvasRef = useRef(null)
   const particlesRef = useRef([])
   const animRef = useRef(null)
@@ -201,9 +201,9 @@ export function FloatingParticles({ count = 35, color = 'rgba(123,78,247,0.4)', 
 
         // Glowing particle
         const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, pulsedSize * 3)
-        gradient.addColorStop(0, `rgba(157,122,250,${opacity})`)
-        gradient.addColorStop(0.4, `rgba(123,78,247,${opacity * 0.5})`)
-        gradient.addColorStop(1, 'rgba(123,78,247,0)')
+        gradient.addColorStop(0, `rgba(167,139,250,${opacity})`)
+        gradient.addColorStop(0.4, `rgba(139,92,246,${opacity * 0.5})`)
+        gradient.addColorStop(1, 'rgba(139,92,246,0)')
         ctx.beginPath()
         ctx.arc(p.x, p.y, pulsedSize * 3, 0, Math.PI * 2)
         ctx.fillStyle = gradient
@@ -223,7 +223,7 @@ export function FloatingParticles({ count = 35, color = 'rgba(123,78,247,0.4)', 
             ctx.beginPath()
             ctx.moveTo(p.x, p.y)
             ctx.lineTo(p2.x, p2.y)
-            ctx.strokeStyle = `rgba(157,122,250,${0.15 * (1 - d / 130)})`
+            ctx.strokeStyle = `rgba(167,139,250,${0.15 * (1 - d / 130)})`
             ctx.lineWidth = 0.8
             ctx.stroke()
           }
@@ -316,9 +316,9 @@ export function FloatingShapes({ count = 6 }) {
             top: `${s.y}%`,
             width: s.size,
             height: s.size,
-            border: `2px solid rgba(123,78,247,${s.opacity * 4})`,
+            border: `2px solid rgba(139,92,246,${s.opacity * 4})`,
             borderRadius: s.type === 'circle' ? '50%' : s.type === 'square' ? '8px' : '0',
-            background: `rgba(123,78,247,${s.opacity})`,
+            background: `rgba(139,92,246,${s.opacity})`,
             animation: `floatShape ${s.duration}s ease-in-out ${s.delay}s infinite`,
             clipPath: s.type === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : undefined,
           }}
@@ -407,7 +407,7 @@ export function RippleButton({ children, className = '', style = {}, onClick, ..
 /* ═══════════════════════════════════════════════════════════
    MORPH BLOB — Animated morphing background blob
    ═══════════════════════════════════════════════════════════ */
-export function MorphBlob({ size = 400, color = 'rgba(123,78,247,0.15)', style = {} }) {
+export function MorphBlob({ size = 400, color = 'rgba(139,92,246,0.15)', style = {} }) {
   return (
     <div style={{
       ...style,

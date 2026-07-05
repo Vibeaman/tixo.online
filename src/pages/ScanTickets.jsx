@@ -198,9 +198,9 @@ function AttendeeList({ eventId, userId, onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="min-h-screen bg-[#0B0B1A] text-white">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur-lg border-b border-white/10">
+      <div className="sticky top-0 z-30 bg-[#0B0B1A]/90 backdrop-blur-lg border-b border-white/10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -515,9 +515,9 @@ export default function ScanTickets() {
 
   if (!selectedEvent) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <div className="min-h-screen bg-[#0B0B1A] text-white">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur-lg border-b border-white/10">
+        <div className="sticky top-0 z-30 bg-[#0B0B1A]/90 backdrop-blur-lg border-b border-white/10">
           <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
               <ArrowLeft className="w-5 h-5" />
@@ -589,7 +589,7 @@ export default function ScanTickets() {
   // ── Scanner View ───────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
+    <div className="min-h-screen bg-[#0B0B1A] text-white flex flex-col">
       {/* Confirmed overlay */}
       {showConfirmed && (
         <CheckedInOverlay
@@ -599,7 +599,7 @@ export default function ScanTickets() {
       )}
 
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur-lg border-b border-white/10">
+      <div className="sticky top-0 z-30 bg-[#0B0B1A]/90 backdrop-blur-lg border-b border-white/10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={handleBackToEvents} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
             <ArrowLeft className="w-5 h-5" />

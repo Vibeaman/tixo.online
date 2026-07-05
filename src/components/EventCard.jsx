@@ -33,7 +33,7 @@ export default function EventCard({ event }) {
   }
 
   return (
-    <Tilt3D intensity={18} glowColor="rgba(123,78,247,0.3)">
+    <Tilt3D intensity={18} glowColor="rgba(139,92,246,0.3)">
       <div
         onClick={() => navigate(`/events/${event.id}`)}
         className="card-3d-lift"
@@ -41,7 +41,7 @@ export default function EventCard({ event }) {
         onMouseLeave={() => setHovered(false)}
         style={{
           background: 'var(--dark)',
-          border: '1.5px solid rgba(123,78,247,0.12)',
+          border: '1.5px solid rgba(139,92,246,0.12)',
           borderRadius: 16,
           overflow: 'hidden',
           cursor: 'pointer',
@@ -51,7 +51,7 @@ export default function EventCard({ event }) {
         {/* Animated top border glow on hover */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-          background: 'linear-gradient(90deg, transparent, var(--purple), var(--purple-light), var(--purple), transparent)',
+          background: 'linear-gradient(90deg, transparent, #E91E8C, #8B5CF6, #00BFFF, transparent)',
           opacity: hovered ? 1 : 0,
           transition: 'opacity 0.4s',
           zIndex: 5,
@@ -91,7 +91,7 @@ export default function EventCard({ event }) {
           {event.hot && (
             <span style={{
               position: 'absolute', top: 12, right: 12,
-              background: 'rgba(123,78,247,0.85)', color: 'white',
+              background: 'rgba(139,92,246,0.85)', color: 'white',
               padding: '4px 10px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em',
               borderRadius: 999, backdropFilter: 'blur(8px)',
               animation: 'glowPulse 2s ease-in-out infinite',
@@ -102,8 +102,8 @@ export default function EventCard({ event }) {
             position: 'absolute', bottom: 12, right: 12,
             fontWeight: 800, fontSize: '0.85rem',
             color: priceLabel === 'FREE' ? '#4ade80' : 'white',
-            background: priceLabel === 'FREE' ? 'rgba(74,222,128,0.15)' : 'rgba(123,78,247,0.25)',
-            border: `1px solid ${priceLabel === 'FREE' ? 'rgba(74,222,128,0.3)' : 'rgba(123,78,247,0.3)'}`,
+            background: priceLabel === 'FREE' ? 'rgba(74,222,128,0.15)' : 'linear-gradient(135deg, rgba(233,30,140,0.3), rgba(139,92,246,0.3))',
+            border: `1px solid ${priceLabel === 'FREE' ? 'rgba(74,222,128,0.3)' : 'rgba(233,30,140,0.3)'}`,
             padding: '5px 14px', borderRadius: 999,
             backdropFilter: 'blur(8px)',
             transition: 'transform 0.3s',
@@ -148,9 +148,9 @@ export default function EventCard({ event }) {
               <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
                 <div className="demand-bar-fill" style={{
                   height: '100%', width: `${event.demand}%`,
-                  background: 'linear-gradient(90deg, var(--purple), var(--purple-light))',
+                  background: 'linear-gradient(90deg, #E91E8C, #8B5CF6, #00BFFF)',
                   borderRadius: 2,
-                  boxShadow: hovered ? '0 0 12px rgba(123,78,247,0.5)' : 'none',
+                  boxShadow: hovered ? '0 0 12px rgba(139,92,246,0.5)' : 'none',
                   transition: 'box-shadow 0.3s',
                 }} />
               </div>

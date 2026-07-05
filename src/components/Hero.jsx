@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Search, Sparkles, Zap } from 'lucide-react'
+import { ArrowRight, Search, Sparkles, Zap, Ticket } from 'lucide-react'
 import { FloatingParticles, ScrollReveal, MagneticButton, FloatingShapes, MorphBlob, ParallaxMouse } from './Interactive3D'
 
 function AnimatedCounter({ target, suffix = '+', duration = 2000 }) {
@@ -53,29 +53,35 @@ export default function Hero() {
         backgroundSize: 'cover', backgroundPosition: 'center',
       }} />
 
-      {/* Dark purple gradient overlay */}
+      {/* Dark overlay with Tixo gradient tint */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1,
-        background: 'linear-gradient(180deg, rgba(18,13,53,0.85) 0%, rgba(18,13,53,0.65) 40%, rgba(18,13,53,0.92) 100%)'
+        background: 'linear-gradient(180deg, rgba(11,11,26,0.88) 0%, rgba(11,11,26,0.6) 40%, rgba(11,11,26,0.95) 100%)'
       }} />
 
-      {/* Mouse-following gradient spotlight — larger and more visible */}
+      {/* Gradient accent overlay */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1,
-        background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, rgba(123,78,247,0.15), transparent 50%)`,
+        background: 'linear-gradient(135deg, rgba(233,30,140,0.05) 0%, transparent 40%, rgba(0,191,255,0.05) 80%)',
+      }} />
+
+      {/* Mouse-following gradient spotlight */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1,
+        background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, rgba(139,92,246,0.12), transparent 50%)`,
         pointerEvents: 'none',
       }} />
 
-      {/* Floating morphing blobs */}
-      <MorphBlob size={500} color="rgba(123,78,247,0.12)" style={{ position: 'absolute', top: '-10%', right: '-10%', zIndex: 1 }} />
-      <MorphBlob size={350} color="rgba(157,122,250,0.08)" style={{ position: 'absolute', bottom: '5%', left: '-8%', zIndex: 1, animationDelay: '-4s' }} />
+      {/* Morphing blobs */}
+      <MorphBlob size={500} color="rgba(233,30,140,0.08)" style={{ position: 'absolute', top: '-10%', right: '-10%', zIndex: 1 }} />
+      <MorphBlob size={350} color="rgba(0,191,255,0.06)" style={{ position: 'absolute', bottom: '5%', left: '-8%', zIndex: 1, animationDelay: '-4s' }} />
 
-      {/* Floating geometric shapes */}
+      {/* Floating shapes */}
       <FloatingShapes count={8} />
 
-      {/* Floating particles */}
+      {/* Particles */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
-        <FloatingParticles count={35} color="rgba(157,122,250,0.5)" minSize={2} maxSize={6} speed={0.5} />
+        <FloatingParticles count={35} color="rgba(167,139,250,0.5)" minSize={2} maxSize={6} speed={0.5} />
       </div>
 
       {/* Main content */}
@@ -84,39 +90,40 @@ export default function Hero() {
         display: 'flex', flexDirection: 'column', justifyContent: 'center',
         maxWidth: 1200, margin: '0 auto', padding: '140px 24px 40px', width: '100%', textAlign: 'center'
       }}>
-        {/* Floating decorative elements with parallax */}
+        {/* Floating parallax elements */}
         <ParallaxMouse speed={0.03} style={{ position: 'absolute', top: '15%', left: '8%' }}>
           <div style={{
             width: 60, height: 60, borderRadius: 16,
-            border: '2px solid rgba(123,78,247,0.3)',
+            border: '2px solid rgba(233,30,140,0.3)',
             animation: 'float 6s ease-in-out infinite, rotateSlow 20s linear infinite',
-            background: 'rgba(123,78,247,0.05)',
+            background: 'rgba(233,30,140,0.05)',
           }} />
         </ParallaxMouse>
         <ParallaxMouse speed={-0.04} style={{ position: 'absolute', top: '25%', right: '10%' }}>
           <div style={{
             width: 40, height: 40, borderRadius: '50%',
-            border: '2px solid rgba(157,122,250,0.25)',
+            border: '2px solid rgba(0,191,255,0.25)',
             animation: 'float 8s ease-in-out -2s infinite',
-            background: 'rgba(157,122,250,0.08)',
+            background: 'rgba(0,191,255,0.08)',
           }} />
         </ParallaxMouse>
         <ParallaxMouse speed={0.02} style={{ position: 'absolute', bottom: '30%', left: '15%' }}>
-          <Sparkles size={28} style={{ color: 'rgba(157,122,250,0.3)', animation: 'float 7s ease-in-out -1s infinite' }} />
+          <Sparkles size={28} style={{ color: 'rgba(167,139,250,0.3)', animation: 'float 7s ease-in-out -1s infinite' }} />
         </ParallaxMouse>
         <ParallaxMouse speed={-0.025} style={{ position: 'absolute', bottom: '35%', right: '12%' }}>
-          <Zap size={24} style={{ color: 'rgba(123,78,247,0.25)', animation: 'float 5s ease-in-out -3s infinite' }} />
+          <Ticket size={24} style={{ color: 'rgba(233,30,140,0.25)', animation: 'float 5s ease-in-out -3s infinite' }} />
         </ParallaxMouse>
 
         <ScrollReveal direction="scale" delay={0.1} duration={1}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'rgba(123,78,247,0.15)', border: '1px solid rgba(123,78,247,0.3)',
+            background: 'linear-gradient(135deg, rgba(233,30,140,0.15), rgba(139,92,246,0.15))',
+            border: '1px solid rgba(233,30,140,0.3)',
             borderRadius: 999, padding: '6px 18px', fontSize: '0.78rem', fontWeight: 700,
-            color: 'var(--purple-light)', letterSpacing: '0.06em',
-            marginBottom: 24, animation: 'glowPulse 3s ease-in-out infinite',
+            color: '#E91E8C', letterSpacing: '0.06em',
+            marginBottom: 24, animation: 'tixoGlow 4s ease-in-out infinite',
           }}>
-            <Sparkles size={14} /> THE FUTURE OF EVENTS IN AFRICA
+            <Sparkles size={14} /> DISCOVER · BOOK · EXPERIENCE
           </div>
         </ScrollReveal>
 
@@ -129,7 +136,7 @@ export default function Hero() {
             <span className="shimmer-text" style={{
               fontStyle: 'italic',
               fontSize: 'clamp(2.8rem, 7.5vw, 5.2rem)',
-            }}>simplified.</span>
+            }}>reimagined.</span>
           </h1>
         </ScrollReveal>
 
@@ -139,11 +146,11 @@ export default function Hero() {
             color: 'rgba(255,255,255,0.6)', maxWidth: 560,
             marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.7
           }}>
-            Discover epic events. Host sell-outs. Sell tickets & merch. Reward your people. Build Tribes. All in one place.
+            Discover epic events. Book instantly. Create sell-outs. All on Africa's freshest event platform.
           </p>
         </ScrollReveal>
 
-        {/* Two CTA buttons */}
+        {/* CTA buttons */}
         <ScrollReveal direction="up" delay={0.55} distance={50}>
           <div style={{
             marginTop: 36, display: 'flex', flexDirection: 'column', gap: 12,
@@ -151,12 +158,12 @@ export default function Hero() {
           }}>
             <MagneticButton strength={0.25} style={{ width: '100%' }}>
               <button className="btn btn-white btn-3d" style={{ width: '100%', borderRadius: 12 }} onClick={() => navigate('/create')}>
-                <span className="btn-label" style={{ flex: 1, justifyContent: 'center' }}>PLAN AN EVENT</span>
+                <span className="btn-label" style={{ flex: 1, justifyContent: 'center' }}>HOST AN EVENT</span>
                 <span className="btn-arrow"><ArrowRight size={16} /></span>
               </button>
             </MagneticButton>
             <MagneticButton strength={0.25} style={{ width: '100%' }}>
-              <button className="btn btn-purple btn-3d" style={{ width: '100%', borderRadius: 12 }} onClick={() => navigate('/events')}>
+              <button className="btn btn-gradient btn-3d" style={{ width: '100%', borderRadius: 12 }} onClick={() => navigate('/events')}>
                 <span className="btn-label" style={{ flex: 1, justifyContent: 'center' }}>EXPLORE EVENTS</span>
                 <span className="btn-arrow"><ArrowRight size={16} /></span>
               </button>
@@ -164,7 +171,7 @@ export default function Hero() {
           </div>
         </ScrollReveal>
 
-        {/* Compact search */}
+        {/* Search */}
         <ScrollReveal direction="up" delay={0.7}>
           <form onSubmit={handleSearch} style={{
             marginTop: 32, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto',
@@ -174,7 +181,7 @@ export default function Hero() {
             backdropFilter: 'blur(16px)',
             transition: 'border-color 0.3s, box-shadow 0.3s',
           }}
-          onFocus={e => { e.currentTarget.style.borderColor = 'rgba(123,78,247,0.5)'; e.currentTarget.style.boxShadow = '0 0 25px rgba(123,78,247,0.15)' }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'rgba(233,30,140,0.4)'; e.currentTarget.style.boxShadow = '0 0 25px rgba(233,30,140,0.1)' }}
           onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.boxShadow = 'none' }}
           >
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px' }}>
@@ -184,7 +191,7 @@ export default function Hero() {
               />
             </div>
             <button type="submit" className="btn-3d" style={{
-              background: 'var(--purple)', border: 'none', color: 'white', padding: '0 20px',
+              background: 'linear-gradient(135deg, #E91E8C, #8B5CF6)', border: 'none', color: 'white', padding: '0 20px',
               fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.04em', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 6
             }}>
@@ -215,7 +222,7 @@ export default function Hero() {
               <div style={{ flex: 1 }}>
                 <div style={{
                   fontSize: 'clamp(1.6rem, 4vw, 2.6rem)', fontWeight: 900, color: 'white',
-                  textShadow: '0 0 30px rgba(123,78,247,0.3)',
+                  textShadow: '0 0 30px rgba(233,30,140,0.2)',
                 }}>
                   <AnimatedCounter target={stat.value} />
                 </div>

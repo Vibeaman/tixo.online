@@ -141,10 +141,10 @@ export default function EditEvent() {
     }
   }
 
-  if (loading) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (loading) return <div className="min-h-screen bg-[#0B0B1A] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-[#0B0B1A] pt-24 pb-16 px-4">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-2 text-center">Edit Event</h1>
         <p className="text-gray-400 text-center mb-8">Update your event details</p>

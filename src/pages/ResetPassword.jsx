@@ -29,7 +29,7 @@ export default function ResetPassword() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4 py-20">
+      <div className="min-h-screen bg-[#0B0B1A] flex items-center justify-center px-4 py-20">
         <div className="w-full max-w-md text-center">
           <div className="bg-white/5 border border-white/10 rounded-2xl p-10 space-y-5">
             <div className="w-16 h-16 bg-green-600/20 rounded-full flex items-center justify-center mx-auto">
@@ -50,7 +50,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4 py-20">
+    <div className="min-h-screen bg-[#0B0B1A] flex items-center justify-center px-4 py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Set New Password</h1>

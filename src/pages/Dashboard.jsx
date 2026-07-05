@@ -110,10 +110,10 @@ function QRModal({ ticket, onClose }) {
       } else {
         ctx.fillText(ticket.tier_name ? `${ticket.tier_name}${ticket.quantity > 1 ? ` · x${ticket.quantity}` : ''}` : '', canvas.width / 2, img.height + pad * 2 + 80)
       }
-      ctx.fillText('Planam Events', canvas.width / 2, img.height + pad * 2 + 105)
+      ctx.fillText('Tixo Events', canvas.width / 2, img.height + pad * 2 + 105)
       // Download
       const link = document.createElement('a')
-      link.download = `planam-ticket-${ticket.check_in_code || 'qr'}.png`
+      link.download = `tixo-ticket-${ticket.check_in_code || 'qr'}.png`
       link.href = canvas.toDataURL('image/png')
       link.click()
     }
@@ -323,7 +323,7 @@ export default function Dashboard() {
     } finally { setUploadingAvatar(false) }
   }
 
-  if (authLoading || loading) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (authLoading || loading) return <div className="min-h-screen bg-[#0B0B1A] flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>
 
   const avatarUrl = profile?.avatar_url
 
@@ -400,7 +400,7 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-[#0B0B1A] pt-24 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
         {/* QR Modal */}
         {qrTicket && <QRModal ticket={qrTicket} onClose={() => setQrTicket(null)} />}
