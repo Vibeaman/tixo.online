@@ -1115,7 +1115,7 @@ export default function EventDetail() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden',
                     fontSize: '0.72rem', fontWeight: 800, color: 'var(--purple-light)'
                   }}>
-                    {comment.user_avatar ? <img src={comment.user_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : comment.user_name[0].toUpperCase()}
+                    {comment.user_avatar ? <img src={comment.user_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (comment.user_name || '?')[0].toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
