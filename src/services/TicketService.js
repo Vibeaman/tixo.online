@@ -234,6 +234,23 @@ const TicketService = {
     return data || []
   },
 
+  // Transfer a ticket to another person
+  async transferTicket(ticketId, recipientEmail, recipientName) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({
+        transferred_to_email: recipientEmail,
+        transferred_to_name: recipientName,
+        transferred_at: new Date().toISOString(),
+        transfer_status: 'transferred'
+      })
+      .eq('id', ticketId)
+      .select('*, events(*)')
+      .single()
+    if (error) throw error
+    return data
+  },
+
   // Look up tickets by payment reference
   async getByReference(reference) {
     const { data, error } = await supabase

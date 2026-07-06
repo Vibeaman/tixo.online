@@ -181,10 +181,53 @@ export default function CreateEvent() {
         watchers: 0, demand: 0,
         status
       }
-      await EventService.create(eventData)
+      const created = await EventService.create(eventData)
+
+      // Create recurring event instances
+      if (status === 'published' && form.is_recurring && form.recurrence_pattern && form.recurrence_end_date) {
+        const endDate = new Date(form.recurrence_end_date + 'T00:00:00')
+        let currentDate = new Date(form.date + 'T00:00:00')
+        const childEvents = []
+
+        while (true) {
+          // Advance to next occurrence
+          if (form.recurrence_pattern === 'weekly') {
+            currentDate.setDate(currentDate.getDate() + 7)
+          } else if (form.recurrence_pattern === 'bi-weekly') {
+            currentDate.setDate(currentDate.getDate() + 14)
+          } else if (form.recurrence_pattern === 'monthly') {
+            currentDate.setMonth(currentDate.getMonth() + 1)
+          } else if (form.recurrence_pattern === 'daily') {
+            currentDate.setDate(currentDate.getDate() + 1)
+          }
+
+          if (currentDate > endDate) break
+
+          const dateStr = currentDate.toISOString().split('T')[0]
+          childEvents.push({
+            ...eventData,
+            date: dateStr,
+            end_date: dateStr,
+            parent_event_id: created.id,
+            is_recurring: false // children are not themselves recurring
+          })
+        }
+
+        if (childEvents.length > 0) {
+          for (const child of childEvents) {
+            try {
+              await EventService.create(child)
+            } catch (err) {
+              console.warn('Failed to create recurring instance:', err)
+            }
+          }
+          toast.success(`Created ${childEvents.length + 1} recurring event instances!`)
+        }
+      }
+
       if (status === 'draft') {
         toast.success('💾 Event saved as draft!')
-      } else {
+      } else if (!form.is_recurring || !form.recurrence_end_date) {
         toast.success('🎉 Event published!')
       }
       navigate('/dashboard')

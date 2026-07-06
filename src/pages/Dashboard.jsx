@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -179,6 +179,12 @@ export default function Dashboard() {
 
   // QR modal state
   const [qrTicket, setQrTicket] = useState(null)
+
+  // Transfer modal state
+  const [transferTicket, setTransferTicket] = useState(null)
+  const [transferEmail, setTransferEmail] = useState('')
+  const [transferName, setTransferName] = useState('')
+  const [transferring, setTransferring] = useState(false)
 
   // Ticket sub-filter: all | upcoming | attended | missed
   const [ticketFilter, setTicketFilter] = useState('all')
@@ -748,6 +754,19 @@ export default function Dashboard() {
                             </div>
                           </div>
                           <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+                            {/* Transfer button */}
+                            {!isPast && !t.transfer_status && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setTransferTicket(t) }}
+                                className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg px-3 py-2 text-xs font-bold transition-colors flex items-center gap-1"
+                                title="Transfer ticket"
+                              >
+                                <Send className="w-3.5 h-3.5" /> Transfer
+                              </button>
+                            )}
+                            {t.transfer_status === 'transferred' && (
+                              <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Transferred</span>
+                            )}
                             {/* QR Code thumbnail */}
                             <button
                               onClick={(e) => { e.stopPropagation(); setQrTicket(t) }}
@@ -1812,6 +1831,80 @@ export default function Dashboard() {
               <button onClick={handleUpdateProfile}
                 className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors">
                 Save Changes
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============ TRANSFER MODAL ============ */}
+        {transferTicket && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+            onClick={() => { if (!transferring) { setTransferTicket(null); setTransferEmail(''); setTransferName('') } }}>
+            <div style={{ background: '#12121a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: 28, maxWidth: 440, width: '100%' }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h3 style={{ margin: 0, color: 'white', fontSize: 18, fontWeight: 800 }}>🎁 Transfer Ticket</h3>
+                <button onClick={() => { setTransferTicket(null); setTransferEmail(''); setTransferName('') }}
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+                  <X size={20} />
+                </button>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                <p style={{ margin: 0, color: 'white', fontWeight: 700 }}>{transferTicket.event_title}</p>
+                <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>{transferTicket.tier_name} · x{transferTicket.quantity}</p>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Recipient's Name</label>
+                <input value={transferName} onChange={e => setTransferName(e.target.value)} placeholder="Enter their name"
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', color: 'white', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Recipient's Email</label>
+                <input value={transferEmail} onChange={e => setTransferEmail(e.target.value)} placeholder="email@example.com" type="email"
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', color: 'white', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginBottom: 20 }}>⚠️ This action cannot be undone. The ticket will be transferred to the recipient and they'll receive an email with the check-in details.</p>
+              <button
+                onClick={async () => {
+                  if (!transferEmail.trim()) { toast.error('Enter recipient email'); return }
+                  if (!transferName.trim()) { toast.error('Enter recipient name'); return }
+                  setTransferring(true)
+                  try {
+                    const updated = await TicketService.transferTicket(transferTicket.id, transferEmail.trim(), transferName.trim())
+                    // Send email notification
+                    try {
+                      await fetch('/api/send-transfer-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          to: transferEmail.trim(),
+                          recipientName: transferName.trim(),
+                          senderName: profile?.full_name || user?.email,
+                          eventTitle: transferTicket.event_title,
+                          eventDate: transferTicket.events?.date,
+                          eventTime: transferTicket.events?.time,
+                          eventLocation: transferTicket.events?.location,
+                          tierName: transferTicket.tier_name,
+                          checkInCode: transferTicket.check_in_code
+                        })
+                      })
+                    } catch (emailErr) { console.warn('Transfer email failed:', emailErr) }
+                    toast.success(`Ticket transferred to ${transferName.trim()}!`)
+                    setTransferTicket(null); setTransferEmail(''); setTransferName('')
+                    // Refresh tickets
+                    const refreshed = await TicketService.getByUser(user.id)
+                    setTickets(refreshed)
+                  } catch (err) {
+                    toast.error('Transfer failed: ' + err.message)
+                  } finally { setTransferring(false) }
+                }}
+                disabled={transferring}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: 12, border: 'none', cursor: transferring ? 'not-allowed' : 'pointer',
+                  background: transferring ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  color: 'white', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}>
+                {transferring ? <><div style={{ width: 16, height: 16, border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} /> Transferring...</> : <><Send size={16} /> Transfer Ticket</>}
               </button>
             </div>
           </div>
