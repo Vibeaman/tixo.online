@@ -44,6 +44,29 @@ const TicketService = {
     return data
   },
 
+  // Set approved status on tickets (for private virtual events)
+  async setApproved(ticketId, approved) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({ approved })
+      .eq('id', ticketId)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // Bulk approve tickets
+  async bulkApprove(ticketIds) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({ approved: true })
+      .in('id', ticketIds)
+      .select()
+    if (error) throw error
+    return data
+  },
+
   // Multi-tier purchase (cart checkout — supports guest checkout)
   // Each item can include an attendeeName for the individual ticket holder
   async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData }) {

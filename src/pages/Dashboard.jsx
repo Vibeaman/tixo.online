@@ -186,6 +186,8 @@ export default function Dashboard() {
   // Check-in stats state
   const [checkInStats, setCheckInStats] = useState([])
   const [loadingCheckIn, setLoadingCheckIn] = useState(false)
+  const [pendingApprovals, setPendingApprovals] = useState([])
+  const [approvingTickets, setApprovingTickets] = useState({})
 
   // Publishing state
   const [publishingId, setPublishingId] = useState(null)
@@ -330,8 +332,45 @@ export default function Dashboard() {
     try {
       const stats = await TicketService.getCheckInStats(user.id)
       setCheckInStats(stats || [])
+
+      // Load pending approvals for private virtual events
+      const privateEvents = myEvents.filter(e => e.virtual_access === 'private')
+      if (privateEvents.length > 0) {
+        const allPending = []
+        for (const ev of privateEvents) {
+          const attendees = await TicketService.getEventAttendees(ev.id)
+          const pending = attendees.filter(a => a.approved === false).map(a => ({ ...a, eventTitle: ev.title, eventId: ev.id, virtualLink: ev.virtual_link }))
+          allPending.push(...pending)
+        }
+        setPendingApprovals(allPending)
+      }
     } catch (e) { console.error(e) }
     finally { setLoadingCheckIn(false) }
+  }
+
+  async function handleApproveTicket(ticketId) {
+    setApprovingTickets(prev => ({ ...prev, [ticketId]: true }))
+    try {
+      await TicketService.setApproved(ticketId, true)
+      setPendingApprovals(prev => prev.filter(t => t.id !== ticketId))
+      toast.success('Attendee approved! They can now access the meeting link.')
+    } catch (e) {
+      toast.error(e.message || 'Failed to approve')
+    } finally {
+      setApprovingTickets(prev => ({ ...prev, [ticketId]: false }))
+    }
+  }
+
+  async function handleBulkApprove() {
+    const ids = pendingApprovals.map(t => t.id)
+    if (ids.length === 0) return
+    try {
+      await TicketService.bulkApprove(ids)
+      setPendingApprovals([])
+      toast.success(`${ids.length} attendee${ids.length > 1 ? 's' : ''} approved!`)
+    } catch (e) {
+      toast.error(e.message || 'Failed to approve')
+    }
   }
 
   async function loadNotificationData() {
@@ -524,11 +563,19 @@ export default function Dashboard() {
     return eventDate && eventDate >= today && !t.checked_in
   })
 
-  const attendedTickets = tickets.filter(t => t.checked_in)
+  const attendedTickets = tickets.filter(t => {
+    if (t.checked_in) return true
+    const eventDate = t.events?.date ? new Date(t.events.date + 'T23:59:59') : null
+    const isPast = eventDate && eventDate < today
+    const noCheckinRequired = t.events?.require_checkin === false
+    return isPast && noCheckinRequired
+  })
 
   const missedTickets = tickets.filter(t => {
     const eventDate = t.events?.date ? new Date(t.events.date + 'T23:59:59') : null
-    return eventDate && eventDate < today && !t.checked_in
+    const isPast = eventDate && eventDate < today
+    const requiresCheckin = t.events?.require_checkin !== false
+    return isPast && !t.checked_in && requiresCheckin
   })
 
   const filteredTickets =
@@ -643,8 +690,10 @@ export default function Dashboard() {
                     {filteredTickets.map(t => {
                       const eventDate = t.events?.date ? new Date(t.events.date + 'T23:59:59') : null
                       const isPast = eventDate && eventDate < today
-                      const isMissed = isPast && !t.checked_in
-                      const isAttended = t.checked_in
+                      const noCheckinRequired = t.events?.require_checkin === false
+                      const autoAttended = isPast && !t.checked_in && noCheckinRequired
+                      const isMissed = isPast && !t.checked_in && !noCheckinRequired
+                      const isAttended = t.checked_in || autoAttended
 
                       return (
                         <div key={t.id} className={`bg-white/5 border rounded-xl p-5 flex items-center justify-between transition ${isMissed ? 'border-red-500/20 opacity-70' : isAttended ? 'border-green-500/20' : 'border-white/10 hover:border-white/15'}`}>
@@ -874,6 +923,48 @@ export default function Dashboard() {
                     <ScanLine className="w-4 h-4" /> Open Scanner
                   </Link>
                 </div>
+
+                {/* ═══ PENDING APPROVALS (Private Virtual Events) ═══ */}
+                {pendingApprovals.length > 0 && (
+                  <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                          <Clock className="w-5 h-5 text-amber-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-white font-bold">Pending Approvals</h3>
+                          <p className="text-amber-400/70 text-xs">{pendingApprovals.length} attendee{pendingApprovals.length !== 1 ? 's' : ''} waiting for access to private virtual events</p>
+                        </div>
+                      </div>
+                      <button onClick={handleBulkApprove}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2">
+                        <Check className="w-4 h-4" /> Approve All
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      {pendingApprovals.map(ticket => (
+                        <div key={ticket.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-white font-medium text-sm">
+                              {ticket.attendee_name || ticket.profiles?.full_name || ticket.guest_name || 'Anonymous'}
+                            </p>
+                            <p className="text-gray-500 text-xs">
+                              {ticket.profiles?.email || ticket.guest_email || ''} · {ticket.eventTitle} · {ticket.tier_name}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleApproveTicket(ticket.id)}
+                            disabled={approvingTickets[ticket.id]}
+                            className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
+                          >
+                            {approvingTickets[ticket.id] ? 'Approving...' : <><Check className="w-4 h-4" /> Approve</>}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Overview Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">

@@ -582,7 +582,8 @@ export default function EventDetail() {
   const isMultiDay = event.end_date && event.end_date !== event.date
   const isHybrid = event.event_type === 'hybrid'
   const isVirtual = event.event_type === 'virtual'
-  const showVirtualLink = purchaseSuccess && (isVirtual || (isHybrid && attendanceMode === 'virtual')) && event.virtual_link
+  const isPrivateVirtual = event.virtual_access === 'private'
+  const showVirtualLink = (purchaseSuccess || hasRsvpd) && (isVirtual || (isHybrid && attendanceMode === 'virtual')) && event.virtual_link && !isPrivateVirtual
 
   return (
     <div className="min-h-screen bg-[#050510]" style={{ paddingTop: 64 }}>
@@ -715,9 +716,16 @@ export default function EventDetail() {
                 <Video size={18} style={{ color: '#60a5fa' }} />
               </div>
               <div>
-                <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>Virtual Event</p>
-                {purchaseSuccess || hasRsvpd ? (
+                <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  Virtual Event
+                  {isPrivateVirtual && <span style={{ fontSize: '0.72rem', fontWeight: 700, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: 999 }}>🔒 Private</span>}
+                </p>
+                {(purchaseSuccess || hasRsvpd) && !isPrivateVirtual ? (
                   <a href={event.virtual_link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple-light)', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4 }}>Join online <ExternalLink size={12} /></a>
+                ) : (purchaseSuccess || hasRsvpd) && isPrivateVirtual ? (
+                  <p style={{ color: '#f59e0b', fontSize: '0.82rem' }}>⏳ Waiting for organizer approval</p>
+                ) : isPrivateVirtual ? (
+                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem' }}>Link sent after organizer approval</p>
                 ) : (
                   <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem' }}>Link available after registration</p>
                 )}
@@ -789,8 +797,17 @@ export default function EventDetail() {
                 {isFreeEvent ? "You're In! 🎉" : "Tickets Secured! 🎉"}
               </h3>
               <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>
-                {isFreeEvent ? "Your RSVP has been confirmed. We'll see you there!" : "Your tickets have been confirmed. Check your dashboard for details."}
+                {isPrivateVirtual && (isVirtual || (isHybrid && attendanceMode === 'virtual'))
+                  ? "Your registration is pending organizer approval. You'll receive the meeting link once approved."
+                  : isFreeEvent ? "Your RSVP has been confirmed. We'll see you there!" : "Your tickets have been confirmed. Check your dashboard for details."}
               </p>
+              {isPrivateVirtual && (isVirtual || (isHybrid && attendanceMode === 'virtual')) && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 700,
+                  padding: '8px 16px', borderRadius: 999, fontSize: '0.85rem', marginBottom: 12
+                }}>⏳ Awaiting Approval</span>
+              )}
               {showVirtualLink && (
                 <a href={event.virtual_link} target="_blank" rel="noopener noreferrer" style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,

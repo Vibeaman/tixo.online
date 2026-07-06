@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe, Share2, DollarSign, Info, Repeat, Clock, Sparkles, ClipboardList, Phone } from 'lucide-react'
+import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe, Share2, DollarSign, Info, Repeat, Clock, Sparkles, ClipboardList, Phone, Lock, Unlock, ScanLine, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
@@ -35,6 +35,8 @@ export default function CreateEvent() {
     location: '', category: 'Music',
     event_type: 'in-person', virtual_link: '',
     image: '', tags: '',
+    virtual_access: 'public',
+    require_checkin: true,
     reshare_enabled: false,
     is_recurring: false,
     recurrence_pattern: 'weekly',
@@ -148,6 +150,8 @@ export default function CreateEvent() {
         category: form.category,
         event_type: form.event_type,
         virtual_link: form.virtual_link || null,
+        virtual_access: (form.event_type === 'virtual' || form.event_type === 'hybrid') ? form.virtual_access : null,
+        require_checkin: form.event_type !== 'virtual' ? form.require_checkin : false,
         image: finalImage,
         reshare_enabled: form.reshare_enabled,
         is_recurring: form.is_recurring,
@@ -356,6 +360,70 @@ export default function CreateEvent() {
                   <label className="text-sm text-gray-300 mb-1 block">Virtual Meeting Link *</label>
                   <input name="virtual_link" value={form.virtual_link} onChange={update} placeholder="https://zoom.us/... or https://meet.google.com/..."
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" />
+                </div>
+              )}
+
+              {/* ============ VIRTUAL ACCESS CONTROL ============ */}
+              {(form.event_type === 'virtual' || form.event_type === 'hybrid') && (
+                <div className={`border rounded-xl p-4 transition-all ${form.virtual_access === 'private' ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/10 bg-white/5'}`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    {form.virtual_access === 'private' ? (
+                      <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                        <Lock className="w-5 h-5 text-amber-400" />
+                      </div>
+                    ) : (
+                      <div className="w-9 h-9 rounded-lg bg-green-500/20 flex items-center justify-center">
+                        <Unlock className="w-5 h-5 text-green-400" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-white font-semibold text-sm">Virtual Access Control</p>
+                      <p className="text-gray-500 text-xs">Who gets the meeting link after registration?</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button type="button" onClick={() => setForm(f => ({ ...f, virtual_access: 'public' }))}
+                      className={`p-3 rounded-xl border text-center transition-all ${form.virtual_access === 'public' ? 'border-green-500/30 bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
+                      <Unlock className={`w-5 h-5 mx-auto mb-1 ${form.virtual_access === 'public' ? 'text-green-400' : 'text-gray-500'}`} />
+                      <p className={`text-sm font-medium ${form.virtual_access === 'public' ? 'text-white' : 'text-gray-400'}`}>Public</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Instant access to link</p>
+                    </button>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, virtual_access: 'private' }))}
+                      className={`p-3 rounded-xl border text-center transition-all ${form.virtual_access === 'private' ? 'border-amber-500/30 bg-amber-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
+                      <Lock className={`w-5 h-5 mx-auto mb-1 ${form.virtual_access === 'private' ? 'text-amber-400' : 'text-gray-500'}`} />
+                      <p className={`text-sm font-medium ${form.virtual_access === 'private' ? 'text-white' : 'text-gray-400'}`}>Private</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">You approve first</p>
+                    </button>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-3">
+                    {form.virtual_access === 'public' ? '🔓 Attendees get the meeting link immediately after registration.' : '🔒 Attendees must be approved by you before they can see the meeting link.'}
+                  </p>
+                </div>
+              )}
+
+              {/* ============ GATE CHECK-IN TOGGLE ============ */}
+              {(form.event_type === 'in-person' || form.event_type === 'hybrid') && (
+                <div className={`border rounded-xl p-4 transition-all ${form.require_checkin ? 'border-pink-500/30 bg-pink-500/5' : 'border-white/10 bg-white/5'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${form.require_checkin ? 'bg-pink-500/20' : 'bg-white/10'}`}>
+                        <ScanLine className={`w-5 h-5 ${form.require_checkin ? 'text-pink-400' : 'text-gray-500'}`} />
+                      </div>
+                      <div>
+                        <p className="text-white font-semibold text-sm">Gate Check-in</p>
+                        <p className="text-gray-500 text-xs">
+                          {form.require_checkin ? 'Attendees must show QR code ticket at gate' : 'No gate check-in — tickets auto-marked attended after event'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, require_checkin: !f.require_checkin }))}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${form.require_checkin ? 'bg-gradient-to-r from-pink-500 to-purple-500' : 'bg-white/10'}`}
+                    >
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${form.require_checkin ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -671,6 +739,12 @@ export default function CreateEvent() {
                   <p><span className="text-gray-500">Category:</span> {form.category}</p>
                   {form.is_recurring && (
                     <p><span className="text-gray-500">Recurring:</span> 🔄 {RECURRENCE_OPTIONS.find(o => o.value === form.recurrence_pattern)?.label}{form.recurrence_end_date ? ` until ${form.recurrence_end_date}` : ''}</p>
+                  )}
+                  {(form.event_type === 'virtual' || form.event_type === 'hybrid') && (
+                    <p><span className="text-gray-500">Virtual Access:</span> {form.virtual_access === 'private' ? '🔒 Private (approval required)' : '🔓 Public (instant access)'}</p>
+                  )}
+                  {(form.event_type === 'in-person' || form.event_type === 'hybrid') && (
+                    <p><span className="text-gray-500">Gate Check-in:</span> {form.require_checkin ? '📱 Required (QR scan at gate)' : '🚶 Off (auto-attended after event)'}</p>
                   )}
                   <p><span className="text-gray-500">Reshare:</span> {form.reshare_enabled ? '✅ Enabled (90/7.5/2.5 split)' : '❌ Off (95/5 split)'}</p>
                   <p><span className="text-gray-500">Image:</span> {imageFile ? `📎 ${imageFile.name}` : (form.image ? '🔗 URL provided' : '📷 Default')}</p>
