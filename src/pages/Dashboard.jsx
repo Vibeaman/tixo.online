@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -10,12 +10,14 @@ import TicketService from '../services/TicketService'
 import UserService from '../services/UserService'
 import ReferralService from '../services/ReferralService'
 import NotificationService from '../services/NotificationService'
+import PayoutService from '../services/PayoutService'
 
 const BASE_TABS = [
   { id: 'tickets', label: 'My Tickets', icon: Ticket },
   { id: 'events', label: 'My Events', icon: Calendar },
   { id: 'checkin', label: 'Check-in', icon: ScanLine },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'payouts', label: 'Payouts', icon: DollarSign },
   { id: 'referrals', label: 'Referrals', icon: Share2 },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'profile', label: 'Profile', icon: User },
@@ -213,6 +215,16 @@ export default function Dashboard() {
   })
   const [savingPrefs, setSavingPrefs] = useState(false)
 
+  // Payout state
+  const [payoutProfile, setPayoutProfile] = useState(null)
+  const [loadingPayout, setLoadingPayout] = useState(false)
+  const [banks, setBanks] = useState([])
+  const [loadingBanks, setLoadingBanks] = useState(false)
+  const [payoutForm, setPayoutForm] = useState({ bank_code: '', bank_name: '', account_number: '' })
+  const [resolvedAccount, setResolvedAccount] = useState(null)
+  const [resolvingAccount, setResolvingAccount] = useState(false)
+  const [savingPayout, setSavingPayout] = useState(false)
+
   useEffect(() => {
     if (!authLoading && !user) { navigate('/login'); return }
     if (!user) return
@@ -238,7 +250,7 @@ export default function Dashboard() {
 
   // Load analytics data
   useEffect(() => {
-    if (tab === 'analytics' && user) loadAnalyticsData()
+    if ((tab === 'analytics' || tab === 'payouts') && user) loadAnalyticsData()
   }, [tab, user])
 
   // Load check-in stats
@@ -250,6 +262,68 @@ export default function Dashboard() {
   useEffect(() => {
     if (tab === 'notifications' && user) loadNotificationData()
   }, [tab, user])
+
+  // Load payout data
+  useEffect(() => {
+    if (tab === 'payouts' && user) loadPayoutData()
+  }, [tab, user])
+
+  async function loadPayoutData() {
+    setLoadingPayout(true)
+    try {
+      const [profile, bankList] = await Promise.all([
+        PayoutService.getProfile(user.id),
+        banks.length > 0 ? Promise.resolve(banks) : PayoutService.listBanks()
+      ])
+      setPayoutProfile(profile)
+      if (bankList && bankList.length > 0) setBanks(bankList)
+      if (profile) {
+        setPayoutForm({
+          bank_code: profile.bank_code || '',
+          bank_name: profile.bank_name || '',
+          account_number: profile.account_number || ''
+        })
+        setResolvedAccount({ account_name: profile.account_name })
+      }
+    } catch (e) { console.error('Load payout data error:', e) }
+    finally { setLoadingPayout(false) }
+  }
+
+  async function handleResolveAccount() {
+    if (!payoutForm.account_number || payoutForm.account_number.length < 10 || !payoutForm.bank_code) {
+      toast.error('Enter a valid 10-digit account number and select a bank')
+      return
+    }
+    setResolvingAccount(true)
+    setResolvedAccount(null)
+    try {
+      const result = await PayoutService.resolveAccount(payoutForm.account_number, payoutForm.bank_code)
+      setResolvedAccount(result)
+      toast.success(`Account: ${result.account_name}`)
+    } catch (e) { toast.error(e.message || 'Could not verify account') }
+    finally { setResolvingAccount(false) }
+  }
+
+  async function handleSavePayout() {
+    if (!resolvedAccount?.account_name) {
+      toast.error('Please verify your account number first')
+      return
+    }
+    setSavingPayout(true)
+    try {
+      await PayoutService.createSubaccount({
+        userId: user.id,
+        businessName: profile?.full_name || resolvedAccount.account_name,
+        bankCode: payoutForm.bank_code,
+        bankName: payoutForm.bank_name,
+        accountNumber: payoutForm.account_number,
+        accountName: resolvedAccount.account_name
+      })
+      toast.success('Payout profile saved! You\'ll receive 95% of ticket sales automatically 🎉')
+      await loadPayoutData()
+    } catch (e) { toast.error(e.message || 'Failed to save payout settings') }
+    finally { setSavingPayout(false) }
+  }
 
   async function loadCheckInStats() {
     setLoadingCheckIn(true)
@@ -1057,6 +1131,194 @@ export default function Dashboard() {
                       </div>
                     ))}
                   </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ============ REFERRALS TAB ============ */}
+        {/* ============ PAYOUTS TAB ============ */}
+        {tab === 'payouts' && (
+          <div className="space-y-6 max-w-2xl">
+            <div>
+              <h2 className="text-xl font-bold text-white mb-1">Payout Settings</h2>
+              <p className="text-gray-500 text-sm">Set up your bank account to receive ticket sales revenue automatically. You keep <span className="text-pink-400 font-bold">95%</span> — Tixo takes a 5% platform fee.</p>
+            </div>
+
+            {loadingPayout ? (
+              <div className="flex justify-center py-12">
+                <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <>
+                {/* Current payout status */}
+                {payoutProfile?.is_verified && (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-green-400 font-bold text-sm">Payouts Active</p>
+                        <p className="text-gray-400 text-xs">Funds settle to your bank automatically</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white/5 rounded-xl p-3">
+                        <p className="text-gray-500 text-xs mb-1">Bank</p>
+                        <p className="text-white text-sm font-semibold">{payoutProfile.bank_name}</p>
+                      </div>
+                      <div className="bg-white/5 rounded-xl p-3">
+                        <p className="text-gray-500 text-xs mb-1">Account</p>
+                        <p className="text-white text-sm font-semibold">
+                          ••••{payoutProfile.account_number?.slice(-4)}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 rounded-xl p-3 col-span-2">
+                        <p className="text-gray-500 text-xs mb-1">Account Name</p>
+                        <p className="text-white text-sm font-semibold">{payoutProfile.account_name}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Revenue summary from existing analytics */}
+                {salesSummary.length > 0 && (
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                    <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-pink-400" /> Revenue Overview
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <StatCard
+                        icon={DollarSign}
+                        label="Total Revenue"
+                        value={`₦${salesSummary.reduce((s, e) => s + Number(e.total_revenue || 0), 0).toLocaleString()}`}
+                        color="text-green-400"
+                      />
+                      <StatCard
+                        icon={Ticket}
+                        label="Your Share (95%)"
+                        value={`₦${Math.round(salesSummary.reduce((s, e) => s + Number(e.total_revenue || 0), 0) * 0.95).toLocaleString()}`}
+                        color="text-pink-400"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Bank account form */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                  <h3 className="text-white font-bold text-sm mb-4">
+                    {payoutProfile?.is_verified ? '✏️ Update Bank Account' : '🏦 Add Your Bank Account'}
+                  </h3>
+                  <div className="space-y-4">
+                    {/* Bank selector */}
+                    <div>
+                      <label className="text-sm text-gray-300 mb-1 block">Bank</label>
+                      <select
+                        value={payoutForm.bank_code}
+                        onChange={e => {
+                          const bank = banks.find(b => b.code === e.target.value)
+                          setPayoutForm(f => ({
+                            ...f,
+                            bank_code: e.target.value,
+                            bank_name: bank?.name || ''
+                          }))
+                          setResolvedAccount(null)
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 appearance-none"
+                      >
+                        <option value="" className="bg-[#12121a]">Select your bank...</option>
+                        {banks.map(b => (
+                          <option key={b.code} value={b.code} className="bg-[#12121a]">{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Account number */}
+                    <div>
+                      <label className="text-sm text-gray-300 mb-1 block">Account Number</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          maxLength={10}
+                          value={payoutForm.account_number}
+                          onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+                            setPayoutForm(f => ({ ...f, account_number: val }))
+                            setResolvedAccount(null)
+                          }}
+                          placeholder="0123456789"
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 font-mono tracking-wider"
+                        />
+                        <button
+                          onClick={handleResolveAccount}
+                          disabled={resolvingAccount || payoutForm.account_number.length < 10 || !payoutForm.bank_code}
+                          className="px-5 py-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {resolvingAccount ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4" /> Verify
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Resolved account name */}
+                    {resolvedAccount && (
+                      <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex items-center gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-green-400 text-sm font-bold">{resolvedAccount.account_name}</p>
+                          <p className="text-gray-400 text-xs">Account verified ✓</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Save button */}
+                    <button
+                      onClick={handleSavePayout}
+                      disabled={savingPayout || !resolvedAccount?.account_name}
+                      className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold py-3.5 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {savingPayout ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <DollarSign className="w-5 h-5" />
+                          {payoutProfile?.is_verified ? 'Update Payout Account' : 'Activate Payouts'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Info box */}
+                <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-5">
+                  <h4 className="text-purple-300 font-bold text-sm mb-2 flex items-center gap-2">
+                    <Info className="w-4 h-4" /> How Payouts Work
+                  </h4>
+                  <ul className="text-gray-400 text-sm space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400 mt-0.5">•</span>
+                      When someone buys a ticket, payment is <span className="text-white font-semibold">automatically split</span> — 95% goes straight to your bank.
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400 mt-0.5">•</span>
+                      Paystack settles funds to your account within <span className="text-white font-semibold">24 hours</span> (T+1).
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400 mt-0.5">•</span>
+                      Tixo's 5% platform fee covers payment processing, hosting, and support.
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400 mt-0.5">•</span>
+                      Free events and RSVPs have <span className="text-white font-semibold">no fees</span>.
+                    </li>
+                  </ul>
                 </div>
               </>
             )}

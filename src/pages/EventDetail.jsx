@@ -8,6 +8,7 @@ import CommentService from '../services/CommentService'
 import PhotoGallery from '../components/PhotoGallery'
 import ReferralService from '../services/ReferralService'
 import PaystackService from '../services/PaystackService'
+import PayoutService from '../services/PayoutService'
 import { useAuth } from '../context/AuthContext'
 import ShareButton from '../components/ShareButton'
 
@@ -171,6 +172,9 @@ export default function EventDetail() {
   // View flyer
   const [showFlyer, setShowFlyer] = useState(false)
 
+  // Organizer subaccount for split payments
+  const [organizerSubaccount, setOrganizerSubaccount] = useState(null)
+
   /* ─── Effects ─── */
   useEffect(() => {
     const el = cartSummaryRef.current
@@ -190,7 +194,17 @@ export default function EventDetail() {
 
   useEffect(() => {
     async function load() {
-      try { setEvent(await EventService.getById(id)) }
+      try {
+        const ev = await EventService.getById(id)
+        setEvent(ev)
+        // Fetch organizer's subaccount for split payments
+        if (ev?.organizer_id) {
+          try {
+            const subCode = await PayoutService.getSubaccountCode(ev.organizer_id)
+            if (subCode) setOrganizerSubaccount(subCode)
+          } catch (e) { console.warn('Could not fetch payout profile:', e) }
+        }
+      }
       catch { toast.error('Event not found'); navigate('/events') }
       finally { setLoading(false) }
     }
@@ -403,6 +417,7 @@ export default function EventDetail() {
             email: buyerEmail,
             amount: cartTotal,
             name: buyerNameForPayment,
+            subaccount: organizerSubaccount || undefined,
             metadata: {
               event_id: event.id,
               event_title: event.title,
@@ -466,6 +481,32 @@ export default function EventDetail() {
       setShowGuestForm(false); setShowAttendeeForm(false)
       setAttendeeSlots([]); setPendingGuestInfo(null)
       toast.success(`🎉 ${purchaseItems.length} ticket${purchaseItems.length > 1 ? 's' : ''} purchased!`)
+
+      // Send ticket confirmation email (fire-and-forget)
+      const emailTo = user?.email || effectiveGuestInfo?.email
+      if (emailTo) {
+        fetch('/api/send-ticket-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: emailTo,
+            buyerName: profile?.full_name || effectiveGuestInfo?.name || '',
+            eventTitle: event.title,
+            eventDate: event.date,
+            eventTime: event.time,
+            eventLocation: event.location,
+            eventType: event.event_type,
+            virtualLink: event.virtual_link,
+            tickets: purchaseItems.map(item => ({
+              tierName: item.tierName,
+              quantity: item.quantity,
+              totalPrice: item.totalPrice
+            })),
+            totalAmount: paidAmount || 0,
+            paymentReference
+          })
+        }).catch(err => console.warn('Email notification failed:', err))
+      }
     } catch (e) { toast.error(e.message || 'Purchase failed') }
     finally { setBuying(false); setPaymentProcessing(false) }
   }

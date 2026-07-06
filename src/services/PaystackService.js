@@ -30,7 +30,7 @@ const PaystackService = {
   /**
    * Opens the Paystack payment popup.
    */
-  async initializePayment({ email, amount, name, metadata, onSuccess, onClose, reference }) {
+  async initializePayment({ email, amount, name, metadata, onSuccess, onClose, reference, subaccount }) {
     await loadPaystackScript()
 
     if (!window.PaystackPop) {
@@ -39,7 +39,7 @@ const PaystackService = {
 
     const ref = reference || `tixo_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
 
-    const handler = window.PaystackPop.setup({
+    const config = {
       key: PAYSTACK_PUBLIC_KEY,
       email,
       amount: Math.round(amount * 100), // Naira → kobo
@@ -62,8 +62,17 @@ const PaystackService = {
       onClose: () => {
         if (onClose) onClose()
       }
-    })
+    }
 
+    // Add subaccount for split payments (95% organizer / 5% Tixo)
+    if (subaccount) {
+      config.subaccount = subaccount
+      // bearer: 'subaccount' means organizer bears Paystack transaction fees
+      // bearer: 'account' means Tixo (main account) bears fees
+      // Default (no bearer): transaction fees are split proportionally
+    }
+
+    const handler = window.PaystackPop.setup(config)
     handler.openIframe()
   },
 
@@ -90,13 +99,14 @@ const PaystackService = {
    * Full payment flow: popup → verify → return result.
    * Main method to call from checkout.
    */
-  pay({ email, amount, name, metadata }) {
+  pay({ email, amount, name, metadata, subaccount }) {
     return new Promise((resolve, reject) => {
       this.initializePayment({
         email,
         amount,
         name,
         metadata,
+        subaccount,
         onSuccess: async (response) => {
           try {
             const verification = await this.verifyPayment(response.reference)
