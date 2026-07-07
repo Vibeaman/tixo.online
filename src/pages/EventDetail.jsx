@@ -983,108 +983,6 @@ export default function EventDetail() {
                   })}
                 </div>
 
-               {/* ═══ GUEST CHECKOUT FORM ═══ */}
-{showGuestForm && (
-  <div style={{
-    position: 'fixed', inset: 0, zIndex: 1000,
-    background: '#0b0b14',
-    border: '1.5px solid rgba(255,255,255,0.07)',
-    borderRadius: 16, padding: 24,
-    maxWidth: 460, width: 'calc(100% - 32px)',
-    maxHeight: '85vh', overflowY: 'auto',
-    top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
-  }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <User size={20} style={{ color: 'var(--purple-light)' }} />
-        <h3 style={{ fontWeight: 800, color: 'white', fontSize: '1rem' }}>Guest Checkout</h3>
-      </div>
-      <button type="button" onClick={() => setShowGuestForm(false)} style={{
-        background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: 4
-      }}>
-        <X size={20} />
-      </button>
-    </div>
-    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 16 }}>
-      {user ? 'Please fill in the additional information required for this event.' : `Enter your details to ${guestAction === 'rsvp' ? 'confirm your RSVP' : 'complete your purchase'}. No account needed!`}
-    </p>
-    <form onSubmit={handleGuestSubmit}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-        <input type="text" placeholder="Full Name" value={guestName} onChange={e => setGuestName(e.target.value)}
-          disabled={!!user}
-          style={{
-            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none',
-            opacity: user ? 0.6 : 1
-          }}
-        />
-                        <input type="email" placeholder="Email Address" value={guestEmail} onChange={e => setGuestEmail(e.target.value)}
-                          disabled={!!user}
-                          style={{
-                            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none',
-                            opacity: user ? 0.6 : 1
-                          }}
-                        />
-                      </div>
-                      {/* Dynamic registration fields */}
-                      {registrationFields.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-                          {registrationFields.map(field => (
-                            <div key={field.id}>
-                              {field.type === 'select' ? (
-                                <select
-                                  value={registrationData[field.id] || ''}
-                                  onChange={e => updateRegistrationField(field.id, e.target.value)}
-                                  style={{
-                                    width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                                    borderRadius: 10, padding: '14px 16px', color: registrationData[field.id] ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '0.9rem', outline: 'none',
-                                    appearance: 'none', WebkitAppearance: 'none'
-                                  }}
-                                >
-                                  <option value="" style={{ background: '#1a1a2e' }}>{field.label}{field.required ? ' *' : ''}</option>
-                                  {(field.options || []).map(opt => (
-                                    <option key={opt} value={opt} style={{ background: '#1a1a2e', color: 'white' }}>{opt}</option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <input
-                                  type={field.type || 'text'}
-                                  placeholder={`${field.label}${field.required ? ' *' : ''}`}
-                                  value={registrationData[field.id] || ''}
-                                  onChange={e => updateRegistrationField(field.id, e.target.value)}
-                                  style={{
-                                    width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                                    borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none'
-                                  }}
-                                />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', gap: 10 }}>
-                        <button type="submit" disabled={buying || rsvping || paymentProcessing} style={{
-                          flex: 1, background: 'var(--purple)', border: 'none', color: 'white',
-                          fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer', fontSize: '0.9rem'
-                        }}>
-                          {paymentProcessing ? 'Processing Payment...' : (buying || rsvping) ? 'Processing...' : guestAction === 'rsvp' ? 'Confirm RSVP' : `Pay ₦${cartTotal.toLocaleString()}`}
-                        </button>
-                        <button type="button" onClick={() => setShowGuestForm(false)} style={{
-                          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                          color: 'rgba(255,255,255,0.6)', padding: '14px 18px', borderRadius: 12, cursor: 'pointer', fontSize: '0.85rem'
-                        }}>Cancel</button>
-                      </div>
-                    </form>
-                    {!user && (
-                      <p style={{ marginTop: 12, fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>
-                        Already have an account? <Link to="/login" style={{ color: 'var(--purple-light)' }}>Log in</Link>
-                      </p>
-                    )}
-                  </div>
-                )}
-
                 {/* ═══ ATTENDEE DETAILS FORM (Buy for Others) ═══ */}
                 {showAttendeeForm && (
                   <div style={{
@@ -1216,6 +1114,109 @@ export default function EventDetail() {
                 )}
               </>
             )}
+
+               {/* ═══ GUEST CHECKOUT FORM ═══ */}
+{showGuestForm && (
+  <div style={{
+    position: 'fixed', inset: 0, zIndex: 1000,
+    background: '#0b0b14',
+    border: '1.5px solid rgba(255,255,255,0.07)',
+    borderRadius: 16, padding: 24,
+    maxWidth: 460, width: 'calc(100% - 32px)',
+    maxHeight: '85vh', overflowY: 'auto',
+    top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <User size={20} style={{ color: 'var(--purple-light)' }} />
+        <h3 style={{ fontWeight: 800, color: 'white', fontSize: '1rem' }}>Guest Checkout</h3>
+      </div>
+      <button type="button" onClick={() => setShowGuestForm(false)} style={{
+        background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: 4
+      }}>
+        <X size={20} />
+      </button>
+    </div>
+    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 16 }}>
+      {user ? 'Please fill in the additional information required for this event.' : `Enter your details to ${guestAction === 'rsvp' ? 'confirm your RSVP' : 'complete your purchase'}. No account needed!`}
+    </p>
+    <form onSubmit={handleGuestSubmit}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+        <input type="text" placeholder="Full Name" value={guestName} onChange={e => setGuestName(e.target.value)}
+          disabled={!!user}
+          style={{
+            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none',
+            opacity: user ? 0.6 : 1
+          }}
+        />
+                        <input type="email" placeholder="Email Address" value={guestEmail} onChange={e => setGuestEmail(e.target.value)}
+                          disabled={!!user}
+                          style={{
+                            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none',
+                            opacity: user ? 0.6 : 1
+                          }}
+                        />
+                      </div>
+                      {/* Dynamic registration fields */}
+                      {registrationFields.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                          {registrationFields.map(field => (
+                            <div key={field.id}>
+                              {field.type === 'select' ? (
+                                <select
+                                  value={registrationData[field.id] || ''}
+                                  onChange={e => updateRegistrationField(field.id, e.target.value)}
+                                  style={{
+                                    width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
+                                    borderRadius: 10, padding: '14px 16px', color: registrationData[field.id] ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '0.9rem', outline: 'none',
+                                    appearance: 'none', WebkitAppearance: 'none'
+                                  }}
+                                >
+                                  <option value="" style={{ background: '#1a1a2e' }}>{field.label}{field.required ? ' *' : ''}</option>
+                                  {(field.options || []).map(opt => (
+                                    <option key={opt} value={opt} style={{ background: '#1a1a2e', color: 'white' }}>{opt}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  type={field.type || 'text'}
+                                  placeholder={`${field.label}${field.required ? ' *' : ''}`}
+                                  value={registrationData[field.id] || ''}
+                                  onChange={e => updateRegistrationField(field.id, e.target.value)}
+                                  style={{
+                                    width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
+                                    borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none'
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button type="submit" disabled={buying || rsvping || paymentProcessing} style={{
+                          flex: 1, background: 'var(--purple)', border: 'none', color: 'white',
+                          fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer', fontSize: '0.9rem'
+                        }}>
+                          {paymentProcessing ? 'Processing Payment...' : (buying || rsvping) ? 'Processing...' : guestAction === 'rsvp' ? 'Confirm RSVP' : `Pay ₦${cartTotal.toLocaleString()}`}
+                        </button>
+                        <button type="button" onClick={() => setShowGuestForm(false)} style={{
+                          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                          color: 'rgba(255,255,255,0.6)', padding: '14px 18px', borderRadius: 12, cursor: 'pointer', fontSize: '0.85rem'
+                        }}>Cancel</button>
+                      </div>
+                    </form>
+                    {!user && (
+                      <p style={{ marginTop: 12, fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>
+                        Already have an account? <Link to="/login" style={{ color: 'var(--purple-light)' }}>Log in</Link>
+                      </p>
+                    )}
+                  </div>
+                )}
+
           </div>
         )}
 
