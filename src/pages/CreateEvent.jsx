@@ -37,6 +37,7 @@ export default function CreateEvent() {
     image: '', tags: '',
     virtual_access: 'public',
     require_checkin: true,
+    pricing_type: 'paid',
     reshare_enabled: false,
     is_recurring: false,
     recurrence_pattern: 'weekly',
@@ -480,6 +481,38 @@ export default function CreateEvent() {
           {step === 2 && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold text-white mb-4">Tickets & Pricing</h2>
+
+              {/* ============ FREE / PAID TOGGLE ============ */}
+              <div>
+                <label className="text-sm text-gray-300 mb-2 block">Event Pricing *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(f => ({
+                        ...f,
+                        pricing_type: 'free',
+                        tiers: f.tiers.map(t => ({ ...t, price: 0, early_bird: false, early_bird_price: 0, early_bird_end_date: '' }))
+                      }))
+                    }}
+                    className={`p-4 rounded-xl border text-center transition-all ${form.pricing_type === 'free' ? 'border-green-500/30 bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                  >
+                    <Ticket className={`w-6 h-6 mx-auto mb-1.5 ${form.pricing_type === 'free' ? 'text-green-400' : 'text-gray-500'}`} />
+                    <p className={`text-sm font-semibold ${form.pricing_type === 'free' ? 'text-white' : 'text-gray-400'}`}>Free Event</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">No ticket charges</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, pricing_type: 'paid' }))}
+                    className={`p-4 rounded-xl border text-center transition-all ${form.pricing_type === 'paid' ? 'border-pink-500/30 bg-pink-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                  >
+                    <DollarSign className={`w-6 h-6 mx-auto mb-1.5 ${form.pricing_type === 'paid' ? 'text-pink-400' : 'text-gray-500'}`} />
+                    <p className={`text-sm font-semibold ${form.pricing_type === 'paid' ? 'text-white' : 'text-gray-400'}`}>Paid Event</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Set prices per tier</p>
+                  </button>
+                </div>
+              </div>
+
               {form.tiers.map((tier, i) => (
                 <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
                   <div className="flex justify-between items-center">
@@ -493,15 +526,26 @@ export default function CreateEvent() {
                   <input value={tier.description} onChange={e => updateTier(i, 'description', e.target.value)} placeholder="What's included in this tier? (optional)"
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (₦)"
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
-                    <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
-                  </div>
+                  {form.pricing_type === 'free' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                        <Ticket className="w-4 h-4 text-green-400" />
+                        <span className="text-green-400 font-semibold text-sm">FREE</span>
+                      </div>
+                      <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (₦)"
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                      <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                    </div>
+                  )}
 
                   {/* ============ EARLY BIRD PRICING ============ */}
-                  {Number(tier.price) > 0 && (
+                  {form.pricing_type === 'paid' && Number(tier.price) > 0 && (
                     <div className={`border rounded-lg p-3 transition-all ${tier.early_bird ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/10 bg-white/[0.02]'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -789,9 +833,10 @@ export default function CreateEvent() {
                   {(form.event_type === 'in-person' || form.event_type === 'hybrid') && (
                     <p><span className="text-gray-500">Gate Check-in:</span> {form.require_checkin ? '📱 Required (QR scan at gate)' : '🚶 Off (auto-attended after event)'}</p>
                   )}
+                  <p><span className="text-gray-500">Pricing:</span> {form.pricing_type === 'free' ? '🆓 Free Event' : '💰 Paid Event'}</p>
                   <p><span className="text-gray-500">Reshare:</span> {form.reshare_enabled ? '✅ Enabled (90/7.5/2.5 split)' : '❌ Off (95/5 split)'}</p>
                   <p><span className="text-gray-500">Image:</span> {imageFile ? `📎 ${imageFile.name}` : (form.image ? '🔗 URL provided' : '📷 Default')}</p>
-                  <p><span className="text-gray-500">Tiers:</span> {form.tiers.map(t => `${t.name} (₦${Number(t.price).toLocaleString()}${t.early_bird ? ` · Early Bird ₦${Number(t.early_bird_price).toLocaleString()}` : ''})`).join(', ')}</p>
+                  <p><span className="text-gray-500">Tiers:</span> {form.tiers.map(t => `${t.name} (${form.pricing_type === 'free' ? 'Free' : `₦${Number(t.price).toLocaleString()}`}${t.early_bird ? ` · Early Bird ₦${Number(t.early_bird_price).toLocaleString()}` : ''})`).join(', ')}</p>
                 </div>
               </div>
               <div className="flex gap-3">

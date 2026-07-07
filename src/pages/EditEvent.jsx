@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Repeat, Clock, Sparkles, ClipboardList, Phone, Share2, Info } from 'lucide-react'
+import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Repeat, Clock, Sparkles, ClipboardList, Phone, Share2, Info, DollarSign, Ticket } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
@@ -37,6 +37,7 @@ export default function EditEvent() {
     location: '', category: 'Music',
     event_type: 'in-person', virtual_link: '',
     image: '', tags: '',
+    pricing_type: 'paid',
     is_recurring: false,
     recurrence_pattern: 'weekly',
     recurrence_end_date: '',
@@ -73,6 +74,7 @@ export default function EditEvent() {
           virtual_link: ev.virtual_link || '',
           image: ev.image || '',
           tags: ev.tags?.join(', ') || '',
+          pricing_type: ev.ticket_tiers?.length && ev.ticket_tiers.some(t => Number(t.price) > 0) ? 'paid' : 'free',
           is_recurring: ev.is_recurring || false,
           recurrence_pattern: ev.recurrence_pattern || 'weekly',
           recurrence_end_date: ev.recurrence_end_date || '',
@@ -385,6 +387,38 @@ export default function EditEvent() {
           {step === 2 && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold text-white mb-4">Tickets & Pricing</h2>
+
+              {/* ============ FREE / PAID TOGGLE ============ */}
+              <div>
+                <label className="text-sm text-gray-300 mb-2 block">Event Pricing *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(f => ({
+                        ...f,
+                        pricing_type: 'free',
+                        tiers: f.tiers.map(t => ({ ...t, price: 0, early_bird: false, early_bird_price: 0, early_bird_end_date: '' }))
+                      }))
+                    }}
+                    className={`p-4 rounded-xl border text-center transition-all ${form.pricing_type === 'free' ? 'border-green-500/30 bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                  >
+                    <Ticket className={`w-6 h-6 mx-auto mb-1.5 ${form.pricing_type === 'free' ? 'text-green-400' : 'text-gray-500'}`} />
+                    <p className={`text-sm font-semibold ${form.pricing_type === 'free' ? 'text-white' : 'text-gray-400'}`}>Free Event</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">No ticket charges</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, pricing_type: 'paid' }))}
+                    className={`p-4 rounded-xl border text-center transition-all ${form.pricing_type === 'paid' ? 'border-pink-500/30 bg-pink-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                  >
+                    <DollarSign className={`w-6 h-6 mx-auto mb-1.5 ${form.pricing_type === 'paid' ? 'text-pink-400' : 'text-gray-500'}`} />
+                    <p className={`text-sm font-semibold ${form.pricing_type === 'paid' ? 'text-white' : 'text-gray-400'}`}>Paid Event</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Set prices per tier</p>
+                  </button>
+                </div>
+              </div>
+
               {form.tiers.map((tier, i) => (
                 <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
                   <div className="flex justify-between items-center">
@@ -393,12 +427,6 @@ export default function EditEvent() {
                   </div>
                   <input value={tier.name} onChange={e => updateTier(i, 'name', e.target.value)} placeholder="Tier name"
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (₦)"
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
-                    <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty"
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
-                  </div>
 
                   {/* Tier Description */}
                   <textarea
@@ -409,8 +437,26 @@ export default function EditEvent() {
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm resize-none"
                   />
 
+                  {form.pricing_type === 'free' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                        <Ticket className="w-4 h-4 text-green-400" />
+                        <span className="text-green-400 font-semibold text-sm">FREE</span>
+                      </div>
+                      <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (₦)"
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                      <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                    </div>
+                  )}
+
                   {/* Early Bird Pricing — only for paid tiers */}
-                  {Number(tier.price) > 0 && (
+                  {form.pricing_type === 'paid' && Number(tier.price) > 0 && (
                     <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-3">
                       <button
                         type="button"
