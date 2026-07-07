@@ -983,29 +983,42 @@ export default function EventDetail() {
                   })}
                 </div>
 
-                {/* ═══ GUEST CHECKOUT FORM ═══ */}
-                {showGuestForm && (
-                  <div style={{
-                    background: 'rgba(255,255,255,0.03)', border: '1.5px solid rgba(255,255,255,0.07)',
-                    borderRadius: 16, padding: 24, marginBottom: 16
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                      <User size={20} style={{ color: 'var(--purple-light)' }} />
-                      <h3 style={{ fontWeight: 800, color: 'white', fontSize: '1rem' }}>Guest Checkout</h3>
-                    </div>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 16 }}>
-                      {user ? 'Please fill in the additional information required for this event.' : `Enter your details to ${guestAction === 'rsvp' ? 'confirm your RSVP' : 'complete your purchase'}. No account needed!`}
-                    </p>
-                    <form onSubmit={handleGuestSubmit}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-                        <input type="text" placeholder="Full Name" value={guestName} onChange={e => setGuestName(e.target.value)}
-                          disabled={!!user}
-                          style={{
-                            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none',
-                            opacity: user ? 0.6 : 1
-                          }}
-                        />
+               {/* ═══ GUEST CHECKOUT FORM ═══ */}
+{showGuestForm && (
+  <div style={{
+    position: 'fixed', inset: 0, zIndex: 1000,
+    background: '#0b0b14',
+    border: '1.5px solid rgba(255,255,255,0.07)',
+    borderRadius: 16, padding: 24,
+    maxWidth: 460, width: 'calc(100% - 32px)',
+    maxHeight: '85vh', overflowY: 'auto',
+    top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <User size={20} style={{ color: 'var(--purple-light)' }} />
+        <h3 style={{ fontWeight: 800, color: 'white', fontSize: '1rem' }}>Guest Checkout</h3>
+      </div>
+      <button type="button" onClick={() => setShowGuestForm(false)} style={{
+        background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: 4
+      }}>
+        <X size={20} />
+      </button>
+    </div>
+    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 16 }}>
+      {user ? 'Please fill in the additional information required for this event.' : `Enter your details to ${guestAction === 'rsvp' ? 'confirm your RSVP' : 'complete your purchase'}. No account needed!`}
+    </p>
+    <form onSubmit={handleGuestSubmit}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+        <input type="text" placeholder="Full Name" value={guestName} onChange={e => setGuestName(e.target.value)}
+          disabled={!!user}
+          style={{
+            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 10, padding: '14px 16px', color: 'white', fontSize: '0.9rem', outline: 'none',
+            opacity: user ? 0.6 : 1
+          }}
+        />
                         <input type="email" placeholder="Email Address" value={guestEmail} onChange={e => setGuestEmail(e.target.value)}
                           disabled={!!user}
                           style={{
