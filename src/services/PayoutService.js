@@ -44,7 +44,7 @@ const PayoutService = {
     return data
   },
 
-  /** Get organizer's payout profile from Supabase */
+  /** Get organizer's payout profile from Supabase (owner-only, full bank details) */
   async getProfile(userId) {
     const { data, error } = await supabase
       .from('payout_profiles')
@@ -55,13 +55,12 @@ const PayoutService = {
     return data || null
   },
 
-  /** Get organizer's subaccount code (for payment splitting) */
+  /** Get organizer's subaccount code (for payment splitting) — reads the safe public view */
   async getSubaccountCode(organizerId) {
     const { data, error } = await supabase
-      .from('payout_profiles')
+      .from('organizer_subaccounts')
       .select('subaccount_code')
       .eq('user_id', organizerId)
-      .eq('is_verified', true)
       .single()
     if (error && error.code !== 'PGRST116') throw error
     return data?.subaccount_code || null
