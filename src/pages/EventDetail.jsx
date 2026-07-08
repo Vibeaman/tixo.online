@@ -245,6 +245,7 @@ export default function EventDetail() {
   const tiers = event?.ticket_tiers || []
   const registrationFields = event?.registration_fields || []
   const isFreeEvent = tiers.length > 0 && tiers.every(t => Number(t.price) === 0)
+  const isMixedEvent = tiers.length > 1 && tiers.some(t => Number(t.price) === 0) && tiers.some(t => Number(t.price) > 0)
   const cartItems = Object.entries(cart).map(([name, qty]) => {
     const tier = tiers.find(t => t.name === name)
     return { tierName: name, quantity: qty, price: tier?.price || 0, totalPrice: (tier?.price || 0) * qty }
@@ -852,7 +853,7 @@ export default function EventDetail() {
               {isFreeEvent ? 'RSVP' : 'Select Tickets'}
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.88rem', marginBottom: 24 }}>
-              {isFreeEvent ? 'Confirm your spot for this free event' : 'Join the experience. Pulse levels rising'}
+              {isFreeEvent ? 'Confirm your spot for this free event' : isMixedEvent ? 'This event has both free and paid tiers — pick what suits you' : 'Join the experience. Pulse levels rising'}
             </p>
 
             {isFreeEvent ? (

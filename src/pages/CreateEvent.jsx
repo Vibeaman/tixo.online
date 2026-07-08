@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe, Share2, DollarSign, Info, Repeat, Clock, Sparkles, ClipboardList, Phone, Lock, Unlock, ScanLine, Users } from 'lucide-react'
+import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe, Share2, DollarSign, Info, Repeat, Clock, Sparkles, ClipboardList, Phone, Lock, Unlock, ScanLine, Users, Layers } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
@@ -42,7 +42,7 @@ export default function CreateEvent() {
     is_recurring: false,
     recurrence_pattern: 'weekly',
     recurrence_end_date: '',
-    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }],
+    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid' }],
     registration_fields: [
       { id: 'phone', label: 'Phone Number', type: 'tel', enabled: false, required: false },
       { id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Non-binary', 'Prefer not to say'], enabled: false, required: false },
@@ -59,7 +59,7 @@ export default function CreateEvent() {
       const tiers = [...f.tiers]; tiers[i] = { ...tiers[i], [field]: val }; return { ...f, tiers }
     })
   }
-  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }] })) }
+  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: form.pricing_type === 'mixed' ? 'paid' : 'paid' }] })) }
   function removeTier(i) { setForm(f => ({ ...f, tiers: f.tiers.filter((_, idx) => idx !== i) })) }
 
   function toggleRegField(id) {
@@ -485,30 +485,39 @@ export default function CreateEvent() {
               {/* ============ FREE / PAID TOGGLE ============ */}
               <div>
                 <label className="text-sm text-gray-300 mb-2 block">Event Pricing *</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => {
                       setForm(f => ({
                         ...f,
                         pricing_type: 'free',
-                        tiers: f.tiers.map(t => ({ ...t, price: 0, early_bird: false, early_bird_price: 0, early_bird_end_date: '' }))
+                        tiers: f.tiers.map(t => ({ ...t, price: 0, tier_type: 'free', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }))
                       }))
                     }}
                     className={`p-4 rounded-xl border text-center transition-all ${form.pricing_type === 'free' ? 'border-green-500/30 bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
                   >
                     <Ticket className={`w-6 h-6 mx-auto mb-1.5 ${form.pricing_type === 'free' ? 'text-green-400' : 'text-gray-500'}`} />
-                    <p className={`text-sm font-semibold ${form.pricing_type === 'free' ? 'text-white' : 'text-gray-400'}`}>Free Event</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">No ticket charges</p>
+                    <p className={`text-sm font-semibold ${form.pricing_type === 'free' ? 'text-white' : 'text-gray-400'}`}>Free</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">No charges</p>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setForm(f => ({ ...f, pricing_type: 'paid' }))}
+                    onClick={() => setForm(f => ({ ...f, pricing_type: 'paid', tiers: f.tiers.map(t => ({ ...t, tier_type: 'paid' })) }))}
                     className={`p-4 rounded-xl border text-center transition-all ${form.pricing_type === 'paid' ? 'border-pink-500/30 bg-pink-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
                   >
                     <DollarSign className={`w-6 h-6 mx-auto mb-1.5 ${form.pricing_type === 'paid' ? 'text-pink-400' : 'text-gray-500'}`} />
-                    <p className={`text-sm font-semibold ${form.pricing_type === 'paid' ? 'text-white' : 'text-gray-400'}`}>Paid Event</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Set prices per tier</p>
+                    <p className={`text-sm font-semibold ${form.pricing_type === 'paid' ? 'text-white' : 'text-gray-400'}`}>Paid</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Set prices</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, pricing_type: 'mixed', tiers: f.tiers.map(t => ({ ...t, tier_type: Number(t.price) > 0 ? 'paid' : 'free' })) }))}
+                    className={`p-4 rounded-xl border text-center transition-all ${form.pricing_type === 'mixed' ? 'border-purple-500/30 bg-purple-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                  >
+                    <Layers className={`w-6 h-6 mx-auto mb-1.5 ${form.pricing_type === 'mixed' ? 'text-purple-400' : 'text-gray-500'}`} />
+                    <p className={`text-sm font-semibold ${form.pricing_type === 'mixed' ? 'text-white' : 'text-gray-400'}`}>Mixed</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Free + Paid</p>
                   </button>
                 </div>
               </div>
@@ -526,7 +535,21 @@ export default function CreateEvent() {
                   <input value={tier.description} onChange={e => updateTier(i, 'description', e.target.value)} placeholder="What's included in this tier? (optional)"
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
 
-                  {form.pricing_type === 'free' ? (
+                  {/* Per-tier Free/Paid toggle for Mixed mode */}
+                  {form.pricing_type === 'mixed' && (
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => { updateTier(i, 'tier_type', 'free'); updateTier(i, 'price', 0); updateTier(i, 'early_bird', false); updateTier(i, 'early_bird_price', 0); updateTier(i, 'early_bird_end_date', '') }}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tier.tier_type === 'free' ? 'bg-green-500/15 text-green-400 border border-green-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:border-white/20'}`}>
+                        <Ticket className="w-3.5 h-3.5" /> Free Tier
+                      </button>
+                      <button type="button" onClick={() => updateTier(i, 'tier_type', 'paid')}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tier.tier_type === 'paid' ? 'bg-pink-500/15 text-pink-400 border border-pink-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:border-white/20'}`}>
+                        <DollarSign className="w-3.5 h-3.5" /> Paid Tier
+                      </button>
+                    </div>
+                  )}
+
+                  {form.pricing_type === 'free' || (form.pricing_type === 'mixed' && tier.tier_type === 'free') ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
                         <Ticket className="w-4 h-4 text-green-400" />
@@ -535,17 +558,17 @@ export default function CreateEvent() {
                       <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
                         className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                     </div>
-                  ) : (
+                  ) : (form.pricing_type === 'paid' || (form.pricing_type === 'mixed' && tier.tier_type === 'paid')) ? (
                     <div className="grid grid-cols-2 gap-3">
                       <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (₦)"
                         className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                       <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
                         className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                     </div>
-                  )}
+                  ) : null}
 
                   {/* ============ EARLY BIRD PRICING ============ */}
-                  {form.pricing_type === 'paid' && Number(tier.price) > 0 && (
+                  {(form.pricing_type === 'paid' || (form.pricing_type === 'mixed' && tier.tier_type === 'paid')) && Number(tier.price) > 0 && (
                     <div className={`border rounded-lg p-3 transition-all ${tier.early_bird ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/10 bg-white/[0.02]'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -833,10 +856,10 @@ export default function CreateEvent() {
                   {(form.event_type === 'in-person' || form.event_type === 'hybrid') && (
                     <p><span className="text-gray-500">Gate Check-in:</span> {form.require_checkin ? '📱 Required (QR scan at gate)' : '🚶 Off (auto-attended after event)'}</p>
                   )}
-                  <p><span className="text-gray-500">Pricing:</span> {form.pricing_type === 'free' ? '🆓 Free Event' : '💰 Paid Event'}</p>
+                  <p><span className="text-gray-500">Pricing:</span> {form.pricing_type === 'free' ? '🆓 Free Event' : form.pricing_type === 'mixed' ? '🔀 Mixed (Free + Paid Tiers)' : '💰 Paid Event'}</p>
                   <p><span className="text-gray-500">Reshare:</span> {form.reshare_enabled ? '✅ Enabled (90/7.5/2.5 split)' : '❌ Off (95/5 split)'}</p>
                   <p><span className="text-gray-500">Image:</span> {imageFile ? `📎 ${imageFile.name}` : (form.image ? '🔗 URL provided' : '📷 Default')}</p>
-                  <p><span className="text-gray-500">Tiers:</span> {form.tiers.map(t => `${t.name} (${form.pricing_type === 'free' ? 'Free' : `₦${Number(t.price).toLocaleString()}`}${t.early_bird ? ` · Early Bird ₦${Number(t.early_bird_price).toLocaleString()}` : ''})`).join(', ')}</p>
+                  <p><span className="text-gray-500">Tiers:</span> {form.tiers.map(t => `${t.name} (${form.pricing_type === 'free' || (form.pricing_type === 'mixed' && t.tier_type === 'free') ? 'Free' : `₦${Number(t.price).toLocaleString()}`}${t.early_bird ? ` · Early Bird ₦${Number(t.early_bird_price).toLocaleString()}` : ''})`).join(', ')}</p>
                 </div>
               </div>
               <div className="flex gap-3">
