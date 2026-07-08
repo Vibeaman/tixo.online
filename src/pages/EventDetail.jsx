@@ -129,6 +129,7 @@ export default function EventDetail() {
   // Cart state
   const [cart, setCart] = useState({})
   const [reservedFreeTiers, setReservedFreeTiers] = useState({})
+  const [tierSoldCounts, setTierSoldCounts] = useState({})
   const [buying, setBuying] = useState(false)
   const [floaterExpanded, setFloaterExpanded] = useState(false)
   const cartSummaryRef = useRef(null)
@@ -221,6 +222,23 @@ export default function EventDetail() {
     checkRsvp()
   }, [user, event])
 
+  // Fetch live sold counts per tier
+  useEffect(() => {
+    async function loadSoldCounts() {
+      if (!event?.id) return
+      try {
+        const tickets = await TicketService.getByEvent(event.id)
+        const counts = {}
+        tickets.forEach(t => {
+          const tier = t.tier_name || 'General'
+          counts[tier] = (counts[tier] || 0) + (t.quantity || 1)
+        })
+        setTierSoldCounts(counts)
+      } catch (e) { console.warn('Could not load sold counts:', e) }
+    }
+    loadSoldCounts()
+  }, [event])
+
   useEffect(() => {
     async function loadComments() {
       try { setComments(await CommentService.getByEvent(id)) }
@@ -241,6 +259,17 @@ export default function EventDetail() {
     })
   }
   function clearCart() { setCart({}); setFloaterExpanded(false) }
+
+  // Capacity helpers
+  function getTierRemaining(tier) {
+    if (tier.unlimited || tier.available == null) return null // unlimited
+    const sold = tierSoldCounts[tier.name] || 0
+    return Math.max(0, Number(tier.available) - sold)
+  }
+  function isTierSoldOut(tier) {
+    if (tier.unlimited || tier.available == null) return false
+    return getTierRemaining(tier) <= 0
+  }
 
   const tiers = event?.ticket_tiers || []
   const registrationFields = event?.registration_fields || []
@@ -944,7 +973,7 @@ export default function EventDetail() {
                             /* Free tier — single "Reserve" button, no quantity controls */
                             <button
                               onClick={() => handleReserveFreeTier(tier)}
-                              disabled={isReserved || rsvping}
+                              disabled={isReserved || rsvping || isTierSoldOut(tier)}
                               style={{
                                 background: isReserved ? 'rgba(74,222,128,0.15)' : '#16a34a',
                                 border: isReserved ? '1px solid rgba(74,222,128,0.3)' : 'none',
@@ -955,7 +984,7 @@ export default function EventDetail() {
                                 transition: 'all 0.2s'
                               }}
                             >
-                              {isReserved ? <><CheckCircle2 size={16} /> Reserved</> : rsvping ? 'Reserving...' : <><CheckCircle2 size={16} /> Reserve Spot</>}
+                              {isTierSoldOut(tier) ? 'Sold Out' : isReserved ? <><CheckCircle2 size={16} /> Reserved</> : rsvping ? 'Reserving...' : <><CheckCircle2 size={16} /> Reserve Spot</>}
                             </button>
                           ) : (
                             /* Paid tier — quantity +/- controls */
@@ -968,17 +997,42 @@ export default function EventDetail() {
                                 }}><Minus size={16} /></button>
                               )}
                               {qty > 0 && <span style={{ fontWeight: 800, color: 'white', width: 24, textAlign: 'center' }}>{qty}</span>}
-                              <button onClick={() => addToCart(tier.name)} style={{
+                              <button onClick={() => addToCart(tier.name)} disabled={isTierSoldOut(tier)} style={{
                                 width: 36, height: 36, borderRadius: 10,
-                                background: 'var(--purple)', border: 'none', color: 'white',
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                background: isTierSoldOut(tier) ? 'rgba(255,255,255,0.05)' : 'var(--purple)',
+                                border: 'none', color: isTierSoldOut(tier) ? 'rgba(255,255,255,0.2)' : 'white',
+                                cursor: isTierSoldOut(tier) ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center'
                               }}><Plus size={16} /></button>
                             </div>
                           )}
                         </div>
-                        {tier.available != null && (
-                          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>{tier.available} remaining</p>
-                        )}
+                        {/* Live capacity tracking */}
+                        {(() => {
+                          const isUnlimited = tier.unlimited || tier.available == null
+                          const remaining = getTierRemaining(tier)
+                          const total = Number(tier.available) || 0
+                          const pct = total > 0 ? remaining / total : 1
+                          const soldOut = isTierSoldOut(tier)
+                          if (isUnlimited) return (
+                            <p style={{ fontSize: '0.72rem', color: 'rgba(168,85,247,0.7)', marginTop: 6, fontWeight: 600 }}>Unlimited spots</p>
+                          )
+                          if (soldOut) return (
+                            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontSize: '0.72rem', fontWeight: 800, padding: '4px 10px', borderRadius: 999, border: '1px solid rgba(239,68,68,0.25)' }}>SOLD OUT</span>
+                            </div>
+                          )
+                          const color = pct > 0.5 ? '#4ade80' : pct > 0.15 ? '#facc15' : '#ef4444'
+                          const bgColor = pct > 0.5 ? 'rgba(74,222,128,0.08)' : pct > 0.15 ? 'rgba(250,204,21,0.08)' : 'rgba(239,68,68,0.08)'
+                          return (
+                            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                                <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 4, background: color, transition: 'width 0.3s' }} />
+                              </div>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color, whiteSpace: 'nowrap' }}>{remaining} left</span>
+                            </div>
+                          )
+                        })()}
                       </div>
                     )
                   })}

@@ -42,7 +42,7 @@ export default function CreateEvent() {
     is_recurring: false,
     recurrence_pattern: 'weekly',
     recurrence_end_date: '',
-    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid' }],
+    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid', unlimited: false }],
     registration_fields: [
       { id: 'phone', label: 'Phone Number', type: 'tel', enabled: false, required: false },
       { id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Non-binary', 'Prefer not to say'], enabled: false, required: false },
@@ -59,7 +59,7 @@ export default function CreateEvent() {
       const tiers = [...f.tiers]; tiers[i] = { ...tiers[i], [field]: val }; return { ...f, tiers }
     })
   }
-  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: form.pricing_type === 'mixed' ? 'paid' : 'paid' }] })) }
+  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: form.pricing_type === 'mixed' ? 'paid' : 'paid', unlimited: false }] })) }
   function removeTier(i) { setForm(f => ({ ...f, tiers: f.tiers.filter((_, idx) => idx !== i) })) }
 
   function toggleRegField(id) {
@@ -163,7 +163,8 @@ export default function CreateEvent() {
         ticket_tiers: form.tiers.map(t => ({
           name: t.name,
           price: Number(t.price),
-          available: Number(t.available),
+          available: t.unlimited ? null : Number(t.available),
+          unlimited: !!t.unlimited,
           description: t.description || '',
           early_bird: t.early_bird,
           early_bird_price: t.early_bird ? Number(t.early_bird_price) : null,
@@ -555,17 +556,40 @@ export default function CreateEvent() {
                         <Ticket className="w-4 h-4 text-green-400" />
                         <span className="text-green-400 font-semibold text-sm">FREE</span>
                       </div>
-                      <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
-                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                      {tier.unlimited ? (
+                        <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                          <span className="text-purple-400 font-semibold text-sm">Unlimited</span>
+                        </div>
+                      ) : (
+                        <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
+                          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                      )}
                     </div>
                   ) : (form.pricing_type === 'paid' || (form.pricing_type === 'mixed' && tier.tier_type === 'paid')) ? (
                     <div className="grid grid-cols-2 gap-3">
                       <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (₦)"
                         className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
-                      <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
-                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                      {tier.unlimited ? (
+                        <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                          <span className="text-purple-400 font-semibold text-sm">Unlimited</span>
+                        </div>
+                      ) : (
+                        <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
+                          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
+                      )}
                     </div>
                   ) : null}
+
+                  {/* Unlimited toggle */}
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative">
+                      <input type="checkbox" checked={!!tier.unlimited} onChange={e => { updateTier(i, 'unlimited', e.target.checked); if (e.target.checked) updateTier(i, 'available', '') }}
+                        className="sr-only peer" />
+                      <div className="w-9 h-5 bg-white/10 rounded-full peer-checked:bg-purple-500/50 transition-colors" />
+                      <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-gray-400 rounded-full peer-checked:translate-x-4 peer-checked:bg-purple-400 transition-all" />
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">Unlimited capacity</span>
+                  </label>
 
                   {/* ============ EARLY BIRD PRICING ============ */}
                   {(form.pricing_type === 'paid' || (form.pricing_type === 'mixed' && tier.tier_type === 'paid')) && Number(tier.price) > 0 && (
