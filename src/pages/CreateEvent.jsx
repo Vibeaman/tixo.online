@@ -42,7 +42,7 @@ export default function CreateEvent() {
     is_recurring: false,
     recurrence_pattern: 'weekly',
     recurrence_end_date: '',
-    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid', unlimited: false }],
+    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid', unlimited: false, max_per_purchase: 1 }],
     registration_fields: [
       { id: 'phone', label: 'Phone Number', type: 'tel', enabled: false, required: false },
       { id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Non-binary', 'Prefer not to say'], enabled: false, required: false },
@@ -59,7 +59,7 @@ export default function CreateEvent() {
       const tiers = [...f.tiers]; tiers[i] = { ...tiers[i], [field]: val }; return { ...f, tiers }
     })
   }
-  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: form.pricing_type === 'mixed' ? 'paid' : 'paid', unlimited: false }] })) }
+  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: form.pricing_type === 'mixed' ? 'paid' : 'paid', unlimited: false, max_per_purchase: 1 }] })) }
   function removeTier(i) { setForm(f => ({ ...f, tiers: f.tiers.filter((_, idx) => idx !== i) })) }
 
   function toggleRegField(id) {
@@ -127,7 +127,6 @@ export default function CreateEvent() {
 
   async function handleSubmit(status = 'published') {
     if (!user) { toast.error('Please log in first'); navigate('/login'); return }
-    // Drafts only need a title; published needs full validation
     if (!form.title) { toast.error('Event title is required'); return }
     if (status === 'published' && !form.date) { toast.error('Start date is required'); return }
     setSubmitting(true)
@@ -169,6 +168,7 @@ export default function CreateEvent() {
           early_bird: t.early_bird,
           early_bird_price: t.early_bird ? Number(t.early_bird_price) : null,
           early_bird_end_date: t.early_bird ? t.early_bird_end_date : null,
+          max_per_purchase: Number(t.max_per_purchase) || 1,
         })),
         tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
         registration_fields: [
@@ -185,14 +185,12 @@ export default function CreateEvent() {
       }
       const created = await EventService.create(eventData)
 
-      // Create recurring event instances
       if (status === 'published' && form.is_recurring && form.recurrence_pattern && form.recurrence_end_date) {
         const endDate = new Date(form.recurrence_end_date + 'T00:00:00')
         let currentDate = new Date(form.date + 'T00:00:00')
         const childEvents = []
 
         while (true) {
-          // Advance to next occurrence
           if (form.recurrence_pattern === 'weekly') {
             currentDate.setDate(currentDate.getDate() + 7)
           } else if (form.recurrence_pattern === 'bi-weekly') {
@@ -211,7 +209,7 @@ export default function CreateEvent() {
             date: dateStr,
             end_date: dateStr,
             parent_event_id: created.id,
-            is_recurring: false // children are not themselves recurring
+            is_recurring: false
           })
         }
 
@@ -241,7 +239,6 @@ export default function CreateEvent() {
     }
   }
 
-  // Calculate revenue preview based on a sample ticket price
   const samplePrice = form.tiers[0]?.price || 0
   const reshareOrganizer = Math.round(samplePrice * 0.90)
   const resharePlatform = Math.round(samplePrice * 0.075)
@@ -591,6 +588,20 @@ export default function CreateEvent() {
                     <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">Unlimited capacity</span>
                   </label>
 
+                  {/* ============ MAX PER PURCHASE ============ */}
+                  <div className="flex items-center gap-3">
+                    <Users className="w-4 h-4 text-gray-500" />
+                    <label className="text-xs text-gray-400">Max per person</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={tier.max_per_purchase || 1}
+                      onChange={e => updateTier(i, 'max_per_purchase', e.target.value)}
+                      className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-sm focus:outline-none focus:border-white/20"
+                    />
+                  </div>
+
                   {/* ============ EARLY BIRD PRICING ============ */}
                   {(form.pricing_type === 'paid' || (form.pricing_type === 'mixed' && tier.tier_type === 'paid')) && Number(tier.price) > 0 && (
                     <div className={`border rounded-lg p-3 transition-all ${tier.early_bird ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/10 bg-white/[0.02]'}`}>
@@ -715,7 +726,7 @@ export default function CreateEvent() {
                   </div>
                 </div>
 
-                {/* Default fields (always shown, not toggleable) */}
+                {/* Default fields */}
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-3">
                     <span className="text-white text-sm">Full Name</span>
@@ -883,7 +894,7 @@ export default function CreateEvent() {
                   <p><span className="text-gray-500">Pricing:</span> {form.pricing_type === 'free' ? '🆓 Free Event' : form.pricing_type === 'mixed' ? '🔀 Mixed (Free + Paid Tiers)' : '💰 Paid Event'}</p>
                   <p><span className="text-gray-500">Reshare:</span> {form.reshare_enabled ? '✅ Enabled (90/7.5/2.5 split)' : '❌ Off (95/5 split)'}</p>
                   <p><span className="text-gray-500">Image:</span> {imageFile ? `📎 ${imageFile.name}` : (form.image ? '🔗 URL provided' : '📷 Default')}</p>
-                  <p><span className="text-gray-500">Tiers:</span> {form.tiers.map(t => `${t.name} (${form.pricing_type === 'free' || (form.pricing_type === 'mixed' && t.tier_type === 'free') ? 'Free' : `₦${Number(t.price).toLocaleString()}`}${t.early_bird ? ` · Early Bird ₦${Number(t.early_bird_price).toLocaleString()}` : ''})`).join(', ')}</p>
+                  <p><span className="text-gray-500">Tiers:</span> {form.tiers.map(t => `${t.name} (${form.pricing_type === 'free' || (form.pricing_type === 'mixed' && t.tier_type === 'free') ? 'Free' : `₦${Number(t.price).toLocaleString()}`}${t.early_bird ? ` · Early Bird ₦${Number(t.early_bird_price).toLocaleString()}` : ''} · Max ${t.max_per_purchase || 1}/person)`).join(', ')}</p>
                 </div>
               </div>
               <div className="flex gap-3">
