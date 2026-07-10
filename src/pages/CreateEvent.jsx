@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe, Share2, DollarSign, Info, Repeat, Clock, Sparkles, ClipboardList, Phone, Lock, Unlock, ScanLine, Users, Layers, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -55,6 +55,31 @@ export default function CreateEvent() {
     ],
     custom_fields: [],
   })
+
+  // ── Draft persistence: restore saved form after login redirect ──
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('tixo_create_event_draft')
+      if (saved) {
+        const draft = JSON.parse(saved)
+        if (draft.form) setForm(draft.form)
+        if (draft.step) setStep(draft.step)
+        if (draft.imagePreview) setImagePreview(draft.imagePreview)
+        if (draft.imageMode) setImageMode(draft.imageMode)
+        localStorage.removeItem('tixo_create_event_draft')
+        toast.success('Your event draft has been restored!')
+      }
+    } catch { /* ignore corrupt data */ }
+  }, [])
+
+  // Save draft to localStorage before login redirect
+  function saveDraftAndRedirect() {
+    try {
+      const draft = { form, step, imagePreview, imageMode }
+      localStorage.setItem('tixo_create_event_draft', JSON.stringify(draft))
+    } catch { /* storage full — proceed without saving */ }
+    navigate('/login?redirect=/create-event')
+  }
 
   function update(e) { setForm(f => ({ ...f, [e.target.name]: e.target.value })) }
   function updateTier(i, field, val) {
@@ -146,7 +171,7 @@ export default function CreateEvent() {
   }
 
   async function handleSubmit(status = 'published') {
-    if (!user) { toast.error('Please log in first'); navigate('/login'); return }
+    if (!user) { toast.error('Please log in to publish your event'); saveDraftAndRedirect(); return }
     if (!form.title) { toast.error('Event title is required'); return }
     if (status === 'published' && !form.date) { toast.error('Start date is required'); return }
     setSubmitting(true)
@@ -245,6 +270,7 @@ export default function CreateEvent() {
         }
       }
 
+      localStorage.removeItem('tixo_create_event_draft')
       if (status === 'draft') {
         toast.success('Event saved as draft!')
       } else if (!form.is_recurring || !form.recurrence_end_date) {

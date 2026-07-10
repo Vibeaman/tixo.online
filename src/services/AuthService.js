@@ -17,11 +17,11 @@ const AuthService = {
     return data.user
   },
 
-  async signInWithGoogle() {
+  async signInWithGoogle(redirectPath = '/dashboard') {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}${redirectPath}`,
         queryParams: { prompt: 'select_account' }
       }
     })

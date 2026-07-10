@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useMemo } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Ticket, Sparkles, Music, PartyPopper } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AuthService from '../services/AuthService'
@@ -18,6 +18,12 @@ function FloatingIcon({ icon: Icon, size, top, left, delay, color }) {
 
 export default function Login() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTo = useMemo(() => {
+    const r = searchParams.get('redirect')
+    // Only allow relative paths (prevent open redirect)
+    return r && r.startsWith('/') ? r : '/dashboard'
+  }, [searchParams])
   const [form, setForm] = useState({ email: '', password: '' })
   const [show, setShow] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -31,7 +37,7 @@ export default function Login() {
     try {
       await AuthService.login({ email: form.email, password: form.password })
       toast.success('Welcome back!')
-      navigate('/dashboard')
+      navigate(redirectTo)
     } catch (err) {
       toast.error(err.message || 'Login failed')
     } finally {
@@ -42,7 +48,7 @@ export default function Login() {
   async function handleGoogle() {
     setGoogleLoading(true)
     try {
-      await AuthService.signInWithGoogle()
+      await AuthService.signInWithGoogle(redirectTo)
     } catch (err) {
       toast.error(err.message || 'Google sign-in failed')
       setGoogleLoading(false)
@@ -177,7 +183,7 @@ export default function Login() {
 
             <p className="text-center text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
               Don't have an account?{' '}
-              <Link to="/signup" className="font-medium" style={{ color: '#E91E8C' }}>Sign up</Link>
+              <Link to={`/signup${redirectTo !== '/dashboard' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} className="font-medium" style={{ color: '#E91E8C' }}>Sign up</Link>
             </p>
           </div>
         </div>

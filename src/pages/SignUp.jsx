@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useMemo } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, Ticket, Sparkles, Zap, Heart } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AuthService from '../services/AuthService'
@@ -18,6 +18,11 @@ function FloatingIcon({ icon: Icon, size, top, left, delay, color }) {
 
 export default function SignUp() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTo = useMemo(() => {
+    const r = searchParams.get('redirect')
+    return r && r.startsWith('/') ? r : '/dashboard'
+  }, [searchParams])
   const [form, setForm] = useState({ fullName: '', email: '', password: '', confirm: '' })
   const [show, setShow] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -59,7 +64,7 @@ export default function SignUp() {
   async function handleGoogle() {
     setGoogleLoading(true)
     try {
-      await AuthService.signInWithGoogle()
+      await AuthService.signInWithGoogle(redirectTo)
     } catch (err) {
       toast.error(err.message || 'Google sign-in failed')
       setGoogleLoading(false)
@@ -243,7 +248,7 @@ export default function SignUp() {
 
             <p className="text-center text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
               Already have an account?{' '}
-              <Link to="/login" className="font-medium" style={{ color: '#E91E8C' }}>Log in</Link>
+              <Link to={`/login${redirectTo !== '/dashboard' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} className="font-medium" style={{ color: '#E91E8C' }}>Log in</Link>
             </p>
           </div>
         </div>
