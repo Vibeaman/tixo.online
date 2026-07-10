@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Repeat, Clock, Sparkles, ClipboardList, Phone, Share2, Info, DollarSign, Ticket } from 'lucide-react'
+import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Repeat, Clock, Sparkles, ClipboardList, Phone, Share2, Info, DollarSign, Ticket, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
@@ -448,12 +448,28 @@ export default function EditEvent() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
-                      <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (₦)"
+                      <input type="number" value={tier.price || ''} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="₦ Ticket amount"
                         className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                       <input type="number" value={tier.available} onChange={e => updateTier(i, 'available', e.target.value)} placeholder="Qty available"
                         className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                     </div>
                   )}
+
+                  {/* Max Per Purchase */}
+                  <div className="flex items-center gap-3">
+                    <Users className="w-4 h-4 text-gray-500" />
+                    <label className="text-xs text-gray-400">Max per person</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={tier.max_per_purchase === '' ? '' : (tier.max_per_purchase || '')}
+                      onChange={e => updateTier(i, 'max_per_purchase', e.target.value)}
+                      onBlur={e => { if (!e.target.value || Number(e.target.value) < 1) updateTier(i, 'max_per_purchase', 1) }}
+                      placeholder="1"
+                      className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-sm focus:outline-none focus:border-white/20"
+                    />
+                  </div>
 
                   {/* Early Bird Pricing — only for paid tiers */}
                   {form.pricing_type === 'paid' && Number(tier.price) > 0 && (

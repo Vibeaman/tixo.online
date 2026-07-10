@@ -627,7 +627,7 @@ export default function CreateEvent() {
                     </div>
                   ) : (form.pricing_type === 'paid' || (form.pricing_type === 'mixed' && tier.tier_type === 'paid')) ? (
                     <div className="grid grid-cols-2 gap-3">
-                      <input type="number" value={tier.price} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="Price (NGN)"
+                      <input type="number" value={tier.price || ''} onChange={e => updateTier(i, 'price', e.target.value)} placeholder="₦ Ticket amount"
                         className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 text-sm" />
                       {tier.unlimited ? (
                         <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
@@ -659,8 +659,10 @@ export default function CreateEvent() {
                       type="number"
                       min="1"
                       max="20"
-                      value={tier.max_per_purchase || 1}
+                      value={tier.max_per_purchase === '' ? '' : tier.max_per_purchase}
                       onChange={e => updateTier(i, 'max_per_purchase', e.target.value)}
+                      onBlur={e => { if (!e.target.value || Number(e.target.value) < 1) updateTier(i, 'max_per_purchase', 1) }}
+                      placeholder="1"
                       className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-sm focus:outline-none focus:border-white/20"
                     />
                   </div>
