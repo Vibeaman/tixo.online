@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, CheckCircle2, PenLine, Share2, Zap } from 'lucide-react'
 import { ScrollReveal, Tilt3D, MagneticButton, MorphBlob } from './Interactive3D'
 
 const features = [
@@ -10,15 +10,33 @@ const features = [
   'Custom branding & landing pages',
 ]
 
-const stats = [
-  ['10K+', 'Events Hosted', '+23% this month'],
-  ['₦2.4B+', 'Tickets Sold', '+41% this month'],
-  ['98%', 'Host Satisfaction', 'Consistently high'],
-  ['50+', 'Cities Covered', 'And growing fast'],
+const steps = [
+  {
+    icon: PenLine,
+    number: '01',
+    title: 'Create',
+    desc: 'Set up your event in minutes — add tiers, set capacity, and customize your page.',
+    gradient: 'linear-gradient(135deg, #E91E8C, #8B5CF6)',
+  },
+  {
+    icon: Share2,
+    number: '02',
+    title: 'Share',
+    desc: 'Send your unique event link anywhere — social media, WhatsApp, email.',
+    gradient: 'linear-gradient(135deg, #8B5CF6, #00BFFF)',
+  },
+  {
+    icon: Zap,
+    number: '03',
+    title: 'Collect',
+    desc: 'Get RSVPs and payments instantly. Track everything from your dashboard.',
+    gradient: 'linear-gradient(135deg, #00BFFF, #E91E8C)',
+  },
 ]
 
-function StatCard({ val, label, sub, i }) {
+function StepCard({ step, i }) {
   const [hovered, setHovered] = useState(false)
+  const Icon = step.icon
 
   return (
     <Tilt3D intensity={12} glowColor="rgba(255,255,255,0.06)">
@@ -26,26 +44,67 @@ function StatCard({ val, label, sub, i }) {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
-          background: 'var(--dark)', padding: '28px 20px',
+          background: 'var(--dark)', padding: '32px 24px',
           textAlign: 'center', position: 'relative',
-          borderRadius: 12,
+          borderRadius: 16,
           border: '1px solid rgba(255,255,255,0.05)',
-          transition: 'border-color 0.3s, box-shadow 0.3s',
+          transition: 'border-color 0.4s, box-shadow 0.4s, transform 0.4s',
+          overflow: 'hidden',
           ...(hovered ? {
-            borderColor: 'rgba(255,255,255,0.1)',
-            boxShadow: '0 8px 30px rgba(255,255,255,0.06)',
+            borderColor: 'rgba(255,255,255,0.12)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
+            transform: 'translateY(-4px)',
           } : {}),
         }}
       >
+        {/* Top gradient bar */}
         <div style={{
-          fontSize: '1.8rem', fontWeight: 900,
-          color: i % 2 === 0 ? 'var(--purple-light)' : 'white',
-          transition: 'transform 0.3s',
+          position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+          background: step.gradient,
+          opacity: hovered ? 1 : 0.4,
+          transition: 'opacity 0.4s',
+        }} />
+
+        {/* Step number */}
+        <div style={{
+          fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.15em',
+          background: step.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          marginBottom: 16,
+        }}>{step.number}</div>
+
+        {/* Icon circle */}
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%',
+          background: step.gradient,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 16px',
+          transition: 'transform 0.4s, box-shadow 0.4s',
           transform: hovered ? 'scale(1.1)' : 'scale(1)',
-          textShadow: hovered ? '0 0 20px rgba(255,255,255,0.1)' : 'none',
-        }}>{val}</div>
-        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>{label}</div>
-        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>{sub}</div>
+          boxShadow: hovered ? `0 0 30px rgba(233, 30, 140, 0.25)` : 'none',
+        }}>
+          <Icon size={24} color="white" strokeWidth={2.2} />
+        </div>
+
+        {/* Title */}
+        <div style={{
+          fontSize: '1.2rem', fontWeight: 800, color: 'white',
+          marginBottom: 8, letterSpacing: '-0.02em',
+        }}>{step.title}</div>
+
+        {/* Description */}
+        <div style={{
+          fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)',
+          lineHeight: 1.6, maxWidth: 220, margin: '0 auto',
+        }}>{step.desc}</div>
+
+        {/* Connector arrow (not on last card) */}
+        {i < steps.length - 1 && (
+          <div style={{
+            display: 'none', // hidden on mobile, shown on desktop via CSS
+          }} className="step-connector">
+            <ArrowRight size={20} style={{ color: 'rgba(255,255,255,0.15)' }} />
+          </div>
+        )}
       </div>
     </Tilt3D>
   )
@@ -117,16 +176,22 @@ export default function HostBanner() {
                 </MagneticButton>
               </ScrollReveal>
 
-              {/* Stats grid */}
+              {/* How it works steps */}
+              <ScrollReveal direction="up" delay={0.65}>
+                <div style={{
+                  fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.2em',
+                  textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)',
+                  marginTop: 48, marginBottom: 20,
+                }}>HOW IT WORKS</div>
+              </ScrollReveal>
               <div style={{
-                marginTop: 48,
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: 16,
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: 20,
               }}>
-                {stats.map(([val, label, sub], i) => (
-                  <ScrollReveal key={i} direction="up" delay={0.7 + i * 0.1}>
-                    <StatCard val={val} label={label} sub={sub} i={i} />
+                {steps.map((step, i) => (
+                  <ScrollReveal key={i} direction="up" delay={0.7 + i * 0.15}>
+                    <StepCard step={step} i={i} />
                   </ScrollReveal>
                 ))}
               </div>
