@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ sent: false, reason: 'Email service not configured' })
   }
 
-  const { to, buyerName, eventTitle, eventDate, eventTime, eventLocation, tickets, totalAmount, paymentReference, eventType, virtualLink } = req.body
+  const { to, buyerName, eventTitle, eventDate, eventTime, eventLocation, tickets, totalAmount, paymentReference, eventType, virtualLink, paymentDate } = req.body
 
   if (!to || !eventTitle) {
     return res.status(400).json({ error: 'Missing required fields (to, eventTitle)' })
@@ -37,11 +37,22 @@ export default async function handler(req, res) {
 
   const ticketRows = (tickets || []).map(t =>
     `<tr>
-      <td style="padding:12px 16px;border-bottom:1px solid #2a2a3a;color:#e0e0e0;font-size:14px">${t.tierName || 'General'}</td>
+      <td style="padding:12px 16px;border-bottom:1px solid #2a2a3a;color:#e0e0e0;font-size:14px">
+        ${t.tierName || 'General'}${t.attendeeName ? `<br><span style="color:#888;font-size:12px">${t.attendeeName}</span>` : ''}
+        ${t.checkInCode ? `<br><span style="color:#a855f7;font-size:12px;font-weight:600;letter-spacing:1px">🎫 ${t.checkInCode}</span>` : ''}
+      </td>
       <td style="padding:12px 16px;border-bottom:1px solid #2a2a3a;color:#e0e0e0;font-size:14px;text-align:center">${t.quantity || 1}</td>
       <td style="padding:12px 16px;border-bottom:1px solid #2a2a3a;color:#e0e0e0;font-size:14px;text-align:right">${t.totalPrice > 0 ? '₦' + Number(t.totalPrice).toLocaleString() : 'Free'}</td>
     </tr>`
   ).join('')
+
+  // Format payment date
+  function fmtPaymentDate(d) {
+    if (!d) return ''
+    const dt = new Date(d)
+    return dt.toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' }) + ' at ' +
+      dt.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', hour12: true })
+  }
 
   const fromAddress = process.env.EMAIL_FROM || 'Tixo <tickets@tixo.online>'
 
@@ -108,14 +119,17 @@ export default async function handler(req, res) {
         </tfoot>` : ''}
       </table>
 
-      ${paymentReference ? `<p style="margin:0;color:#666;font-size:12px;text-align:center">Ref: ${paymentReference}</p>` : ''}
+      ${paymentReference || paymentDate ? `<div style="text-align:center;margin-top:4px">
+        ${paymentReference ? `<p style="margin:0 0 4px;color:#666;font-size:12px">Ref: ${paymentReference}</p>` : ''}
+        ${paymentDate ? `<p style="margin:0;color:#666;font-size:12px">Paid on: ${fmtPaymentDate(paymentDate)}</p>` : ''}
+      </div>` : ''}
     </div>
 
     <!-- QR Note -->
     <div style="padding:0 24px 28px;text-align:center">
       <div style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);border-radius:12px;padding:20px">
         <p style="margin:0;color:#c084fc;font-size:14px;font-weight:600">📱 Your QR Ticket</p>
-        <p style="margin:8px 0 0;color:#999;font-size:13px">Log in to <a href="https://tixo.online/dashboard" style="color:#ec4899;text-decoration:none;font-weight:600">tixo.online/dashboard</a> to view and download your QR ticket for check-in.</p>
+        <p style="margin:8px 0 0;color:#999;font-size:13px">Your unique ticket code${(tickets || []).length > 1 ? 's are' : ' is'} shown above (🎫). Log in to <a href="https://tixo.online/dashboard" style="color:#ec4899;text-decoration:none;font-weight:600">tixo.online/dashboard</a> to view and download your full QR ticket for check-in.</p>
       </div>
     </div>
   </div>

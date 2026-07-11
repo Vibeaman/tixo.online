@@ -517,13 +517,16 @@ export default function EventDetail() {
             eventLocation: event.location,
             eventType: event.event_type,
             virtualLink: event.virtual_link,
-            tickets: purchaseItems.map(item => ({
-              tierName: item.tierName,
-              quantity: item.quantity,
-              totalPrice: item.totalPrice
+            tickets: tickets.map(t => ({
+              tierName: t.tier_name,
+              quantity: t.quantity,
+              totalPrice: t.total_price,
+              checkInCode: t.check_in_code,
+              attendeeName: t.attendee_name
             })),
             totalAmount: paidAmount || 0,
-            paymentReference
+            paymentReference,
+            paymentDate: new Date().toISOString()
           })
         }).catch(err => console.warn('Email notification failed:', err))
       }
