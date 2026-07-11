@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -16,6 +16,7 @@ const BASE_TABS = [
   { id: 'tickets', label: 'My Tickets', icon: Ticket },
   { id: 'events', label: 'My Events', icon: Calendar },
   { id: 'checkin', label: 'Check-in', icon: ScanLine },
+  { id: 'attendees', label: 'Attendees', icon: Users },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'payouts', label: 'Payouts', icon: DollarSign },
   { id: 'referrals', label: 'Referrals', icon: Share2 },
@@ -195,6 +196,15 @@ export default function Dashboard() {
   const [pendingApprovals, setPendingApprovals] = useState([])
   const [approvingTickets, setApprovingTickets] = useState({})
 
+  // Attendees tab state
+  const [selectedAttendeeEvent, setSelectedAttendeeEvent] = useState(null)
+  const [eventAttendees, setEventAttendees] = useState([])
+  const [loadingAttendees, setLoadingAttendees] = useState(false)
+  const [attendeeSearch, setAttendeeSearch] = useState('')
+  const [attendeeFilterTier, setAttendeeFilterTier] = useState('')
+  const [attendeeFilterPayment, setAttendeeFilterPayment] = useState('')
+  const [attendeeFilterCheckin, setAttendeeFilterCheckin] = useState('')
+
   // Publishing state
   const [publishingId, setPublishingId] = useState(null)
 
@@ -265,6 +275,51 @@ export default function Dashboard() {
   useEffect(() => {
     if (tab === 'checkin' && user) loadCheckInStats()
   }, [tab, user])
+
+  // Load attendees when event selected
+  useEffect(() => {
+    if (selectedAttendeeEvent && tab === 'attendees') {
+      loadEventAttendees(selectedAttendeeEvent)
+    }
+  }, [selectedAttendeeEvent, tab])
+
+  async function loadEventAttendees(eventId) {
+    setLoadingAttendees(true)
+    try {
+      const data = await TicketService.getEventAttendees(eventId)
+      setEventAttendees(data)
+    } catch (err) {
+      console.error('Failed to load attendees:', err)
+      toast.error('Failed to load attendees')
+      setEventAttendees([])
+    } finally {
+      setLoadingAttendees(false)
+    }
+  }
+
+  function exportAttendeesCSV(attendees, eventTitle) {
+    const headers = ['Name', 'Email', 'Phone', 'Ticket Type', 'Ticket Code', 'Purchase Date', 'Payment Status', 'Amount', 'Check-in Status', 'Check-in Time']
+    const rows = attendees.map(t => [
+      t.attendee_name || t.profiles?.full_name || t.guest_name || 'Anonymous',
+      t.profiles?.email || t.guest_email || '',
+      t.registration_data?.phone || t.registration_data?.Phone || '',
+      t.tier_name || '',
+      t.check_in_code || '',
+      t.purchased_at ? new Date(t.purchased_at).toLocaleString() : '',
+      t.payment_status || '',
+      t.total_price || 0,
+      t.checked_in ? 'Checked In' : 'Not Checked In',
+      t.checked_in_at ? new Date(t.checked_in_at).toLocaleString() : ''
+    ])
+    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${eventTitle || 'attendees'}-attendees.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   // Load notification data
   useEffect(() => {
@@ -518,7 +573,7 @@ export default function Dashboard() {
   const avatarUrl = profile?.avatar_url
 
   // Filter tabs: only show check-in tab if user has events (is an organizer)
-  const TABS = BASE_TABS.filter(t => t.id !== 'checkin' || myEvents.length > 0)
+  const TABS = BASE_TABS.filter(t => (t.id !== 'checkin' && t.id !== 'attendees') || myEvents.length > 0)
 
   // Separate draft and published events
   const draftEvents = myEvents.filter(ev => ev.status === 'draft')
@@ -1050,6 +1105,251 @@ export default function Dashboard() {
             )}
           </div>
         )}
+
+        {/* ============ ATTENDEES TAB ============ */}
+        {tab === 'attendees' && (() => {
+          const selectedEvent = myEvents.find(e => e.id === selectedAttendeeEvent)
+          const searchLower = attendeeSearch.toLowerCase()
+          const filteredAttendees = eventAttendees.filter(t => {
+            if (attendeeSearch) {
+              const name = (t.attendee_name || t.profiles?.full_name || t.guest_name || '').toLowerCase()
+              const email = (t.profiles?.email || t.guest_email || '').toLowerCase()
+              const code = (t.check_in_code || '').toLowerCase()
+              if (!name.includes(searchLower) && !email.includes(searchLower) && !code.includes(searchLower)) return false
+            }
+            if (attendeeFilterTier && t.tier_name !== attendeeFilterTier) return false
+            if (attendeeFilterPayment && t.payment_status !== attendeeFilterPayment) return false
+            if (attendeeFilterCheckin === 'checked' && !t.checked_in) return false
+            if (attendeeFilterCheckin === 'not_checked' && t.checked_in) return false
+            return true
+          })
+          const checkedInCount = eventAttendees.filter(t => t.checked_in).length
+          const notCheckedInCount = eventAttendees.length - checkedInCount
+          const totalRevenue = eventAttendees.reduce((sum, t) => sum + (t.total_price || t.paid_amount || 0), 0)
+          const uniqueTiers = [...new Set(eventAttendees.map(t => t.tier_name).filter(Boolean))]
+          const uniquePaymentStatuses = [...new Set(eventAttendees.map(t => t.payment_status).filter(Boolean))]
+
+          return (
+          <div>
+            {/* Event selector */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-white mb-3">Select Event</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {myEvents.map(ev => (
+                  <button
+                    key={ev.id}
+                    onClick={() => { setSelectedAttendeeEvent(ev.id); setAttendeeSearch(''); setAttendeeFilterTier(''); setAttendeeFilterPayment(''); setAttendeeFilterCheckin('') }}
+                    className={`text-left p-4 rounded-xl border transition-all ${selectedAttendeeEvent === ev.id ? 'bg-pink-500/20 border-pink-500/50' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
+                  >
+                    <p className="text-white font-medium truncate">{ev.title}</p>
+                    <p className="text-gray-400 text-xs mt-1">{ev.date ? new Date(ev.date).toLocaleDateString() : 'No date'}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedAttendeeEvent && (
+              loadingAttendees ? (
+                <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
+              ) : (
+                <>
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                      <p className="text-gray-400 text-xs">Total Attendees</p>
+                      <p className="text-2xl font-bold text-white mt-1">{eventAttendees.length}</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                      <p className="text-gray-400 text-xs">Checked In</p>
+                      <p className="text-2xl font-bold text-green-400 mt-1">{checkedInCount}</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                      <p className="text-gray-400 text-xs">Not Checked In</p>
+                      <p className="text-2xl font-bold text-amber-400 mt-1">{notCheckedInCount}</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                      <p className="text-gray-400 text-xs">Revenue</p>
+                      <p className="text-2xl font-bold text-white mt-1">₦{totalRevenue.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Search & Filter Bar */}
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search by name, email, or ticket code..."
+                          value={attendeeSearch}
+                          onChange={e => setAttendeeSearch(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-pink-500/50"
+                        />
+                      </div>
+                      <select
+                        value={attendeeFilterTier}
+                        onChange={e => setAttendeeFilterTier(e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500/50 appearance-none"
+                      >
+                        <option value="" className="bg-[#050510]">All Tiers</option>
+                        {uniqueTiers.map(t => <option key={t} value={t} className="bg-[#050510]">{t}</option>)}
+                      </select>
+                      <select
+                        value={attendeeFilterPayment}
+                        onChange={e => setAttendeeFilterPayment(e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500/50 appearance-none"
+                      >
+                        <option value="" className="bg-[#050510]">All Payments</option>
+                        {uniquePaymentStatuses.map(s => <option key={s} value={s} className="bg-[#050510]">{s}</option>)}
+                      </select>
+                      <select
+                        value={attendeeFilterCheckin}
+                        onChange={e => setAttendeeFilterCheckin(e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500/50 appearance-none"
+                      >
+                        <option value="" className="bg-[#050510]">All Check-in</option>
+                        <option value="checked" className="bg-[#050510]">Checked In</option>
+                        <option value="not_checked" className="bg-[#050510]">Not Checked In</option>
+                      </select>
+                      <button
+                        onClick={() => exportAttendeesCSV(filteredAttendees, selectedEvent?.title)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export CSV
+                      </button>
+                    </div>
+                    <p className="text-gray-500 text-xs mt-2">{filteredAttendees.length} of {eventAttendees.length} attendees</p>
+                  </div>
+
+                  {/* Attendee Table - Desktop */}
+                  <div className="hidden md:block bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Name</th>
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Email</th>
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Phone</th>
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Ticket Type</th>
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Code</th>
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Date</th>
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Payment</th>
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Amount</th>
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Check-in</th>
+                            <th className="text-left text-gray-400 font-medium px-4 py-3">Check-in Time</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredAttendees.length === 0 ? (
+                            <tr><td colSpan={10} className="text-center text-gray-500 py-8">No attendees found</td></tr>
+                          ) : filteredAttendees.map(t => (
+                            <tr key={t.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td className="px-4 py-3 text-white font-medium">{t.attendee_name || t.profiles?.full_name || t.guest_name || 'Anonymous'}</td>
+                              <td className="px-4 py-3 text-gray-400">{t.profiles?.email || t.guest_email || '—'}</td>
+                              <td className="px-4 py-3 text-gray-400">{t.registration_data?.phone || t.registration_data?.Phone || '—'}</td>
+                              <td className="px-4 py-3"><span className="bg-white/10 text-gray-300 px-2 py-0.5 rounded text-xs">{t.tier_name || '—'}</span></td>
+                              <td className="px-4 py-3">
+                                <button
+                                  onClick={() => { navigator.clipboard.writeText(t.check_in_code || ''); toast.success('Code copied!') }}
+                                  className="font-mono text-xs bg-white/10 text-pink-400 px-2 py-1 rounded hover:bg-white/20 transition-colors"
+                                  title="Click to copy"
+                                >
+                                  {t.check_in_code || '—'}
+                                </button>
+                              </td>
+                              <td className="px-4 py-3 text-gray-400 text-xs">{t.purchased_at ? new Date(t.purchased_at).toLocaleDateString() : '—'}</td>
+                              <td className="px-4 py-3">
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                  t.payment_status === 'free' || t.payment_status === 'paid' || t.payment_status === 'success' ? 'bg-green-500/20 text-green-400' :
+                                  t.payment_status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                                  t.payment_status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-gray-400'
+                                }`}>{t.payment_status || '—'}</span>
+                              </td>
+                              <td className="px-4 py-3 text-gray-300">₦{(t.total_price || t.paid_amount || 0).toLocaleString()}</td>
+                              <td className="px-4 py-3">
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${t.checked_in ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                  {t.checked_in ? 'Checked In' : 'Not Checked In'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-gray-400 text-xs">{t.checked_in_at ? new Date(t.checked_in_at).toLocaleString() : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Attendee Cards - Mobile */}
+                  <div className="md:hidden space-y-3">
+                    {filteredAttendees.length === 0 ? (
+                      <div className="text-center text-gray-500 py-8 bg-white/5 border border-white/10 rounded-xl">No attendees found</div>
+                    ) : filteredAttendees.map(t => (
+                      <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-white font-medium">{t.attendee_name || t.profiles?.full_name || t.guest_name || 'Anonymous'}</p>
+                            <p className="text-gray-400 text-xs">{t.profiles?.email || t.guest_email || '—'}</p>
+                          </div>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${t.checked_in ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                            {t.checked_in ? 'Checked In' : 'Not Checked In'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-gray-500">Phone:</span>
+                            <span className="text-gray-300 ml-1">{t.registration_data?.phone || t.registration_data?.Phone || '—'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Tier:</span>
+                            <span className="text-gray-300 ml-1">{t.tier_name || '—'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Code:</span>
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(t.check_in_code || ''); toast.success('Code copied!') }}
+                              className="font-mono text-pink-400 ml-1 hover:underline"
+                            >
+                              {t.check_in_code || '—'}
+                            </button>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Date:</span>
+                            <span className="text-gray-300 ml-1">{t.purchased_at ? new Date(t.purchased_at).toLocaleDateString() : '—'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Payment:</span>
+                            <span className={`ml-1 font-medium ${
+                              t.payment_status === 'free' || t.payment_status === 'paid' || t.payment_status === 'success' ? 'text-green-400' :
+                              t.payment_status === 'pending' ? 'text-amber-400' :
+                              t.payment_status === 'failed' ? 'text-red-400' : 'text-gray-400'
+                            }`}>{t.payment_status || '—'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Amount:</span>
+                            <span className="text-gray-300 ml-1">₦{(t.total_price || t.paid_amount || 0).toLocaleString()}</span>
+                          </div>
+                        </div>
+                        {t.checked_in_at && (
+                          <p className="text-gray-500 text-xs">Checked in: {new Date(t.checked_in_at).toLocaleString()}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            )}
+
+            {!selectedAttendeeEvent && (
+              <div className="text-center py-16 bg-white/5 border border-white/10 rounded-2xl">
+                <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <h3 className="text-white font-semibold text-lg mb-1">Select an Event</h3>
+                <p className="text-gray-400">Choose an event above to view its attendees</p>
+              </div>
+            )}
+          </div>
+          )
+        })()}
 
         {/* ============ ANALYTICS TAB ============ */}
         {tab === 'analytics' && (
