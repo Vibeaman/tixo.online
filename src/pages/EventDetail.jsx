@@ -258,6 +258,17 @@ export default function EventDetail() {
   }
   function clearCart() { setCart({}); setFloaterExpanded(false) }
 
+  /* --- Early Bird Price Helper (BUG FIX) --- */
+  function getEffectivePrice(tier) {
+    if (!tier) return 0
+    if (tier.early_bird && tier.early_bird_price != null && tier.early_bird_end_date) {
+      const now = new Date()
+      const endDate = new Date(tier.early_bird_end_date + 'T23:59:59')
+      if (now <= endDate) return Number(tier.early_bird_price)
+    }
+    return Number(tier.price) || 0
+  }
+
   // Capacity helpers
   function getTierRemaining(tier) {
     if (tier.unlimited || tier.available == null) return null
@@ -271,11 +282,12 @@ export default function EventDetail() {
 
   const tiers = event?.ticket_tiers || []
   const registrationFields = event?.registration_fields || []
-  const isFreeEvent = tiers.length > 0 && tiers.every(t => Number(t.price) === 0)
-  const isMixedEvent = tiers.length > 1 && tiers.some(t => Number(t.price) === 0) && tiers.some(t => Number(t.price) > 0)
+  const isFreeEvent = tiers.length > 0 && tiers.every(t => getEffectivePrice(t) === 0)
+  const isMixedEvent = tiers.length > 1 && tiers.some(t => getEffectivePrice(t) === 0) && tiers.some(t => getEffectivePrice(t) > 0)
   const cartItems = Object.entries(cart).map(([name, qty]) => {
     const tier = tiers.find(t => t.name === name)
-    return { tierName: name, quantity: qty, price: tier?.price || 0, totalPrice: (tier?.price || 0) * qty }
+    const price = getEffectivePrice(tier)
+    return { tierName: name, quantity: qty, price, totalPrice: price * qty }
   }).filter(i => i.quantity > 0)
   const cartTotal = cartItems.reduce((s, i) => s + i.totalPrice, 0)
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0)
