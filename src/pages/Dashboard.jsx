@@ -1251,7 +1251,7 @@ export default function Dashboard() {
                         </thead>
                         <tbody>
                           {filteredAttendees.length === 0 ? (
-                            <tr><td colSpan={10} className="text-center text-gray-500 py-8">No attendees found</td></tr>
+                            <tr><td colSpan={10} className="text-center text-gray-500 py-8">No one has registered for this event yet</td></tr>
                           ) : filteredAttendees.map(t => (
                             <tr key={t.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                               <td className="px-4 py-3 text-white font-medium">{t.attendee_name || t.profiles?.full_name || t.guest_name || 'Anonymous'}</td>
@@ -1292,7 +1292,7 @@ export default function Dashboard() {
                   {/* Attendee Cards - Mobile */}
                   <div className="md:hidden space-y-3">
                     {filteredAttendees.length === 0 ? (
-                      <div className="text-center text-gray-500 py-8 bg-white/5 border border-white/10 rounded-xl">No attendees found</div>
+                      <div className="text-center text-gray-500 py-8 bg-white/5 border border-white/10 rounded-xl">No one has registered for this event yet</div>
                     ) : filteredAttendees.map(t => (
                       <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
                         <div className="flex items-start justify-between">
