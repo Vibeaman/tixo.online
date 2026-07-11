@@ -553,6 +553,7 @@ export default function CreateEvent() {
                       setForm(f => ({
                         ...f,
                         pricing_type: 'free',
+                        reshare_enabled: false,
                         tiers: f.tiers.map(t => ({ ...t, price: 0, tier_type: 'free', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }))
                       }))
                     }}
@@ -734,8 +735,8 @@ export default function CreateEvent() {
                 <Plus className="w-4 h-4" /> Add Tier
               </button>
 
-              {/* Reshare Toggle */}
-              <div className="border-t border-white/10 pt-5 mt-5">
+              {/* Reshare Toggle — only for paid/mixed events */}
+              {form.pricing_type !== 'free' && <div className="border-t border-white/10 pt-5 mt-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <Share2 className="w-5 h-5 text-pink-400" />
@@ -778,7 +779,7 @@ export default function CreateEvent() {
                     </div>
                   </div>
                 )}
-              </div>
+              </div>}
 
               <div className="flex gap-3">
                 <button onClick={() => setStep(2)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
@@ -1043,7 +1044,7 @@ export default function CreateEvent() {
                         {t.early_bird && <span className="text-amber-400 text-xs ml-auto">Early Bird</span>}
                       </div>
                     ))}
-                    <p><span className="text-gray-500">Reshare:</span> {form.reshare_enabled ? 'Enabled (90/7.5/2.5 split)' : 'Off (95/5 split)'}</p>
+                    {form.pricing_type !== 'free' && <p><span className="text-gray-500">Reshare:</span> {form.reshare_enabled ? 'Enabled (90/7.5/2.5 split)' : 'Off (95/5 split)'}</p>}
                   </div>
                 </div>
 
