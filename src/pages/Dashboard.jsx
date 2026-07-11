@@ -572,8 +572,8 @@ export default function Dashboard() {
 
   const avatarUrl = profile?.avatar_url
 
-  // Filter tabs: only show check-in tab if user has events (is an organizer)
-  const TABS = BASE_TABS.filter(t => (t.id !== 'checkin' && t.id !== 'attendees') || myEvents.length > 0)
+  // Filter tabs: only show check-in tab if user has events (is an organizer); attendees always visible
+  const TABS = BASE_TABS.filter(t => t.id !== 'checkin' || myEvents.length > 0)
 
   // Separate draft and published events
   const draftEvents = myEvents.filter(ev => ev.status === 'draft')
@@ -1108,6 +1108,15 @@ export default function Dashboard() {
 
         {/* ============ ATTENDEES TAB ============ */}
         {tab === 'attendees' && (() => {
+          if (myEvents.length === 0) {
+            return (
+              <div className="bg-gray-800/50 rounded-2xl p-10 text-center border border-gray-700/50">
+                <Users className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                <p className="text-gray-400">Create events to see your attendees</p>
+                <a href="/create" className="text-pink-400 hover:text-pink-300 mt-2 inline-block">Create Event →</a>
+              </div>
+            )
+          }
           const selectedEvent = myEvents.find(e => e.id === selectedAttendeeEvent)
           const searchLower = attendeeSearch.toLowerCase()
           const filteredAttendees = eventAttendees.filter(t => {
