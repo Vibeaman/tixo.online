@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase'
 
 const TicketService = {
   // Single tier purchase (supports guest checkout)
-  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, attendeeName, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData }) {
+  async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, attendeeName, attendeeEmail, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData }) {
     // Generate a unique 8-char check-in code
     const checkInCode = Array.from(crypto.getRandomValues(new Uint8Array(4)))
       .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
@@ -18,6 +18,7 @@ const TicketService = {
       check_in_code: checkInCode,
       checked_in: false,
       attendee_name: attendeeName || guestName || null,
+      attendee_email: attendeeEmail || null,
       payment_reference: paymentReference || null,
       payment_status: paymentStatus || (totalPrice > 0 ? 'pending' : 'free'),
       payment_channel: paymentChannel || null,
@@ -67,8 +68,8 @@ const TicketService = {
     return data
   },
 
-  // Multi-tier purchase (cart checkout — supports guest checkout)
-  // Each item can include an attendeeName for the individual ticket holder
+  // Multi-tier purchase (cart checkout - supports guest checkout)
+  // Each item can include an attendeeName AND attendeeEmail for the individual ticket holder
   async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData }) {
     const inserts = items.map(item => {
       const code = Array.from(crypto.getRandomValues(new Uint8Array(4)))
@@ -85,6 +86,7 @@ const TicketService = {
         check_in_code: code,
         checked_in: false,
         attendee_name: item.attendeeName || guestName || null,
+        attendee_email: item.attendeeEmail || null,
         payment_reference: paymentReference || null,
         payment_status: paymentStatus || (item.totalPrice > 0 ? 'pending' : 'free'),
         payment_channel: paymentChannel || null,
@@ -135,7 +137,20 @@ const TicketService = {
     return data && data.length > 0
   },
 
-  // ═══════ CHECK-IN METHODS ═══════
+  // Look up tickets by attendee email (for "find my ticket" feature)
+  async getByAttendeeEmail(email, eventId = null) {
+    let query = supabase
+      .from('tickets')
+      .select('*, events(*)')
+      .eq('attendee_email', email.toLowerCase().trim())
+      .order('purchased_at', { ascending: false })
+    if (eventId) query = query.eq('event_id', eventId)
+    const { data, error } = await query
+    if (error) throw error
+    return data || []
+  },
+
+  // ======= CHECK-IN METHODS =======
 
   // Look up ticket by check-in code
   async getByCheckInCode(code) {
