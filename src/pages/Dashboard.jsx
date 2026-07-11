@@ -776,7 +776,7 @@ export default function Dashboard() {
                               <QRCodeSVG value={t.check_in_code || t.id} size={48} level="M" />
                             </button>
                             <div className="text-right">
-                              {t.is_rsvp ? (
+                              {t.is_rsvp || Number(t.total_price) === 0 ? (
                                 <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Free</span>
                               ) : (
                                 <p className="text-pink-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>

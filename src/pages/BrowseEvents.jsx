@@ -266,7 +266,10 @@ export default function BrowseEvents() {
                       <div className="flex items-center gap-2 text-gray-400 text-sm"><MapPin className="w-4 h-4" />{event.location}</div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-pink-400 font-bold">₦{(event.ticket_tiers?.[0]?.price || 0).toLocaleString()}</span>
+                      {event.ticket_tiers?.every(t => Number(t.price) === 0)
+                        ? <span className="text-green-400 font-bold">Free</span>
+                        : <span className="text-pink-400 font-bold">₦{(event.ticket_tiers?.[0]?.price || 0).toLocaleString()}</span>
+                      }
                       <span className="flex items-center gap-1 text-sm text-gray-400"><Ticket className="w-4 h-4" />Get Tickets <ArrowRight className="w-4 h-4" /></span>
                     </div>
                   </div>
