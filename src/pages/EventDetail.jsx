@@ -12,7 +12,7 @@ import PayoutService from '../services/PayoutService'
 import { useAuth } from '../context/AuthContext'
 import ShareButton from '../components/ShareButton'
 
-/* --- Helpers --- */
+/* â”€â”€â”€ Helpers â”€â”€â”€ */
 function formatDate(dateStr) {
   if (!dateStr) return { month: '', day: '', full: '', weekday: '' }
   const d = new Date(dateStr + 'T00:00:00')
@@ -41,7 +41,7 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString()
 }
 
-/* --- Countdown Component --- */
+/* â”€â”€â”€ Countdown Component â”€â”€â”€ */
 function Countdown({ date, time }) {
   const [tl, setTl] = useState({ d: 0, h: 0, m: 0, s: 0 })
   const [expired, setExpired] = useState(false)
@@ -84,7 +84,7 @@ function Countdown({ date, time }) {
   )
 }
 
-/* --- Google Calendar URL builder --- */
+/* â”€â”€â”€ Google Calendar URL builder â”€â”€â”€ */
 function googleCalUrl(event) {
   const s = (event.date || '').replace(/-/g, '') + 'T' + (event.time || '00:00').replace(/:/g, '') + '00'
   let e = s
@@ -101,7 +101,7 @@ function googleCalUrl(event) {
   return `https://calendar.google.com/calendar/render?${params}`
 }
 
-/* --- ICS file generator --- */
+/* â”€â”€â”€ ICS file generator â”€â”€â”€ */
 function downloadIcs(event) {
   const s = (event.date || '').replace(/-/g, '') + 'T' + (event.time || '00:00').replace(/:/g, '') + '00'
   let e = s
@@ -175,7 +175,7 @@ export default function EventDetail() {
   // Organizer subaccount for split payments
   const [organizerSubaccount, setOrganizerSubaccount] = useState(null)
 
-  /* --- Effects --- */
+  /* â”€â”€â”€ Effects â”€â”€â”€ */
   useEffect(() => {
     const el = cartSummaryRef.current
     if (!el) return
@@ -246,7 +246,7 @@ export default function EventDetail() {
     loadComments()
   }, [id])
 
-  /* --- Cart helpers --- */
+  /* â”€â”€â”€ Cart helpers â”€â”€â”€ */
   function cartQty(tierName) { return cart[tierName] || 0 }
   function addToCart(tierName) { setCart(c => ({ ...c, [tierName]: (c[tierName] || 0) + 1 })) }
   function removeFromCart(tierName) {
@@ -283,7 +283,7 @@ export default function EventDetail() {
 
   function scrollToCart() { cartSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setFloaterExpanded(false) }
 
-  /* --- Reshare handlers --- */
+  /* â”€â”€â”€ Reshare handlers â”€â”€â”€ */
   async function handleGenerateReshareLink() {
     if (!user) { toast.error('Please log in to reshare'); navigate('/login'); return }
     if (user.id === event.organizer_id) { toast.error("You can't reshare your own event"); return }
@@ -301,16 +301,16 @@ export default function EventDetail() {
     setTimeout(() => setLinkCopied(false), 3000)
   }
 
-  /* --- Guest checkout trigger --- */
+  /* â”€â”€â”€ Guest checkout trigger â”€â”€â”€ */
   function triggerGuestCheckout(action) {
     setGuestAction(action)
     setShowGuestForm(true)
   }
 
-  /* --- RSVP handler --- */
+  /* â”€â”€â”€ RSVP handler â”€â”€â”€ */
   async function handleRsvp(guestInfo = null) {
     if (!user && !guestInfo) { triggerGuestCheckout('rsvp'); return }
-    // Always show form before reserving
+    // CHANGED: Always show form before reserving (removed registrationFields.length > 0 condition)
     if (user && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) {
       setGuestAction('rsvp')
       setGuestName(profile?.full_name || '')
@@ -336,15 +336,15 @@ export default function EventDetail() {
       })
       sessionStorage.removeItem(`ref_${id}`)
       setHasRsvpd(true); setPurchaseSuccess(true); setShowGuestForm(false)
-      toast.success('RSVP confirmed!')
+      toast.success('ðŸŽ‰ RSVP confirmed!')
     } catch (e) { toast.error(e.message || 'RSVP failed') }
     finally { setRsvping(false) }
   }
 
-  /* --- Reserve free tier (1 ticket for self) --- */
+  /* â”€â”€â”€ Reserve free tier (1 ticket for self) â”€â”€â”€ */
   async function handleReserveFreeTier(tier, guestInfo = null) {
     if (!user && !guestInfo) { triggerGuestCheckout('rsvp'); return }
-    // Always show form before reserving
+    // CHANGED: Always show form before reserving (removed registrationFields.length > 0 condition)
     if (user && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) {
       setGuestAction('rsvp')
       setGuestName(profile?.full_name || '')
@@ -369,12 +369,12 @@ export default function EventDetail() {
         registrationData: guestInfo?.registrationData || registrationData
       })
       setReservedFreeTiers(prev => ({ ...prev, [tier.name]: true }))
-      toast.success(`Spot reserved for ${tier.name}!`)
+      toast.success(`ðŸŽ‰ Spot reserved for ${tier.name}!`)
     } catch (e) { toast.error(e.message || 'Reservation failed') }
     finally { setRsvping(false) }
   }
 
-  /* --- Cart checkout handler --- */
+  /* â”€â”€â”€ Cart checkout handler â”€â”€â”€ */
   async function handleCheckout(guestInfo = null) {
     if (!user && !guestInfo) { triggerGuestCheckout('checkout'); return }
     if (user && registrationFields.length > 0 && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) {
@@ -503,7 +503,7 @@ export default function EventDetail() {
       setPurchaseSuccess(true); setCart({}); setFloaterExpanded(false)
       setShowGuestForm(false); setShowAttendeeForm(false)
       setAttendeeSlots([]); setPendingGuestInfo(null)
-      toast.success(`${purchaseItems.length} ticket${purchaseItems.length > 1 ? 's' : ''} purchased!`)
+      toast.success(`ðŸŽ‰ ${purchaseItems.length} ticket${purchaseItems.length > 1 ? 's' : ''} purchased!`)
 
       const emailTo = user?.email || effectiveGuestInfo?.email
       if (emailTo) {
@@ -536,7 +536,7 @@ export default function EventDetail() {
     finally { setBuying(false); setPaymentProcessing(false) }
   }
 
-  /* --- Attendee form handlers --- */
+  /* â”€â”€â”€ Attendee form handlers â”€â”€â”€ */
   function handleAttendeeConfirm() {
     if (!attendeeSlots[0]?.name?.trim()) {
       toast.error('Please enter at least your name for the first ticket')
@@ -555,7 +555,7 @@ export default function EventDetail() {
     setRegistrationData(prev => ({ ...prev, [fieldId]: value }))
   }
 
-  /* --- Guest form submit --- */
+  /* â”€â”€â”€ Guest form submit â”€â”€â”€ */
   function handleGuestSubmit(e) {
     e.preventDefault()
     if (!guestName.trim() || !guestEmail.trim()) { toast.error('Please fill in your name and email'); return }
@@ -572,7 +572,7 @@ export default function EventDetail() {
     else handleCheckout(info)
   }
 
-  /* --- Comments --- */
+  /* â”€â”€â”€ Comments â”€â”€â”€ */
   async function handlePostComment(e) {
     e.preventDefault()
     if (!commentText.trim()) return
@@ -595,7 +595,7 @@ export default function EventDetail() {
     catch { toast.error('Failed to delete comment') }
   }
 
-  /* --- Loading --- */
+  /* â”€â”€â”€ Loading â”€â”€â”€ */
   if (loading) return <div className="min-h-screen bg-[#050510] flex items-center justify-center"><div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!event) return null
 
@@ -612,10 +612,10 @@ export default function EventDetail() {
   return (
     <div className="min-h-screen bg-[#050510]" style={{ paddingTop: 64 }}>
 
-      {/* COUNTDOWN TIMER */}
+      {/* â•â•â• COUNTDOWN TIMER â•â•â• */}
       {event.date && <Countdown date={event.date} time={event.time} />}
 
-      {/* FULL-BLEED HERO */}
+      {/* â•â•â• FULL-BLEED HERO â•â•â• */}
       <div style={{ position: 'relative', width: '100%', minHeight: 420, overflow: 'hidden' }}>
         <img src={event.image} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 20%, rgba(10,10,15,0.85) 75%, rgba(10,10,15,1) 100%)' }} />
@@ -647,7 +647,7 @@ export default function EventDetail() {
               background: 'rgba(168,85,247,0.15)', color: '#c084fc',
               padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700,
               marginLeft: 12, verticalAlign: 'middle'
-            }}>Recurring: {event.recurrence_pattern ? event.recurrence_pattern.charAt(0).toUpperCase() + event.recurrence_pattern.slice(1) : 'Recurring'}</span>}
+            }}>ðŸ”„ {event.recurrence_pattern ? event.recurrence_pattern.charAt(0).toUpperCase() + event.recurrence_pattern.slice(1) : 'Recurring'}</span>}
           </h1>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
             {event.event_type !== 'virtual' && (
@@ -657,7 +657,7 @@ export default function EventDetail() {
             )}
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Calendar size={15} style={{ color: 'var(--purple-light)' }} />
-              {startDate.month} {startDate.day}{startTime ? ` - ${startTime}` : ''}
+              {startDate.month} {startDate.day}{startTime ? ` Â· ${startTime}` : ''}
             </span>
           </div>
 
@@ -698,7 +698,7 @@ export default function EventDetail() {
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
+      {/* â•â•â• MAIN CONTENT â•â•â• */}
       <div className="max-w-3xl mx-auto px-4" style={{ paddingTop: 32, paddingBottom: 80 }}>
 
         {/* Event info cards */}
@@ -728,8 +728,8 @@ export default function EventDetail() {
             <div>
               <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>{startDate.full}</p>
               <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>
-                {startTime}{endTime ? ` - ${endTime}` : ''} Africa/Lagos
-                {isMultiDay && <span> - Ends {endDate.full}</span>}
+                {startTime}{endTime ? ` â€“ ${endTime}` : ''} Africa/Lagos
+                {isMultiDay && <span> Â· Ends {endDate.full}</span>}
               </p>
             </div>
           </div>
@@ -742,12 +742,12 @@ export default function EventDetail() {
               <div>
                 <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
                   Virtual Event
-                  {isPrivateVirtual && <span style={{ fontSize: '0.72rem', fontWeight: 700, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: 999 }}>Private</span>}
+                  {isPrivateVirtual && <span style={{ fontSize: '0.72rem', fontWeight: 700, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: 999 }}>ðŸ”’ Private</span>}
                 </p>
                 {(purchaseSuccess || hasRsvpd) && !isPrivateVirtual ? (
                   <a href={event.virtual_link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple-light)', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4 }}>Join online <ExternalLink size={12} /></a>
                 ) : (purchaseSuccess || hasRsvpd) && isPrivateVirtual ? (
-                  <p style={{ color: '#f59e0b', fontSize: '0.82rem' }}>Waiting for organizer approval</p>
+                  <p style={{ color: '#f59e0b', fontSize: '0.82rem' }}>â³ Waiting for organizer approval</p>
                 ) : isPrivateVirtual ? (
                   <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem' }}>Link sent after organizer approval</p>
                 ) : (
@@ -773,7 +773,7 @@ export default function EventDetail() {
           </div>
         </div>
 
-        {/* RESHARE & EARN */}
+        {/* â•â•â• RESHARE & EARN â•â•â• */}
         {event.reshare_enabled && (
           <div style={{ marginBottom: 32 }}>
             <div style={{
@@ -812,13 +812,13 @@ export default function EventDetail() {
           </div>
         )}
 
-        {/* PURCHASE SUCCESS */}
+        {/* â•â•â• PURCHASE SUCCESS â•â•â• */}
         {purchaseSuccess && (
           <div style={{ marginBottom: 32 }}>
             <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 16, padding: 40, textAlign: 'center' }}>
               <CheckCircle2 size={56} style={{ color: '#4ade80', margin: '0 auto 16px' }} />
               <h3 style={{ fontWeight: 900, fontSize: '1.5rem', color: 'white', marginBottom: 8 }}>
-                {isFreeEvent ? "You're In!" : "Tickets Secured!"}
+                {isFreeEvent ? "You're In! ðŸŽ‰" : "Tickets Secured! ðŸŽ‰"}
               </h3>
               <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>
                 {isPrivateVirtual && (isVirtual || (isHybrid && attendanceMode === 'virtual'))
@@ -830,7 +830,7 @@ export default function EventDetail() {
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 700,
                   padding: '8px 16px', borderRadius: 999, fontSize: '0.85rem', marginBottom: 12
-                }}>Awaiting Approval</span>
+                }}>â³ Awaiting Approval</span>
               )}
               {showVirtualLink && (
                 <a href={event.virtual_link} target="_blank" rel="noopener noreferrer" style={{
@@ -839,12 +839,12 @@ export default function EventDetail() {
                   borderRadius: 12, textDecoration: 'none', marginBottom: 12
                 }}><Video size={18} /> Join Virtual Event <ExternalLink size={14} /></a>
               )}
-              {user && <Link to="/dashboard" style={{ color: 'var(--purple-light)', fontWeight: 600, fontSize: '0.9rem' }}>View Dashboard</Link>}
+              {user && <Link to="/dashboard" style={{ color: 'var(--purple-light)', fontWeight: 600, fontSize: '0.9rem' }}>View Dashboard â†’</Link>}
             </div>
           </div>
         )}
 
-        {/* HYBRID MODE SELECTOR */}
+        {/* â•â•â• HYBRID MODE SELECTOR â•â•â• */}
         {isHybrid && !purchaseSuccess && !hasRsvpd && (
           <div style={{ marginBottom: 24 }}>
             <h3 style={{ fontWeight: 700, color: 'white', marginBottom: 12 }}>How will you attend?</h3>
@@ -869,14 +869,14 @@ export default function EventDetail() {
           </div>
         )}
 
-        {/* SELECT TICKETS / RSVP */}
+        {/* â•â•â• SELECT TICKETS / RSVP â•â•â• */}
         {!purchaseSuccess && !hasRsvpd && (
           <div id="tickets" style={{ marginBottom: 32 }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'white', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
               {isFreeEvent ? 'RSVP' : 'Select Tickets'}
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.88rem', marginBottom: 24 }}>
-              {isFreeEvent ? 'Pick your tier and confirm your spot' : isMixedEvent ? 'This event has both free and paid tiers - pick what suits you' : 'Join the experience. Pulse levels rising'}
+              {isFreeEvent ? 'Pick your tier and confirm your spot' : isMixedEvent ? 'This event has both free and paid tiers â€” pick what suits you' : 'Join the experience. Pulse levels rising'}
             </p>
 
             {isFreeEvent ? (
@@ -898,7 +898,7 @@ export default function EventDetail() {
                           <div style={{ flex: 1 }}>
                             <h4 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white', marginBottom: 4 }}>{tier.name}</h4>
                             <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{tier.description || `Access to ${event.title}`}</p>
-                            <span style={{ display: 'inline-block', marginTop: 8, fontSize: '0.72rem', fontWeight: 700, color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.2)', padding: '4px 10px', borderRadius: 999 }}>Free - Max {maxPerPurchase} Per Person</span>
+                            <span style={{ display: 'inline-block', marginTop: 8, fontSize: '0.72rem', fontWeight: 700, color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.2)', padding: '4px 10px', borderRadius: 999 }}>Free Â· Max {maxPerPurchase} Per Person</span>
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -958,7 +958,7 @@ export default function EventDetail() {
                           <div style={{ flex: 1 }}>
                             <h4 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white', marginBottom: 4 }}>{tier.name}</h4>
                             <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{tier.description || `Access to ${event.title}`}</p>
-                            <span style={{ display: 'inline-block', marginTop: 8, fontSize: '0.72rem', fontWeight: 700, color: isTierFree ? '#4ade80' : 'rgba(255,255,255,0.5)', background: isTierFree ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isTierFree ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'}`, padding: '4px 10px', borderRadius: 999 }}>{isTierFree ? `Free - Max ${tier.max_per_purchase || 1} Per Person` : 'Admits 1 Person'}</span>
+                            <span style={{ display: 'inline-block', marginTop: 8, fontSize: '0.72rem', fontWeight: 700, color: isTierFree ? '#4ade80' : 'rgba(255,255,255,0.5)', background: isTierFree ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isTierFree ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'}`, padding: '4px 10px', borderRadius: 999 }}>{isTierFree ? `Free Â· Max ${tier.max_per_purchase || 1} Per Person` : 'Admits 1 Person'}</span>
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -969,14 +969,14 @@ export default function EventDetail() {
                             ) : tier.early_bird && tier.early_bird_end_date && new Date(tier.early_bird_end_date) > new Date() ? (
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>N{Number(tier.early_bird_price || tier.price).toLocaleString()}</p>
-                                  <span style={{ background: 'rgba(250,204,21,0.15)', color: '#facc15', padding: '3px 8px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700 }}>Early Bird</span>
+                                  <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>â‚¦{Number(tier.early_bird_price || tier.price).toLocaleString()}</p>
+                                  <span style={{ background: 'rgba(250,204,21,0.15)', color: '#facc15', padding: '3px 8px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700 }}>ðŸ¦ Early Bird</span>
                                 </div>
-                                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through', marginTop: 2 }}>N{Number(tier.price).toLocaleString()}</p>
+                                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through', marginTop: 2 }}>â‚¦{Number(tier.price).toLocaleString()}</p>
                                 <p style={{ fontSize: '0.72rem', color: 'rgba(250,204,21,0.7)', marginTop: 2 }}>Early bird ends {new Date(tier.early_bird_end_date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</p>
                               </div>
                             ) : (
-                              <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>N{Number(tier.price).toLocaleString()}</p>
+                              <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>â‚¦{Number(tier.price).toLocaleString()}</p>
                             )}
                           </div>
                           {isTierFree ? (
@@ -1026,7 +1026,7 @@ export default function EventDetail() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {attendeeSlots.map((slot, i) => (
                         <div key={i}>
-                          {(i === 0 || slot.tierName !== attendeeSlots[i - 1].tierName) && <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)', letterSpacing: '0.06em', marginBottom: 8, marginTop: i > 0 ? 12 : 0 }}>{slot.tierName.toUpperCase()} - N{Number(slot.price).toLocaleString()}</p>}
+                          {(i === 0 || slot.tierName !== attendeeSlots[i - 1].tierName) && <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)', letterSpacing: '0.06em', marginBottom: 8, marginTop: i > 0 ? 12 : 0 }}>{slot.tierName.toUpperCase()} â€” â‚¦{Number(slot.price).toLocaleString()}</p>}
                           <div style={{ position: 'relative' }}>
                             <input type="text" placeholder={i === 0 ? 'Your name' : `Attendee ${i + 1} name`} value={slot.name} onChange={e => { const updated = [...attendeeSlots]; updated[i] = { ...updated[i], name: e.target.value }; setAttendeeSlots(updated) }} style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.3)', border: `1px solid ${i === 0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 10, padding: '14px 16px', paddingRight: i === 0 ? 60 : 16, color: 'white', fontSize: '0.9rem', outline: 'none' }} />
                             {i === 0 && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)', background: 'rgba(255,255,255,0.06)', padding: '3px 8px', borderRadius: 6 }}>You</span>}
@@ -1037,12 +1037,12 @@ export default function EventDetail() {
                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 20, paddingTop: 16 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                         <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>Total</span>
-                        <div style={{ textAlign: 'right' }}><span style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--purple-light)' }}>N{cartTotal.toLocaleString()}</span><p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginTop: 2 }}>{attendeeSlots.length} ticket{attendeeSlots.length > 1 ? 's' : ''} - {attendeeSlots.filter(s => s.name.trim()).length} named</p></div>
+                        <div style={{ textAlign: 'right' }}><span style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--purple-light)' }}>â‚¦{cartTotal.toLocaleString()}</span><p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginTop: 2 }}>{attendeeSlots.length} ticket{attendeeSlots.length > 1 ? 's' : ''} Â· {attendeeSlots.filter(s => s.name.trim()).length} named</p></div>
                       </div>
                       <div style={{ display: 'flex', gap: 10 }}>
                         <button type="button" onClick={handleAttendeeBack} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', padding: '14px 18px', borderRadius: 12, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} /> Back</button>
                         <button onClick={handleAttendeeConfirm} disabled={buying || paymentProcessing} style={{ flex: 1, background: 'var(--purple)', border: 'none', color: 'white', fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                          {paymentProcessing ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing Payment...</> : buying ? 'Processing...' : <><ShoppingCart size={18} /> Confirm & Pay - N{cartTotal.toLocaleString()}</>}
+                          {paymentProcessing ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing Payment...</> : buying ? 'Processing...' : <><ShoppingCart size={18} /> Confirm & Pay â€“ â‚¦{cartTotal.toLocaleString()}</>}
                         </button>
                       </div>
                     </div>
@@ -1055,20 +1055,20 @@ export default function EventDetail() {
                       <h3 style={{ fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: 8 }}><ShoppingCart size={18} style={{ color: 'var(--purple-light)' }} /> Your Cart</h3>
                       <button onClick={clearCart} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}><X size={12} /> Clear</button>
                     </div>
-                    {cartItems.map(item => (<div key={item.tierName} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', padding: '6px 0' }}><span style={{ color: 'rgba(255,255,255,0.5)' }}>{item.tierName} x {item.quantity}</span><span style={{ color: 'white', fontWeight: 600 }}>N{item.totalPrice.toLocaleString()}</span></div>))}
+                    {cartItems.map(item => (<div key={item.tierName} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', padding: '6px 0' }}><span style={{ color: 'rgba(255,255,255,0.5)' }}>{item.tierName} Ã— {item.quantity}</span><span style={{ color: 'white', fontWeight: 600 }}>â‚¦{item.totalPrice.toLocaleString()}</span></div>))}
                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 12, paddingTop: 16 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>Total</span><span style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--purple-light)' }}>N{cartTotal.toLocaleString()}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>Total</span><span style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--purple-light)' }}>â‚¦{cartTotal.toLocaleString()}</span></div>
                       <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginTop: 2 }}>{cartCount} ticket{cartCount > 1 ? 's' : ''}</p>
                     </div>
                     <button onClick={() => handleCheckout()} disabled={buying || paymentProcessing} style={{ width: '100%', marginTop: 20, background: 'var(--purple)', border: 'none', color: 'white', fontWeight: 800, padding: '16px', borderRadius: 12, cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                      {paymentProcessing ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" style={{ display: 'inline-block' }} /> Processing Payment...</> : buying ? 'Processing...' : <><ShoppingCart size={18} /> Checkout - N{cartTotal.toLocaleString()}</>}
+                      {paymentProcessing ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" style={{ display: 'inline-block' }} /> Processing Payment...</> : buying ? 'Processing...' : <><ShoppingCart size={18} /> Checkout â€“ â‚¦{cartTotal.toLocaleString()}</>}
                     </button>
                   </div>
                 )}
               </>
             )}
 
-            {/* REGISTRATION / GUEST FORM */}
+            {/* â•â•â• REGISTRATION / GUEST FORM â•â•â• */}
             {showGuestForm && (
               <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#0b0b14', border: '1.5px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 24, maxWidth: 460, width: 'calc(100% - 32px)', maxHeight: '85vh', overflowY: 'auto', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -1110,7 +1110,7 @@ export default function EventDetail() {
                   )}
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button type="submit" disabled={buying || rsvping || paymentProcessing} style={{ flex: 1, background: guestAction === 'rsvp' ? '#16a34a' : 'var(--purple)', border: 'none', color: 'white', fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer', fontSize: '0.9rem' }}>
-                      {paymentProcessing ? 'Processing Payment...' : (buying || rsvping) ? 'Processing...' : guestAction === 'rsvp' ? 'Reserve Spot' : `Pay N${cartTotal.toLocaleString()}`}
+                      {paymentProcessing ? 'Processing Payment...' : (buying || rsvping) ? 'Processing...' : guestAction === 'rsvp' ? 'Reserve Spot' : `Pay â‚¦${cartTotal.toLocaleString()}`}
                     </button>
                     <button type="button" onClick={() => setShowGuestForm(false)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', padding: '14px 18px', borderRadius: 12, cursor: 'pointer', fontSize: '0.85rem' }}>Cancel</button>
                   </div>
@@ -1126,7 +1126,7 @@ export default function EventDetail() {
           <div style={{ marginBottom: 32 }}>
             <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 16, padding: 28, textAlign: 'center' }}>
               <CheckCircle2 size={44} style={{ color: '#4ade80', margin: '0 auto 12px' }} />
-              <h3 style={{ fontWeight: 800, fontSize: '1.2rem', color: 'white', marginBottom: 4 }}>You've RSVP'd!</h3>
+              <h3 style={{ fontWeight: 800, fontSize: '1.2rem', color: 'white', marginBottom: 4 }}>You've RSVP'd! âœ“</h3>
               <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.88rem' }}>You're confirmed for this event</p>
             </div>
           </div>
@@ -1226,7 +1226,7 @@ export default function EventDetail() {
                         <button onClick={() => addToCart(item.tierName)} style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--purple)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={10} /></button>
                       </div>
                     </div>
-                    <span style={{ color: 'white', fontWeight: 600 }}>N{item.totalPrice.toLocaleString()}</span>
+                    <span style={{ color: 'white', fontWeight: 600 }}>â‚¦{item.totalPrice.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -1236,7 +1236,7 @@ export default function EventDetail() {
             <div style={{ maxWidth: 768, margin: '0 auto', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
               <button onClick={() => setFloaterExpanded(!floaterExpanded)} style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, background: 'none', border: 'none', color: 'white', cursor: 'pointer', textAlign: 'left' }}>
                 <div style={{ position: 'relative' }}><ShoppingCart size={22} style={{ color: 'var(--purple-light)' }} /><span style={{ position: 'absolute', top: -8, right: -8, background: 'var(--purple)', color: 'white', fontSize: '0.6rem', fontWeight: 800, width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{cartCount}</span></div>
-                <div style={{ flex: 1, minWidth: 0 }}><p style={{ fontWeight: 900, fontSize: '1.1rem' }}>N{cartTotal.toLocaleString()}</p><p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cartCount} ticket{cartCount > 1 ? 's' : ''}</p></div>
+                <div style={{ flex: 1, minWidth: 0 }}><p style={{ fontWeight: 900, fontSize: '1.1rem' }}>â‚¦{cartTotal.toLocaleString()}</p><p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cartCount} ticket{cartCount > 1 ? 's' : ''}</p></div>
                 <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.4)', transform: floaterExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </button>
               <button onClick={() => handleCheckout()} disabled={buying || paymentProcessing} style={{ background: 'var(--purple)', border: 'none', color: 'white', fontWeight: 800, padding: '14px 24px', borderRadius: 12, cursor: 'pointer', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
