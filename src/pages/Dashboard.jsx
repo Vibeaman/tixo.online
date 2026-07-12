@@ -757,47 +757,31 @@ export default function Dashboard() {
                       const isAttended = t.checked_in || autoAttended
 
                       return (
-                        <div key={t.id} className={`bg-white/5 border rounded-xl p-5 flex items-center justify-between transition ${isMissed ? 'border-red-500/20 opacity-70' : isAttended ? 'border-green-500/20' : 'border-white/10 hover:border-white/15'}`}>
-                          <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => navigate(`/events/${t.event_id}`)}>
-                            {/* Event image thumbnail */}
+                        <div key={t.id} className={`bg-white/5 border rounded-xl p-4 sm:p-5 transition ${isMissed ? 'border-red-500/20 opacity-70' : isAttended ? 'border-green-500/20' : 'border-white/10 hover:border-white/15'}`}>
+                          {/* Top row: image + event info + QR (desktop) */}
+                          <div className="flex items-start gap-3 sm:gap-4 cursor-pointer" onClick={() => navigate(`/events/${t.event_id}`)}>
+                            {/* Event image */}
                             {t.events?.image && (
-                              <img src={t.events.image} alt="" className={`w-14 h-14 rounded-lg object-cover hidden sm:block flex-shrink-0 ${isMissed ? 'opacity-50 grayscale' : ''}`} />
+                              <img src={t.events.image} alt="" className={`w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover flex-shrink-0 ${isMissed ? 'opacity-50 grayscale' : ''}`} />
                             )}
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="text-white font-bold">{t.event_title}</h3>
-                                {t.is_rsvp && <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">RSVP</span>}
-                                {t.attendance_mode === 'virtual' && <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>}
-                                {/* Status badge */}
-                                {isAttended ? (
-                                  <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                    <CheckCircle2 className="w-2.5 h-2.5" /> Attended
-                                  </span>
-                                ) : isMissed ? (
-                                  <span className="text-[10px] font-bold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                    <X className="w-2.5 h-2.5" /> Missed
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                    <Clock className="w-2.5 h-2.5" /> Upcoming
-                                  </span>
-                                )}
-                              </div>
+                            {/* Event details */}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-white font-bold text-sm sm:text-base leading-tight">{t.event_title}</h3>
                               {t.attendee_name && (
-                                <p className="text-pink-400 text-sm font-medium">🎫 {t.attendee_name}</p>
+                                <p className="text-pink-400 text-xs sm:text-sm font-medium mt-0.5">🎫 {t.attendee_name}</p>
                               )}
-                              <p className="text-gray-400 text-sm">{t.tier_name}{t.quantity > 1 ? ` · x${t.quantity}` : ''}</p>
-                              <div className="flex items-center gap-3 mt-1">
+                              <p className="text-gray-400 text-xs sm:text-sm mt-0.5">{t.tier_name}{t.quantity > 1 ? ` · x${t.quantity}` : ''}</p>
+                              <div className="flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
                                 {t.events?.date && (
                                   <p className="text-gray-500 text-xs flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
+                                    <Calendar className="w-3 h-3 flex-shrink-0" />
                                     {new Date(t.events.date + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                                   </p>
                                 )}
                                 {t.events?.location && (
                                   <p className="text-gray-500 text-xs flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    <span className="truncate max-w-[150px]">{t.events.location}</span>
+                                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                                    <span className="truncate max-w-[120px] sm:max-w-[150px]">{t.events.location}</span>
                                   </p>
                                 )}
                               </div>
@@ -807,42 +791,65 @@ export default function Dashboard() {
                                 </p>
                               )}
                             </div>
-                          </div>
-                          <div className="flex items-center gap-4 flex-shrink-0 ml-4">
-                            {/* Transfer button */}
-                            {!isPast && !t.transfer_status && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setTransferTicket(t) }}
-                                className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg px-3 py-2 text-xs font-bold transition-colors flex items-center gap-1"
-                                title="Transfer ticket"
-                              >
-                                <Send className="w-3.5 h-3.5" /> Transfer
-                              </button>
-                            )}
-                            {t.transfer_status === 'transferred' && (
-                              <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Transferred</span>
-                            )}
-                            {/* QR Code thumbnail */}
+                            {/* QR code - hidden on mobile, shown on desktop */}
                             <button
                               onClick={(e) => { e.stopPropagation(); setQrTicket(t) }}
-                              className={`bg-white rounded-lg p-1.5 hover:scale-105 transition-transform cursor-pointer flex-shrink-0 ${isMissed ? 'opacity-40' : ''}`}
+                              className={`bg-white rounded-lg p-1.5 hover:scale-105 transition-transform cursor-pointer flex-shrink-0 hidden sm:block ${isMissed ? 'opacity-40' : ''}`}
                               title="View QR code"
                             >
                               <QRCodeSVG value={t.check_in_code || t.id} size={48} level="M" />
                             </button>
-                            <div className="text-right">
-                              {t.is_rsvp || Number(t.total_price) === 0 ? (
-                                <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Free</span>
-                              ) : (
-                                <p className="text-pink-400 font-bold">₦{Number(t.total_price).toLocaleString()}</p>
-                              )}
+                          </div>
+
+                          {/* Bottom row: badges + actions */}
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                            {/* Left: status badges */}
+                            <div className="flex items-center gap-2 flex-wrap">
                               {isAttended ? (
-                                <span className="text-xs text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">Attended ✓</span>
+                                <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <CheckCircle2 className="w-2.5 h-2.5" /> Attended
+                                </span>
                               ) : isMissed ? (
-                                <span className="text-xs text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full">Missed</span>
+                                <span className="text-[10px] font-bold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <X className="w-2.5 h-2.5" /> Missed
+                                </span>
                               ) : (
-                                <span className="text-xs text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">Confirmed</span>
+                                <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Clock className="w-2.5 h-2.5" /> Upcoming
+                                </span>
                               )}
+                              {t.is_rsvp && <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">RSVP</span>}
+                              {t.attendance_mode === 'virtual' && <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>}
+                              {t.transfer_status === 'transferred' && (
+                                <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Transferred</span>
+                              )}
+                            </div>
+
+                            {/* Right: price + actions */}
+                            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                              {t.is_rsvp || Number(t.total_price) === 0 ? (
+                                <span className="text-green-400 font-bold text-sm flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Free</span>
+                              ) : (
+                                <span className="text-pink-400 font-bold text-sm">₦{Number(t.total_price).toLocaleString()}</span>
+                              )}
+                              {/* Transfer button */}
+                              {!isPast && !t.transfer_status && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setTransferTicket(t) }}
+                                  className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors flex items-center gap-1"
+                                  title="Transfer ticket"
+                                >
+                                  <Send className="w-3 h-3" /> <span className="hidden sm:inline">Transfer</span>
+                                </button>
+                              )}
+                              {/* QR button - shown on mobile only */}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setQrTicket(t) }}
+                                className={`bg-white rounded-lg p-1 hover:scale-105 transition-transform cursor-pointer flex-shrink-0 sm:hidden ${isMissed ? 'opacity-40' : ''}`}
+                                title="View QR code"
+                              >
+                                <QRCodeSVG value={t.check_in_code || t.id} size={32} level="M" />
+                              </button>
                             </div>
                           </div>
                         </div>
