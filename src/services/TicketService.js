@@ -90,7 +90,7 @@ const TicketService = {
         payment_reference: paymentReference || null,
         payment_status: paymentStatus || (item.totalPrice > 0 ? 'pending' : 'free'),
         payment_channel: paymentChannel || null,
-        paid_amount: paidAmount || 0,
+        paid_amount: item.totalPrice || 0,
         registration_data: registrationData && Object.keys(registrationData).length > 0 ? registrationData : null,
         ...(referralCode ? { referral_code: referralCode } : {})
       }

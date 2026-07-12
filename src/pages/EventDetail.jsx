@@ -286,7 +286,7 @@ export default function EventDetail() {
 
     const buyerName = profile?.full_name || guestInfo?.name || pendingGuestInfo?.name || ''
 
-    if (cartCount > 1 && !showAttendeeForm) {
+    if (cartCount >= 1 && !showAttendeeForm) {
       const slots = []
       cartItems.forEach(item => { for (let i = 0; i < item.quantity; i++) { slots.push({ tierName: item.tierName, price: item.price, name: '', email: '' }) } })
       if (slots.length > 0) { slots[0].name = buyerName; slots[0].email = user?.email || guestInfo?.email || '' }
@@ -340,13 +340,13 @@ export default function EventDetail() {
 
       // Send individual ticket emails to each attendee
       const buyerEmailAddr = user?.email || effectiveGuestInfo?.email
-      const sentEmails = new Set()
+      const sentTicketIds = new Set()
       tickets.forEach((ticket, i) => {
         const attendeeEmail = ticket.attendee_email || purchaseItems[i]?.attendeeEmail || ''
         const recipientEmail = attendeeEmail || buyerEmailAddr
         if (!recipientEmail) return
-        if (sentEmails.has(recipientEmail) && recipientEmail === buyerEmailAddr) return
-        sentEmails.add(recipientEmail)
+        if (sentTicketIds.has(ticket.id)) return
+        sentTicketIds.add(ticket.id)
         fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: recipientEmail, buyerName: ticket.attendee_name || purchaseItems[i]?.attendeeName || buyerName, eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, tickets: [{ tierName: ticket.tier_name, quantity: 1, totalPrice: ticket.total_price, checkInCode: ticket.check_in_code, attendeeName: ticket.attendee_name }], totalAmount: ticket.total_price || 0, paymentReference, paymentDate: new Date().toISOString() }) }).catch(err => console.warn('Email notification failed:', err))
       })
       // Summary email to buyer if multiple tickets
