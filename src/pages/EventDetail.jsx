@@ -211,7 +211,17 @@ export default function EventDetail() {
 
   /* --- Cart helpers --- */
   function cartQty(tierName) { return cart[tierName] || 0 }
-  function addToCart(tierName) { setCart(c => ({ ...c, [tierName]: (c[tierName] || 0) + 1 })) }
+  function addToCart(tierName) {
+    const tier = tiers.find(t => t.name === tierName)
+    const maxPer = tier?.max_per_purchase || 10
+    const remaining = tier ? getTierRemaining(tier) : null
+    setCart(c => {
+      const current = c[tierName] || 0
+      if (current >= maxPer) return c
+      if (remaining !== null && current >= remaining) return c
+      return { ...c, [tierName]: current + 1 }
+    })
+  }
   function removeFromCart(tierName) { setCart(c => { const q = (c[tierName] || 0) - 1; if (q <= 0) { const { [tierName]: _, ...rest } = c; return rest } return { ...c, [tierName]: q } }) }
   function clearCart() { setCart({}); setFloaterExpanded(false) }
 
