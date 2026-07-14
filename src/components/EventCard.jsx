@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, Ticket, ArrowRight, Video, Globe, Calendar } from 'lucide-react'
+import { MapPin, Ticket, ArrowRight, Video, Globe, Calendar, Clock, Eye } from 'lucide-react'
 import { Tilt3D, GlowCard } from './Interactive3D'
 
 export default function EventCard({ event }) {
@@ -13,6 +13,10 @@ export default function EventCard({ event }) {
 
   const isVirtual = event.event_type === 'virtual'
   const isHybrid = event.event_type === 'hybrid'
+
+  const eventEndRef = event.end_date || event.date
+  const eventEndTimeRef = event.end_time || event.time || '23:59'
+  const isEnded = eventEndRef ? new Date(`${eventEndRef}T${eventEndTimeRef}:00`) < new Date() : false
 
   let dateDisplay = event.date || ''
   if (event.end_date && event.end_date !== event.date) {
@@ -98,6 +102,19 @@ export default function EventCard({ event }) {
             }}>🔥 HOT</span>
           )}
 
+          {isEnded && (
+            <span style={{
+              position: 'absolute', top: 12, right: event.hot ? 80 : 12,
+              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'rgba(239,68,68,0.25)', color: '#fca5a5',
+              padding: '4px 10px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 800,
+              backdropFilter: 'blur(8px)', border: '1px solid rgba(239,68,68,0.3)',
+              letterSpacing: '0.06em',
+            }}>
+              <Clock size={10} /> ENDED
+            </span>
+          )}
+
           <span style={{
             position: 'absolute', bottom: 12, right: 12,
             fontWeight: 800, fontSize: '0.85rem',
@@ -162,10 +179,14 @@ export default function EventCard({ event }) {
             transform: hovered ? 'translateX(4px)' : 'translateX(0)',
             transition: 'transform 0.3s',
           }}>
-            <span className="btn btn-purple btn-3d" style={{ fontSize: '0.68rem', borderRadius: 10 }}>
-              <span className="btn-label" style={{ padding: '8px 14px', gap: 5 }}><Ticket size={11} /> GET TICKETS</span>
-              <span className="btn-arrow" style={{ padding: '0 10px' }}><ArrowRight size={11} /></span>
-            </span>
+            {isEnded ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontWeight: 700, padding: '8px 14px', borderRadius: 10, fontSize: '0.68rem' }}><Eye size={11} /> VIEW EVENT</span>
+            ) : (
+              <span className="btn btn-purple btn-3d" style={{ fontSize: '0.68rem', borderRadius: 10 }}>
+                <span className="btn-label" style={{ padding: '8px 14px', gap: 5 }}><Ticket size={11} /> GET TICKETS</span>
+                <span className="btn-arrow" style={{ padding: '0 10px' }}><ArrowRight size={11} /></span>
+              </span>
+            )}
           </div>
         </div>
       </div>
