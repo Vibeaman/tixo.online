@@ -3,6 +3,15 @@ import { supabase } from '../lib/supabase'
 const TicketService = {
   // Single tier purchase (supports guest checkout)
   async purchase({ eventId, eventTitle, tierName, quantity, totalPrice, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, attendeeName, attendeeEmail, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData }) {
+    // Prevent duplicates: if a payment reference exists, check if tickets were already created (e.g. by webhook)
+    if (paymentReference) {
+      const { data: existing } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('payment_reference', paymentReference)
+      if (existing && existing.length > 0) return existing[0]
+    }
+
     // Generate a unique 8-char check-in code
     const checkInCode = Array.from(crypto.getRandomValues(new Uint8Array(4)))
       .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
@@ -71,6 +80,15 @@ const TicketService = {
   // Multi-tier purchase (cart checkout - supports guest checkout)
   // Each item can include an attendeeName AND attendeeEmail for the individual ticket holder
   async purchaseMultiple({ eventId, eventTitle, items, userId, guestName, guestEmail, referralCode, attendanceMode, isRsvp, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData }) {
+    // Prevent duplicates: if a payment reference exists, check if tickets were already created (e.g. by webhook)
+    if (paymentReference) {
+      const { data: existing } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('payment_reference', paymentReference)
+      if (existing && existing.length > 0) return existing
+    }
+
     const inserts = items.map(item => {
       const code = Array.from(crypto.getRandomValues(new Uint8Array(4)))
         .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
