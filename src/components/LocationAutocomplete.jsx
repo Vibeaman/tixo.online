@@ -25,32 +25,47 @@ export default function LocationAutocomplete({ value, onChange, placeholder = 'S
     if (!q || q.length < 3) { setResults([]); return }
     setLoading(true)
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`,
-        { headers: { 'Accept-Language': 'en' } }
-      )
+      // Photon: Elasticsearch-powered OSM geocoder with better fuzzy matching
+      // Biased to Nigeria center (lat=9.08, lon=7.49) for better local results
+      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lat=9.08&lon=7.49&lang=en`
+      const res = await fetch(photonUrl)
       const data = await res.json()
-      const formatted = data.map(item => {
-        const addr = item.address || {}
+
+      const formatted = (data.features || []).map((feature, idx) => {
+        const props = feature.properties || {}
+        const coords = feature.geometry?.coordinates || []
         const parts = []
-        // Build a clean display name
-        const name = addr.amenity || addr.building || addr.leisure || addr.tourism || addr.shop || ''
+
+        // Build clean display name
+        const name = props.name || ''
         if (name) parts.push(name)
-        if (addr.road) parts.push(addr.road)
-        if (addr.city || addr.town || addr.village) parts.push(addr.city || addr.town || addr.village)
-        if (addr.state) parts.push(addr.state)
-        if (addr.country) parts.push(addr.country)
+        if (props.street) parts.push(props.street)
+        if (props.city || props.town || props.village) parts.push(props.city || props.town || props.village)
+        if (props.state) parts.push(props.state)
+        if (props.country) parts.push(props.country)
+
         return {
-          id: item.place_id,
-          display: parts.length > 0 ? parts.join(', ') : item.display_name,
-          full: item.display_name,
-          type: item.type,
-          lat: item.lat,
-          lon: item.lon
+          id: `${props.osm_id || idx}-${props.osm_type || 'node'}`,
+          display: parts.length > 0 ? [...new Set(parts)].join(', ') : (props.name || q),
+          full: parts.join(', '),
+          type: props.osm_value || props.type || 'place',
+          lat: coords[1],
+          lon: coords[0],
+          category: props.osm_key || ''
         }
       })
-      setResults(formatted)
-      setOpen(formatted.length > 0)
+
+      // Deduplicate by display name
+      const seen = new Set()
+      const unique = formatted.filter(r => {
+        const key = r.display.toLowerCase()
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+
+      setResults(unique)
+      setOpen(unique.length > 0)
       setHighlighted(-1)
     } catch (err) {
       console.warn('Location search failed:', err)
@@ -63,7 +78,7 @@ export default function LocationAutocomplete({ value, onChange, placeholder = 'S
   const handleInput = (e) => {
     const val = e.target.value
     setQuery(val)
-    onChange(val) // Keep form state in sync as they type
+    onChange(val)
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => search(val), 350)
   }
@@ -99,7 +114,10 @@ export default function LocationAutocomplete({ value, onChange, placeholder = 'S
     inputRef.current?.focus()
   }
 
-  const getTypeIcon = (type) => {
+  const getCategoryIcon = (category) => {
+    if (['leisure', 'tourism', 'amenity'].includes(category)) {
+      return <MapPin size={14} style={{ color: '#a855f7', flexShrink: 0 }} />
+    }
     return <MapPin size={14} style={{ color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} />
   }
 
@@ -135,44 +153,39 @@ export default function LocationAutocomplete({ value, onChange, placeholder = 'S
         <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
           marginTop: 4, borderRadius: 12, overflow: 'hidden',
-          background: 'rgba(20, 20, 35, 0.98)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(20px)',
-          maxHeight: 280, overflowY: 'auto'
+          background: 'rgba(20,20,30,0.98)', border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(20px)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
         }}>
-          {results.map((r, i) => (
+          {results.map((result, i) => (
             <button
-              key={r.id}
-              onClick={() => selectResult(r)}
+              key={result.id}
+              onClick={() => selectResult(result)}
               onMouseEnter={() => setHighlighted(i)}
               style={{
-                width: '100%', padding: '10px 14px',
-                display: 'flex', alignItems: 'flex-start', gap: 10,
+                width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 10,
                 background: highlighted === i ? 'rgba(255,255,255,0.08)' : 'transparent',
-                border: 'none', cursor: 'pointer', textAlign: 'left',
-                borderBottom: i < results.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                transition: 'background 0.15s ease'
+                border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s',
+                borderBottom: i < results.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'
               }}
             >
-              {getTypeIcon(r.type)}
-              <div style={{ minWidth: 0 }}>
-                <p style={{ color: 'white', fontSize: '0.85rem', fontWeight: 500, margin: 0, lineHeight: 1.3,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-                  {r.display}
-                </p>
+              <div style={{ marginTop: 2 }}>{getCategoryIcon(result.category)}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: '#fff', fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {result.display.split(',')[0]}
+                </div>
+                {result.display.includes(',') && (
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {result.display.split(',').slice(1).join(',').trim()}
+                  </div>
+                )}
               </div>
             </button>
           ))}
-          <div style={{ padding: '6px 14px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'flex-end' }}>
-            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>Powered by OpenStreetMap</span>
+          <div style={{ padding: '6px 16px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>Powered by Photon / OpenStreetMap</span>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
-      `}</style>
     </div>
   )
 }
