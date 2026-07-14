@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
 import { uploadEventImage } from '../lib/uploadImage'
+import LocationAutocomplete from '../components/LocationAutocomplete'
 
 const CATEGORIES = ['Music','Tech','Art','Food','Sports','Comedy','Festivals','Community','Party']
 const EVENT_TYPES = [
@@ -474,8 +475,12 @@ export default function CreateEvent() {
               {form.event_type !== 'virtual' && (
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">Location *</label>
-                  <input name="location" value={form.location} onChange={update} placeholder="Venue, City"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" />
+                  <LocationAutocomplete
+                    value={form.location}
+                    onChange={(val) => setForm(f => ({ ...f, location: val }))}
+                    placeholder="Search for a venue or address..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20"
+                  />
                 </div>
               )}
 
