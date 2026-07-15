@@ -273,10 +273,15 @@ export default function EventDetail() {
     setRsvping(true)
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
-      await TicketService.purchase({ eventId: event.id, eventTitle: event.title, tierName: tiers[0]?.name || 'General', quantity: 1, totalPrice: 0, userId: user?.id || null, guestName: guestInfo?.name || null, guestEmail: guestInfo?.email || null, referralCode: refCode || null, attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'), isRsvp: true, attendeeName: guestInfo?.name || profile?.full_name || null, attendeeEmail: guestInfo?.email || user?.email || null, paymentStatus: 'free', registrationData: guestInfo?.registrationData || registrationData })
+      const ticket = await TicketService.purchase({ eventId: event.id, eventTitle: event.title, tierName: tiers[0]?.name || 'General', quantity: 1, totalPrice: 0, userId: user?.id || null, guestName: guestInfo?.name || null, guestEmail: guestInfo?.email || null, referralCode: refCode || null, attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'), isRsvp: true, attendeeName: guestInfo?.name || profile?.full_name || null, attendeeEmail: guestInfo?.email || user?.email || null, paymentStatus: 'free', registrationData: guestInfo?.registrationData || registrationData })
       sessionStorage.removeItem(`ref_${id}`)
       setHasRsvpd(true); setPurchaseSuccess(true); setShowGuestForm(false)
       toast.success('RSVP confirmed!')
+      // Send confirmation email for free RSVP
+      const rsvpEmail = guestInfo?.email || user?.email
+      if (rsvpEmail && ticket) {
+        fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: rsvpEmail, buyerName: guestInfo?.name || profile?.full_name || '', eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: [{ tierName: ticket.tier_name, quantity: 1, totalPrice: 0, checkInCode: ticket.check_in_code, attendeeName: ticket.attendee_name }], totalAmount: 0, paymentReference: ticket.payment_reference || 'free-rsvp', paymentDate: new Date().toISOString() }) }).catch(err => console.warn('RSVP email failed:', err))
+      }
     } catch (e) { toast.error(e.message || 'RSVP failed') } finally { setRsvping(false) }
   }
 
@@ -287,9 +292,14 @@ export default function EventDetail() {
     setRsvping(true)
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
-      await TicketService.purchase({ eventId: event.id, eventTitle: event.title, tierName: tier.name, quantity: 1, totalPrice: 0, userId: user?.id || null, guestName: guestInfo?.name || null, guestEmail: guestInfo?.email || null, referralCode: refCode || null, attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'), isRsvp: true, attendeeName: guestInfo?.name || profile?.full_name || null, attendeeEmail: guestInfo?.email || user?.email || null, paymentStatus: 'free', registrationData: guestInfo?.registrationData || registrationData })
+      const ticket = await TicketService.purchase({ eventId: event.id, eventTitle: event.title, tierName: tier.name, quantity: 1, totalPrice: 0, userId: user?.id || null, guestName: guestInfo?.name || null, guestEmail: guestInfo?.email || null, referralCode: refCode || null, attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'), isRsvp: true, attendeeName: guestInfo?.name || profile?.full_name || null, attendeeEmail: guestInfo?.email || user?.email || null, paymentStatus: 'free', registrationData: guestInfo?.registrationData || registrationData })
       setReservedFreeTiers(prev => ({ ...prev, [tier.name]: true }))
       toast.success(`Spot reserved for ${tier.name}!`)
+      // Send confirmation email for free tier reservation
+      const reserveEmail = guestInfo?.email || user?.email
+      if (reserveEmail && ticket) {
+        fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: reserveEmail, buyerName: guestInfo?.name || profile?.full_name || '', eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: [{ tierName: ticket.tier_name, quantity: 1, totalPrice: 0, checkInCode: ticket.check_in_code, attendeeName: ticket.attendee_name }], totalAmount: 0, paymentReference: ticket.payment_reference || 'free-reservation', paymentDate: new Date().toISOString() }) }).catch(err => console.warn('Free tier email failed:', err))
+      }
     } catch (e) { toast.error(e.message || 'Reservation failed') } finally { setRsvping(false) }
   }
 
