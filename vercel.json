@@ -1,5 +1,7 @@
 {
   "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/:path*" },
+    { "source": "/e/:slug", "destination": "/api/e/:slug" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
