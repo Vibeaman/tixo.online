@@ -1,5 +1,17 @@
 import { supabase } from '../lib/supabase'
 
+function generateSlug(title) {
+  const base = title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+  const suffix = Math.random().toString(36).substring(2, 6)
+  return `${base}-${suffix}`
+}
+
 const EventService = {
   async getAll() {
     const { data, error } = await supabase
@@ -68,10 +80,21 @@ const EventService = {
     return data
   },
 
-  async create(eventData) {
+  async getBySlug(slug) {
     const { data, error } = await supabase
       .from('events')
-      .insert([{ ...eventData, status: eventData.status || 'published' }])
+      .select('*')
+      .eq('slug', slug)
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async create(eventData) {
+    const slug = generateSlug(eventData.title || 'event')
+    const { data, error } = await supabase
+      .from('events')
+      .insert([{ ...eventData, slug, status: eventData.status || 'published' }])
       .select()
       .single()
     if (error) throw error
