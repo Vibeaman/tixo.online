@@ -51,7 +51,7 @@ export default function ShareButton({ event, variant = 'icon' }) {
   const menuRef = useRef(null)
 
   const url = typeof window !== 'undefined'
-    ? `${window.location.origin}/${event?.slug || event?.id}`
+    ? `${window.location.origin}/e/${event?.slug || event?.id}`
     : ''
   const text = event ? `Check out "${event.title}" on Tixo! 🎫` : 'Check out this event on Tixo!'
 
