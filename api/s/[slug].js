@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       ? event.description.substring(0, 200)
       : 'Discover and book tickets on Tixo'
     const image = event.image || 'https://tixo.online/og-default.png'
-    const canonicalUrl = `https://tixo.online/e/${slug}`
+    const canonicalUrl = `https://tixo.online/${slug}`
     const date = event.date
       ? new Date(event.date + 'T00:00:00').toLocaleDateString('en', {
           weekday: 'long',
