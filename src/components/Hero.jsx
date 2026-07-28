@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Search, Sparkles, Zap, Ticket } from 'lucide-react'
 import { FloatingParticles, ScrollReveal, MagneticButton, FloatingShapes, MorphBlob, ParallaxMouse } from './Interactive3D'
+import { supabase } from '../lib/supabase'
 
 function AnimatedCounter({ target, suffix = '+', duration = 2000 }) {
   const [count, setCount] = useState(0)
@@ -36,6 +37,27 @@ export default function Hero() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+  const [stats, setStats] = useState({ events: 0, tickets: 0, users: 0 })
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const [eventsRes, ticketsRes, usersRes] = await Promise.all([
+          supabase.from('events').select('*', { count: 'exact', head: true }),
+          supabase.from('tickets').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        ])
+        setStats({
+          events: eventsRes.count ?? 0,
+          tickets: ticketsRes.count ?? 0,
+          users: usersRes.count ?? 0,
+        })
+      } catch (err) {
+        console.error('Failed to fetch stats:', err)
+      }
+    }
+    fetchStats()
+  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -214,9 +236,9 @@ export default function Hero() {
           display: 'flex', justifyContent: 'space-around', textAlign: 'center'
         }}>
           {[
-            { value: 106, label: 'EVENTS', icon: '🎉' },
-            { value: 19950, label: 'TICKETS', icon: '🎫' },
-            { value: 5355, label: 'USERS', icon: '👥' },
+            { value: stats.events, label: 'EVENTS', icon: '🎉' },
+            { value: stats.tickets, label: 'TICKETS', icon: '🎫' },
+            { value: stats.users, label: 'USERS', icon: '👥' },
           ].map((stat, i) => (
             <ScrollReveal key={i} direction="up" delay={0.1 + i * 0.15} distance={30}>
               <div style={{ flex: 1 }}>
