@@ -13,6 +13,7 @@ import RoleCards from './components/RoleCards'
 import HowItWorks from './components/HowItWorks'
 import Categories from './components/Categories'
 import HostBanner from './components/HostBanner'
+import StatsBar from './components/StatsBar'
 
 import BrowseEvents from './pages/BrowseEvents'
 import EventDetail from './pages/EventDetail'
@@ -36,6 +37,7 @@ function Landing() {
       <TrendingEvents />
       <RoleCards />
       <HowItWorks />
+      <StatsBar />
       <Categories />
       <HostBanner />
     </>
