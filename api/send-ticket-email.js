@@ -50,9 +50,42 @@ export default async function handler(req, res) {
     return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=168-85-247&bgcolor=18-18-26&data=${encodeURIComponent(code)}`
   }
 
+  function buildCalendarUrl({ title, dateStr, timeStr, location, virtualLink, slug }) {
+    // Convert date + time to YYYYMMDDTHHmmss format
+    let startDt = ''
+    let endDt = ''
+    if (dateStr) {
+      const d = dateStr.replace(/-/g, '')
+      const t = timeStr ? timeStr.replace(/:/g, '') + '00' : '120000'
+      startDt = d + 'T' + t
+      // End = start + 2 hours
+      const startDate = new Date(dateStr + 'T' + (timeStr || '12:00') + ':00')
+      const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000)
+      const pad = (n) => String(n).padStart(2, '0')
+      endDt = `${endDate.getFullYear()}${pad(endDate.getMonth() + 1)}${pad(endDate.getDate())}T${pad(endDate.getHours())}${pad(endDate.getMinutes())}00`
+    }
+    let details = `Event page: https://tixo.online/event/${slug || ''}`
+    if (virtualLink) details += `\nJoin link: ${virtualLink}`
+    const loc = location || virtualLink || ''
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDt}/${endDt}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(loc)}`
+  }
+
   const isFree = !totalAmount || Number(totalAmount) === 0
   const ticketCount = (tickets || []).length
   const eventUrl = `https://tixo.online/event/${eventSlug || ''}`
+
+  const subject = isFree
+    ? `You're In! RSVP Confirmed for ${eventTitle}`
+    : `🎫 Your Ticket${ticketCount > 1 ? 's' : ''} for ${eventTitle} — Confirmed!`
+
+  const calendarUrl = buildCalendarUrl({ title: eventTitle, dateStr: eventDate, timeStr: eventTime, location: eventLocation, virtualLink, slug: eventSlug })
+
+  const meetingCalendarBlock = isFree ? `
+    <div style="padding:0 28px 24px;text-align:center">
+      ${virtualLink ? `<a href="${virtualLink}" target="_blank" style="display:block;background:#2563eb;color:#fff;text-decoration:none;padding:16px 24px;border-radius:12px;font-weight:800;font-size:17px;text-align:center;margin-bottom:12px">🎥 Join Meeting</a>` : ''}
+      <a href="${calendarUrl}" target="_blank" style="display:inline-block;background:transparent;color:#c084fc;text-decoration:none;padding:12px 28px;border-radius:12px;font-weight:700;font-size:14px;border:1px solid rgba(168,85,247,0.4)">📅 Add to Calendar</a>
+    </div>
+` : ''
 
   // --- Build individual ticket cards with QR codes ---
   const ticketCards = (tickets || []).map((t, i) => {
@@ -61,6 +94,22 @@ export default async function handler(req, res) {
     const attendee = t.attendeeName || buyerName || ''
     const price = t.totalPrice > 0 ? '₦' + Number(t.totalPrice).toLocaleString() : 'Free'
     const priceColor = t.totalPrice > 0 ? '#ec4899' : '#4ade80'
+
+    const qrSection = isFree
+      ? (code ? `
+        <p style="margin:0 0 4px;color:rgba(255,255,255,0.5);font-size:12px">Check-in code</p>
+        <div style="display:inline-flex;align-items:center">
+          <img src="${qrUrl(code)}" alt="QR Ticket" width="64" height="64" style="display:inline-block;border-radius:6px;vertical-align:middle;margin-right:8px" />
+          <span style="color:#a855f7;font-size:14px;font-weight:700;letter-spacing:2px;font-family:monospace;vertical-align:middle">${code}</span>
+        </div>
+        ` : '')
+      : (code ? `
+        <div style="background:#12121a;border-radius:12px;padding:16px;display:inline-block;margin-bottom:12px">
+          <img src="${qrUrl(code)}" alt="QR Ticket" width="160" height="160" style="display:block;border-radius:8px" />
+        </div>
+        <p style="margin:0;color:#a855f7;font-size:14px;font-weight:700;letter-spacing:2px;font-family:monospace">${code}</p>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.3);font-size:11px">Show this QR code at the event entrance</p>
+        ` : '')
 
     return `
     <!-- Ticket Card ${i + 1} -->
@@ -79,13 +128,7 @@ export default async function handler(req, res) {
       <!-- Ticket body with QR -->
       <div style="padding:20px;text-align:center">
         ${attendee ? `<p style="margin:0 0 12px;color:rgba(255,255,255,0.6);font-size:13px">Attendee: <span style="color:#fff;font-weight:600">${attendee}</span></p>` : ''}
-        ${code ? `
-        <div style="background:#12121a;border-radius:12px;padding:16px;display:inline-block;margin-bottom:12px">
-          <img src="${qrUrl(code)}" alt="QR Ticket" width="160" height="160" style="display:block;border-radius:8px" />
-        </div>
-        <p style="margin:0;color:#a855f7;font-size:14px;font-weight:700;letter-spacing:2px;font-family:monospace">${code}</p>
-        <p style="margin:6px 0 0;color:rgba(255,255,255,0.3);font-size:11px">Show this QR code at the event entrance</p>
-        ` : ''}
+        ${qrSection}
       </div>
     </div>`
   }).join('')
@@ -100,7 +143,7 @@ export default async function handler(req, res) {
 
   <!-- ===== HEADER BANNER ===== -->
   <div style="background:linear-gradient(135deg,#7c3aed,#ec4899);padding:20px 24px;text-align:center">
-    <h1 style="margin:0;color:#fff;font-size:13px;text-transform:uppercase;letter-spacing:3px;font-weight:800">🎫 Booking Confirmation</h1>
+    <h1 style="margin:0;color:#fff;font-size:13px;text-transform:uppercase;letter-spacing:3px;font-weight:800">${isFree ? '🎉 You\'re In!' : '🎫 Booking Confirmation'}</h1>
   </div>
 
   <!-- ===== MAIN CARD ===== -->
@@ -108,7 +151,7 @@ export default async function handler(req, res) {
 
     <!-- Greeting -->
     <div style="padding:32px 28px 24px">
-      <h2 style="margin:0 0 12px;color:#fff;font-size:24px;font-weight:800">Experience Confirmed! 🎉</h2>
+      <h2 style="margin:0 0 12px;color:#fff;font-size:24px;font-weight:800">${isFree ? 'RSVP Confirmed! 🎉' : 'Experience Confirmed! 🎉'}</h2>
       <p style="margin:0;color:rgba(255,255,255,0.65);font-size:15px;line-height:1.6">
         Hello <strong style="color:#fff">${buyerName || 'there'}</strong>, we're glad to have you on board. Your booking was successful and your ticket${ticketCount > 1 ? 's' : ''} for
         <a href="${eventUrl}" style="color:#ec4899;text-decoration:none;font-weight:700">${eventTitle}</a> ${ticketCount > 1 ? 'are' : 'is'} ready.
@@ -148,7 +191,7 @@ export default async function handler(req, res) {
             <p style="margin:4px 0 0;color:#fff;font-size:15px;font-weight:600">${eventLocation}</p>
           </td>
         </tr>` : ''}
-        ${eventType === 'virtual' || eventType === 'hybrid' ? `
+        ${!isFree && (eventType === 'virtual' || eventType === 'hybrid') ? `
         <tr>
           <td style="padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06);width:40px;vertical-align:top">
             <span style="font-size:18px">💻</span>
@@ -169,6 +212,7 @@ export default async function handler(req, res) {
         </tr>
       </table>
     </div>
+    ${meetingCalendarBlock}
 
     <!-- ===== TICKET CARDS WITH QR CODES ===== -->
     <div style="padding:0 28px">
@@ -236,7 +280,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: process.env.EMAIL_FROM || 'Tixo <tickets@tixo.online>',
         to: [to],
-        subject: `🎫 Your Ticket${ticketCount > 1 ? 's' : ''} for ${eventTitle} — Confirmed!`,
+        subject,
         html
       })
     })
