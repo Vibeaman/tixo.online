@@ -7,6 +7,7 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 
 import Hero from './components/Hero'
+import NewestEvents from './components/NewestEvents'
 import TrendingEvents from './components/TrendingEvents'
 import RoleCards from './components/RoleCards'
 import HowItWorks from './components/HowItWorks'
@@ -31,6 +32,7 @@ function Landing() {
   return (
     <>
       <Hero />
+      <NewestEvents />
       <TrendingEvents />
       <RoleCards />
       <HowItWorks />

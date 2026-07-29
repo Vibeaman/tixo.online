@@ -4,7 +4,7 @@ import EventCard from './EventCard'
 import EventService from '../services/EventService'
 import { ScrollReveal } from './Interactive3D'
 
-export default function TrendingEvents() {
+export default function NewestEvents() {
   const navigate = useNavigate()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -12,17 +12,15 @@ export default function TrendingEvents() {
   useEffect(() => {
     async function load() {
       try {
-        // Try featured first, fall back to all events
-        let data = await EventService.getFeatured()
-        if (!data || data.length === 0) {
-          data = await EventService.getAll()
-        }
+        const data = await EventService.getAll() // already ordered by created_at DESC
         setEvents((data || []).slice(0, 6))
       } catch (e) { console.error(e) }
       finally { setLoading(false) }
     }
     load()
   }, [])
+
+  if (!loading && events.length === 0) return null
 
   return (
     <section className="section-dark" style={{ padding: 'clamp(60px, 8vw, 100px) 24px' }}>
@@ -31,7 +29,7 @@ export default function TrendingEvents() {
           <ScrollReveal direction="left">
             <div>
               <span className="section-tag" style={{ marginBottom: 12, display: 'inline-block' }}>
-                🔥 Hot & Selling
+                🆕 Just Dropped
               </span>
               <h2 style={{
                 fontSize: 'clamp(2rem, 4vw, 3.2rem)',
@@ -39,9 +37,9 @@ export default function TrendingEvents() {
                 letterSpacing: '-0.03em',
                 marginTop: 8,
               }}>
-                Events people{' '}
-                <span style={{ color: 'var(--purple-light)', fontStyle: 'italic' }}>can't stop</span>{' '}
-                talking about.
+                The{' '}
+                <span style={{ color: 'var(--purple-light)', fontStyle: 'italic' }}>newest</span>{' '}
+                events on Tixo.
               </h2>
             </div>
           </ScrollReveal>
@@ -64,14 +62,6 @@ export default function TrendingEvents() {
               animation: 'spin 1s linear infinite',
             }} />
           </div>
-        ) : events.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.4)' }}>
-            <p style={{ fontSize: '1.1rem' }}>No events yet — be the first to create one! 🎉</p>
-            <button onClick={() => navigate('/create')}
-              className="btn btn-purple btn-3d" style={{ marginTop: 20, borderRadius: 999 }}>
-              <span className="btn-label" style={{ padding: '12px 24px' }}>CREATE EVENT</span>
-            </button>
-          </div>
         ) : (
           <div style={{
             display: 'grid',
@@ -85,16 +75,6 @@ export default function TrendingEvents() {
             ))}
           </div>
         )}
-
-        <button onClick={() => navigate('/events')}
-          className="btn btn-purple btn-3d"
-          style={{
-            display: 'none',
-            marginTop: 32, width: '100%', borderRadius: 999,
-            fontSize: '0.8rem',
-          }}>
-          <span className="btn-label" style={{ padding: '14px 24px', justifyContent: 'center' }}>VIEW ALL EVENTS</span>
-        </button>
       </div>
     </section>
   )
