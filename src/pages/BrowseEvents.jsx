@@ -13,7 +13,7 @@ export default function BrowseEvents() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState(searchParams.get('q') || '')
   const [category, setCategory] = useState('All')
-  const [sort, setSort] = useState('date')
+  const [sort, setSort] = useState('newest')
   const [location, setLocation] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
