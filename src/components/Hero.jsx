@@ -2,62 +2,10 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Search, Sparkles, Zap, Ticket } from 'lucide-react'
 import { FloatingParticles, ScrollReveal, MagneticButton, FloatingShapes, MorphBlob, ParallaxMouse } from './Interactive3D'
-import { supabase } from '../lib/supabase'
-
-function AnimatedCounter({ target, suffix = '+', duration = 2000 }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef(null)
-  const [started, setStarted] = useState(false)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting && !started) setStarted(true) },
-      { threshold: 0.3 }
-    )
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [started])
-
-  useEffect(() => {
-    if (!started) return
-    let current = 0
-    const step = target / (duration / 16)
-    const timer = setInterval(() => {
-      current += step
-      if (current >= target) { setCount(target); clearInterval(timer) }
-      else setCount(Math.floor(current))
-    }, 16)
-    return () => clearInterval(timer)
-  }, [started, target, duration])
-
-  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>
-}
-
 export default function Hero() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
-  const [stats, setStats] = useState({ events: 0, tickets: 0, users: 0 })
-
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const [eventsRes, ticketsRes, usersRes] = await Promise.all([
-          supabase.from('events').select('*', { count: 'exact', head: true }),
-          supabase.from('tickets').select('*', { count: 'exact', head: true }),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        ])
-        setStats({
-          events: eventsRes.count ?? 0,
-          tickets: ticketsRes.count ?? 0,
-          users: usersRes.count ?? 0,
-        })
-      } catch (err) {
-        console.error('Failed to fetch stats:', err)
-      }
-    }
-    fetchStats()
-  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -223,42 +171,7 @@ export default function Hero() {
         </ScrollReveal>
       </div>
 
-      {/* Stats bar */}
-      <div style={{
-        position: 'relative', zIndex: 3,
-        borderTop: '1px solid rgba(255,255,255,0.1)',
-        padding: '28px 24px',
-        background: 'rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(12px)'
-      }}>
-        <div style={{
-          maxWidth: 700, margin: '0 auto',
-          display: 'flex', justifyContent: 'space-around', textAlign: 'center'
-        }}>
-          {[
-            { value: stats.events, label: 'EVENTS', icon: '🎉' },
-            { value: stats.tickets, label: 'TICKETS', icon: '🎫' },
-            { value: stats.users, label: 'USERS', icon: '👥' },
-          ].map((stat, i) => (
-            <ScrollReveal key={i} direction="up" delay={0.1 + i * 0.15} distance={30}>
-              <div style={{ flex: 1 }}>
-                <div style={{
-                  fontSize: 'clamp(1.6rem, 4vw, 2.6rem)', fontWeight: 900, color: 'white',
-                  textShadow: '0 0 30px rgba(233,30,140,0.2)',
-                }}>
-                  <AnimatedCounter target={stat.value} />
-                </div>
-                <div style={{
-                  fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)',
-                  letterSpacing: '0.12em', marginTop: 4
-                }}>
-                  {stat.icon} {stat.label}
-                </div>
-              </div>
-            </ScrollReveal>
-          ))}
-        </div>
-      </div>
+
     </section>
   )
 }
