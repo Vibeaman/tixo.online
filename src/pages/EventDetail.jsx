@@ -251,6 +251,9 @@ export default function EventDetail() {
   const cartItems = Object.entries(cart).map(([name, qty]) => { const tier = tiers.find(t => t.name === name); const price = getEffectivePrice(tier); return { tierName: name, quantity: qty, price, totalPrice: price * qty } }).filter(i => i.quantity > 0)
   const cartTotal = cartItems.reduce((s, i) => s + i.totalPrice, 0)
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0)
+  const eventEndRef = event.end_date || event.date
+  const eventEndTimeRef = event.end_time || event.time || '23:59'
+  const isEventEnded = eventEndRef ? new Date(`${eventEndRef}T${eventEndTimeRef}:00`) < new Date() : false
   const showFloatingCart = cartCount > 0 && !isFreeEvent && !purchaseSuccess && !cartSummaryVisible && !showAttendeeForm && !isEventEnded
 
   function scrollToCart() { cartSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setFloaterExpanded(false) }
@@ -423,9 +426,6 @@ export default function EventDetail() {
   const startTime = formatTime(event.time)
   const endTime = formatTime(event.end_time)
   const isMultiDay = event.end_date && event.end_date !== event.date
-  const eventEndRef = event.end_date || event.date
-  const eventEndTimeRef = event.end_time || event.time || '23:59'
-  const isEventEnded = eventEndRef ? new Date(`${eventEndRef}T${eventEndTimeRef}:00`) < new Date() : false
   const isHybrid = event.event_type === 'hybrid'
   const isVirtual = event.event_type === 'virtual'
   const isPrivateVirtual = event.virtual_access === 'private'
