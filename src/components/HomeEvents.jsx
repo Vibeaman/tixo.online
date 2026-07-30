@@ -30,7 +30,7 @@ function getPriceLabel(event) {
 }
 
 function eventLink(event) {
-  return event.slug ? `/s/${event.slug}` : `/event/${event.id}`
+  return `/events/${event.id}`
 }
 
 function EventCardSmall({ event }) {
