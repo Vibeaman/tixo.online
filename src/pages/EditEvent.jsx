@@ -32,6 +32,7 @@ export default function EditEvent() {
   const [imagePreview, setImagePreview] = useState('')
   const [uploading, setUploading] = useState(false)
   const [existingSlug, setExistingSlug] = useState(null)
+  const [originalTitle, setOriginalTitle] = useState('')
   const fileInputRef = useRef(null)
   const [form, setForm] = useState({
     title: '', description: '',
@@ -118,6 +119,7 @@ export default function EditEvent() {
         })
         if (ev.image) setImagePreview(ev.image)
         setExistingSlug(ev.slug || null)
+        setOriginalTitle(ev.title || '')
       } catch (e) {
         toast.error('Event not found')
         navigate('/dashboard')
@@ -211,9 +213,10 @@ export default function EditEvent() {
         setUploading(false)
       }
 
-      // Generate a clean slug for pre-migration events that don't have one yet
+      // Regenerate slug when title changes or when no slug exists yet
+      const titleChanged = form.title.trim().toLowerCase() !== originalTitle.trim().toLowerCase()
       let slug = existingSlug
-      if (!slug) {
+      if (!slug || titleChanged) {
         const base = (form.title || 'event')
           .toLowerCase().trim()
           .replace(/[^\w\s-]/g, '')
