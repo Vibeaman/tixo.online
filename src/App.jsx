@@ -7,8 +7,7 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 
 import Hero from './components/Hero'
-import NewestEvents from './components/NewestEvents'
-import TrendingEvents from './components/TrendingEvents'
+import HomeEvents from './components/HomeEvents'
 import RoleCards from './components/RoleCards'
 import HowItWorks from './components/HowItWorks'
 import Categories from './components/Categories'
@@ -33,8 +32,7 @@ function Landing() {
   return (
     <>
       <Hero />
-      <NewestEvents />
-      <TrendingEvents />
+      <HomeEvents />
       <RoleCards />
       <HowItWorks />
       <StatsBar />

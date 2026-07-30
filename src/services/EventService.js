@@ -79,6 +79,17 @@ const EventService = {
     return data
   },
 
+  async getNewest(limit = 6) {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .or('status.eq.published,status.is.null')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error) throw error
+    return data
+  },
+
   async getFeatured() {
     const { data, error } = await supabase
       .from('events')
