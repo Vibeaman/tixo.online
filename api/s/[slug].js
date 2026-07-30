@@ -8,6 +8,8 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+    .replace(/[\r\n]+/g, ' ')
+    .trim()
 }
 
 function ensureAbsoluteUrl(url, supabaseUrl) {
