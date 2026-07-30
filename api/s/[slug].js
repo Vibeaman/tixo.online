@@ -61,7 +61,11 @@ export default async function handler(req, res) {
     )
     // Use the raw image URL — do NOT escapeHtml on URLs (breaks & in query strings)
     const rawImage = ensureAbsoluteUrl(event.image, supabaseUrl)
-    const image = rawImage || 'https://tixo.online/og-default.png'
+    // Optimize for OG: resize to 1200x630 landscape JPEG via wsrv.nl proxy
+    // This ensures fast loading and correct aspect ratio for all social platforms
+    const image = rawImage
+      ? `https://wsrv.nl/?url=${encodeURIComponent(rawImage)}&w=1200&h=630&fit=cover&output=jpg&q=80`
+      : 'https://tixo.online/og-default.png'
     const canonicalUrl = `https://tixo.online/${slug}`
     const date = event.date
       ? new Date(event.date + 'T00:00:00').toLocaleDateString('en', {

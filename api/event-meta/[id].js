@@ -42,7 +42,11 @@ export default async function handler(req, res) {
 
     const title = escapeHtml(event.title || 'Event on Tixo')
     const rawDesc = event.description ? event.description.substring(0, 200) : 'Discover and book tickets on Tixo'
-    const image = event.image || 'https://tixo.online/og-default.png'
+    // Optimize for OG: resize to 1200x630 landscape JPEG via wsrv.nl proxy
+    const rawImage = event.image
+    const image = rawImage
+      ? `https://wsrv.nl/?url=${encodeURIComponent(rawImage)}&w=1200&h=630&fit=cover&output=jpg&q=80`
+      : 'https://tixo.online/og-default.png'
     const url = `https://tixo.online/events/${id}`
     const date = event.date ? new Date(event.date + 'T00:00:00').toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''
     const location = event.location || ''
