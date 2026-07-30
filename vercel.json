@@ -1,7 +1,6 @@
 {
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/events/:id", "destination": "/api/event-meta/:id" },
     { "source": "/events/:path*", "destination": "/index.html" },
     { "source": "/create", "destination": "/index.html" },
     { "source": "/edit-event/:path*", "destination": "/index.html" },
