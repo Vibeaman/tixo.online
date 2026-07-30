@@ -1,13 +1,24 @@
 import { supabase } from '../lib/supabase'
 
-function generateSlug(title) {
-  const base = title
+function slugify(title) {
+  return title
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
+}
+
+async function generateUniqueSlug(title) {
+  const base = slugify(title)
+  // Try the clean slug first
+  const { count } = await supabase
+    .from('events')
+    .select('id', { count: 'exact', head: true })
+    .eq('slug', base)
+  if (!count) return base
+  // Collision — append a short suffix
   const suffix = Math.random().toString(36).substring(2, 6)
   return `${base}-${suffix}`
 }
@@ -91,7 +102,7 @@ const EventService = {
   },
 
   async create(eventData) {
-    const slug = generateSlug(eventData.title || 'event')
+    const slug = await generateUniqueSlug(eventData.title || 'event')
     const { data, error } = await supabase
       .from('events')
       .insert([{ ...eventData, slug, status: eventData.status || 'published' }])

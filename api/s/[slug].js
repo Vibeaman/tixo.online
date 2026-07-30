@@ -57,7 +57,9 @@ export default async function handler(req, res) {
         ? event.description.substring(0, 200)
         : 'Discover and book tickets on Tixo'
     )
-    const image = ensureAbsoluteUrl(event.image, supabaseUrl) || 'https://tixo.online/og-default.png'
+    // Use the raw image URL — do NOT escapeHtml on URLs (breaks & in query strings)
+    const rawImage = ensureAbsoluteUrl(event.image, supabaseUrl)
+    const image = rawImage || 'https://tixo.online/og-default.png'
     const canonicalUrl = `https://tixo.online/${slug}`
     const date = event.date
       ? new Date(event.date + 'T00:00:00').toLocaleDateString('en', {
@@ -80,7 +82,7 @@ export default async function handler(req, res) {
 <meta name="description" content="${fullDesc}" />
 <meta property="og:title" content="${title}" />
 <meta property="og:description" content="${fullDesc}" />
-<meta property="og:image" content="${escapeHtml(image)}" />
+<meta property="og:image" content="${image}" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:url" content="${canonicalUrl}" />
@@ -89,7 +91,7 @@ export default async function handler(req, res) {
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${title}" />
 <meta name="twitter:description" content="${fullDesc}" />
-<meta name="twitter:image" content="${escapeHtml(image)}" />
+<meta name="twitter:image" content="${image}" />
 </head>
 <body>
 <script>window.location.href="/events/${event.id}"</script>

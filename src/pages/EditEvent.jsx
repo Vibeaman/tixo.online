@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
 import { uploadEventImage } from '../lib/uploadImage'
+import { supabase } from '../lib/supabase'
 
 const CATEGORIES = ['Music','Tech','Art','Food','Sports','Comedy','Festivals','Community','Party']
 const EVENT_TYPES = [
@@ -208,17 +209,23 @@ export default function EditEvent() {
         setUploading(false)
       }
 
-      // Generate a slug for pre-migration events that don't have one yet
-      const slug = existingSlug || (() => {
+      // Generate a clean slug for pre-migration events that don't have one yet
+      let slug = existingSlug
+      if (!slug) {
         const base = (form.title || 'event')
           .toLowerCase().trim()
           .replace(/[^\w\s-]/g, '')
           .replace(/[\s_]+/g, '-')
           .replace(/-+/g, '-')
           .replace(/^-|-$/g, '')
-        const suffix = Math.random().toString(36).substring(2, 6)
-        return `${base}-${suffix}`
-      })()
+        // Check if the clean slug is already taken
+        const { count } = await supabase
+          .from('events')
+          .select('id', { count: 'exact', head: true })
+          .eq('slug', base)
+          .neq('id', id)
+        slug = count ? `${base}-${Math.random().toString(36).substring(2, 6)}` : base
+      }
 
       const updates = {
         title: form.title,
