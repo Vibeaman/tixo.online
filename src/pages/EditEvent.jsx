@@ -213,23 +213,25 @@ export default function EditEvent() {
         setUploading(false)
       }
 
-      // Regenerate slug when title changes or when no slug exists yet
+      // Regenerate slug when title changes, no slug exists, or slug has a random suffix
       const titleChanged = form.title.trim().toLowerCase() !== originalTitle.trim().toLowerCase()
+      const cleanBase = (form.title || 'event')
+        .toLowerCase().trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+      // Detect slugs with random 4-char suffix (e.g. comedy-brainbox-uqnz)
+      const hasRandomSuffix = existingSlug && existingSlug !== cleanBase && /^.+-[a-z0-9]{4}$/.test(existingSlug)
       let slug = existingSlug
-      if (!slug || titleChanged) {
-        const base = (form.title || 'event')
-          .toLowerCase().trim()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/[\s_]+/g, '-')
-          .replace(/-+/g, '-')
-          .replace(/^-|-$/g, '')
-        // Check if the clean slug is already taken
+      if (!slug || titleChanged || hasRandomSuffix) {
+        // Check if the clean slug is already taken by another event
         const { count } = await supabase
           .from('events')
           .select('id', { count: 'exact', head: true })
-          .eq('slug', base)
+          .eq('slug', cleanBase)
           .neq('id', id)
-        slug = count ? `${base}-${Math.random().toString(36).substring(2, 6)}` : base
+        slug = count ? `${cleanBase}-${Math.random().toString(36).substring(2, 6)}` : cleanBase
       }
 
       const updates = {
