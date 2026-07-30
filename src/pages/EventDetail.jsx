@@ -251,8 +251,8 @@ export default function EventDetail() {
   const cartItems = Object.entries(cart).map(([name, qty]) => { const tier = tiers.find(t => t.name === name); const price = getEffectivePrice(tier); return { tierName: name, quantity: qty, price, totalPrice: price * qty } }).filter(i => i.quantity > 0)
   const cartTotal = cartItems.reduce((s, i) => s + i.totalPrice, 0)
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0)
-  const eventEndRef = event.end_date || event.date
-  const eventEndTimeRef = event.end_time || event.time || '23:59'
+  const eventEndRef = event ? (event.end_date || event.date) : null
+  const eventEndTimeRef = event ? (event.end_time || event.time || '23:59') : '23:59'
   const isEventEnded = eventEndRef ? new Date(`${eventEndRef}T${eventEndTimeRef}:00`) < new Date() : false
   const showFloatingCart = cartCount > 0 && !isFreeEvent && !purchaseSuccess && !cartSummaryVisible && !showAttendeeForm && !isEventEnded
 
