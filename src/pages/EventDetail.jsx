@@ -216,10 +216,24 @@ export default function EventDetail() {
   }, [id])
 
   useEffect(() => {
-    if (showAttendeeForm && attendeeFormRef.current) {
-      setTimeout(() => attendeeFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+    if (showAttendeeForm) {
+      // Wait for the DOM to paint the form before scrolling
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          attendeeFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        })
+      })
     }
   }, [showAttendeeForm])
+
+  // Auto-fill first attendee slot when profile loads after slots were created
+  useEffect(() => {
+    if (attendeeSlots.length > 0 && profile?.full_name && !attendeeSlots[0].name) {
+      const updated = [...attendeeSlots]
+      updated[0] = { ...updated[0], name: profile.full_name, email: updated[0].email || user?.email || '' }
+      setAttendeeSlots(updated)
+    }
+  }, [profile, attendeeSlots.length])
 
   /* --- Cart helpers --- */
   function cartQty(tierName) { return cart[tierName] || 0 }
