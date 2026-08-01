@@ -217,12 +217,14 @@ export default function EventDetail() {
 
   useEffect(() => {
     if (showAttendeeForm) {
-      // Wait for the DOM to paint the form before scrolling
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          attendeeFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        })
-      })
+      const doScroll = () => {
+        if (attendeeFormRef.current) {
+          attendeeFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }
+      // Try immediately after paint, then again after a delay for mobile browsers
+      requestAnimationFrame(() => requestAnimationFrame(doScroll))
+      setTimeout(doScroll, 300)
     }
   }, [showAttendeeForm])
 
