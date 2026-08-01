@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter, Shield, EyeOff } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -242,6 +242,9 @@ export default function Dashboard() {
   const [resolvedAccount, setResolvedAccount] = useState(null)
   const [resolvingAccount, setResolvingAccount] = useState(false)
   const [savingPayout, setSavingPayout] = useState(false)
+  const [nin, setNin] = useState('')
+  const [showNin, setShowNin] = useState(false)
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) { navigate('/login'); return }
@@ -347,6 +350,8 @@ export default function Dashboard() {
           account_number: profile.account_number || ''
         })
         setResolvedAccount({ account_name: profile.account_name })
+        if (profile.nin) setNin(profile.nin)
+        if (profile.disclaimer_accepted) setDisclaimerAccepted(true)
       }
     } catch (e) { console.error('Load payout data error:', e) }
     finally { setLoadingPayout(false) }
@@ -380,7 +385,9 @@ export default function Dashboard() {
         bankCode: payoutForm.bank_code,
         bankName: payoutForm.bank_name,
         accountNumber: payoutForm.account_number,
-        accountName: resolvedAccount.account_name
+        accountName: resolvedAccount.account_name,
+        nin: nin.trim(),
+        disclaimerAccepted
       })
       toast.success('Payout profile saved! You\'ll receive 95% of ticket sales automatically 🎉')
       await loadPayoutData()
@@ -1704,10 +1711,61 @@ export default function Dashboard() {
                       </div>
                     )}
 
+                    {/* NIN Identity Verification */}
+                    <div>
+                      <label className="text-sm text-gray-300 mb-1 block">NIN (National Identification Number)</label>
+                      <div className="relative">
+                        <input
+                          type={showNin ? 'text' : 'password'}
+                          maxLength={11}
+                          value={nin}
+                          onChange={e => setNin(e.target.value.replace(/\D/g, ''))}
+                          placeholder="11-digit NIN"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-11 text-white focus:outline-none focus:border-white/20 font-mono tracking-wider"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNin(!showNin)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                        >
+                          {showNin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Disclaimer */}
+                    <div className="border border-white/10 rounded-xl p-4 bg-white/[0.02]">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Shield className="w-4 h-4 text-[#FF6B35]" />
+                        <span className="text-sm font-semibold text-white">Disclaimer</span>
+                      </div>
+                      <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line mb-4">
+                        {`By submitting this form, I confirm that:\n• The bank details provided are accurate and belong to me\n• I authorize Tixo to use these details for payout processing\n• I understand that providing false information may result in account suspension\n• I agree to Tixo's Terms of Service and Privacy Policy regarding payment processing`}
+                      </p>
+                      <label className="flex items-start gap-3 cursor-pointer select-none">
+                        <span
+                          className="mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 border transition-colors"
+                          style={{
+                            background: disclaimerAccepted ? 'linear-gradient(135deg, #E91E8C, #8B5CF6, #22D3EE)' : 'transparent',
+                            borderColor: disclaimerAccepted ? 'transparent' : 'rgba(255,255,255,0.2)',
+                          }}
+                        >
+                          {disclaimerAccepted && <Check className="w-3.5 h-3.5 text-white" />}
+                        </span>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={disclaimerAccepted}
+                          onChange={e => setDisclaimerAccepted(e.target.checked)}
+                        />
+                        <span className="text-sm text-gray-300">I accept the above terms and conditions</span>
+                      </label>
+                    </div>
+
                     {/* Save button */}
                     <button
                       onClick={handleSavePayout}
-                      disabled={savingPayout || !resolvedAccount?.account_name}
+                      disabled={savingPayout || !resolvedAccount?.account_name || nin.length !== 11 || !disclaimerAccepted}
                       className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold py-3.5 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {savingPayout ? (

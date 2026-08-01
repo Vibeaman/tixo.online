@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { user_id, business_name, bank_code, bank_name, account_number, account_name } = req.body
+  const { user_id, business_name, bank_code, bank_name, account_number, account_name, nin, disclaimer_accepted } = req.body
 
   if (!user_id || !bank_code || !account_number || !business_name) {
     return res.status(400).json({ error: 'Missing required fields' })
@@ -65,6 +65,8 @@ export default async function handler(req, res) {
           bank_name: bank_name || '',
           account_number,
           account_name: account_name || '',
+          nin: nin || null,
+          disclaimer_accepted: !!disclaimer_accepted,
           is_verified: true,
           updated_at: new Date().toISOString()
         })
@@ -114,6 +116,8 @@ export default async function handler(req, res) {
         bank_name: bank_name || '',
         account_number,
         account_name: account_name || '',
+        nin: nin || null,
+        disclaimer_accepted: !!disclaimer_accepted,
         subaccount_code: subaccountCode,
         is_verified: true,
         updated_at: new Date().toISOString()

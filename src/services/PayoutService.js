@@ -26,7 +26,7 @@ const PayoutService = {
   },
 
   /** Create or update Paystack subaccount */
-  async createSubaccount({ userId, businessName, bankCode, bankName, accountNumber, accountName }) {
+  async createSubaccount({ userId, businessName, bankCode, bankName, accountNumber, accountName, nin, disclaimerAccepted }) {
     const res = await fetch('/api/create-subaccount', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -36,7 +36,9 @@ const PayoutService = {
         bank_code: bankCode,
         bank_name: bankName,
         account_number: accountNumber,
-        account_name: accountName
+        account_name: accountName,
+        nin,
+        disclaimer_accepted: disclaimerAccepted
       })
     })
     const data = await res.json()
