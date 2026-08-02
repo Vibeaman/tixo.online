@@ -8,7 +8,7 @@
  * 4. Only after server verification do we create tickets
  */
 
-const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_3cd1086ee7351c0c336705230fdd0ce24da17bb4'
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_cc68339c362cba7e41e098cbbb2e993a145b1092'
 
 let scriptLoaded = false
 function loadPaystackScript() {
