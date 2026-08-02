@@ -174,7 +174,7 @@ export default function Dashboard() {
   const [tickets, setTickets] = useState([])
   const [myEvents, setMyEvents] = useState([])
   const [loading, setLoading] = useState(true)
-  const [profileForm, setProfileForm] = useState({ full_name: '', email: '' })
+  const [profileForm, setProfileForm] = useState({ full_name: '', email: '', phone: '' })
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const avatarInputRef = useRef(null)
 
@@ -257,7 +257,7 @@ export default function Dashboard() {
         ])
         setTickets(t || [])
         setMyEvents(e || [])
-        if (profile) setProfileForm({ full_name: profile.full_name || '', email: profile.email || '' })
+        if (profile) setProfileForm({ full_name: profile.full_name || '', email: profile.email || '', phone: profile.phone || '' })
       } catch (e) { console.error(e) }
       finally { setLoading(false) }
     }
@@ -554,7 +554,7 @@ export default function Dashboard() {
 
   async function handleUpdateProfile() {
     try {
-      const updated = await UserService.updateProfile(user.id, { full_name: profileForm.full_name })
+      const updated = await UserService.updateProfile(user.id, { full_name: profileForm.full_name, phone: profileForm.phone })
       setProfile(updated)
       toast.success('Profile updated!')
     } catch (e) { toast.error(e.message) }
@@ -2201,6 +2201,12 @@ export default function Dashboard() {
               <div>
                 <label className="text-sm text-gray-300 mb-1 block">Email</label>
                 <input value={user?.email || ''} disabled className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 mb-1 block">Phone Number</label>
+                <input value={profileForm.phone} onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))}
+                  placeholder="e.g. +234 801 234 5678"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 placeholder-gray-600" />
               </div>
               <button onClick={handleUpdateProfile}
                 className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors">
