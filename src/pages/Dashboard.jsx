@@ -2252,8 +2252,9 @@ export default function Dashboard() {
                   try {
                     const updated = await TicketService.transferTicket(transferTicket.id, transferEmail.trim(), transferName.trim())
                     // Send email notification
+                    let emailSent = false
                     try {
-                      await fetch('/api/send-transfer-email', {
+                      const emailRes = await fetch('/api/send-transfer-email', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -2268,8 +2269,15 @@ export default function Dashboard() {
                           checkInCode: transferTicket.check_in_code
                         })
                       })
+                      const emailResult = await emailRes.json()
+                      emailSent = emailResult.sent === true
+                      if (!emailSent) console.warn('Transfer email not sent:', emailResult.reason)
                     } catch (emailErr) { console.warn('Transfer email failed:', emailErr) }
-                    toast.success(`Ticket transferred to ${transferName.trim()}!`)
+                    if (emailSent) {
+                      toast.success(`Ticket transferred to ${transferName.trim()}!`)
+                    } else {
+                      toast.success(`Ticket transferred but email notification failed — share the check-in code manually.`)
+                    }
                     setTransferTicket(null); setTransferEmail(''); setTransferName('')
                     // Refresh tickets
                     const refreshed = await TicketService.getByUser(user.id)
