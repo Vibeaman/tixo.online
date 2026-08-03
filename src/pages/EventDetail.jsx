@@ -331,7 +331,7 @@ export default function EventDetail() {
 
   /* --- Cart checkout handler --- */
   async function handleCheckout(guestInfo = null) {
-    if (!user && !guestInfo) { triggerGuestCheckout('checkout'); return }
+    if (!user) { toast.error('Please create an account or log in to purchase tickets'); navigate('/login'); return }
     if (user && registrationFields.length > 0 && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) { setGuestAction('checkout'); setGuestName(profile?.full_name || ''); setGuestEmail(user.email || ''); setShowGuestForm(true); return }
     if (cartItems.length === 0) return
 

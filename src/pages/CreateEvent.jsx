@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe, Share2, DollarSign, Info, Repeat, Clock, Sparkles, ClipboardList, Phone, Lock, Unlock, ScanLine, Users, Layers, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
+import PayoutService from '../services/PayoutService'
 import { useAuth } from '../context/AuthContext'
 import { uploadEventImage } from '../lib/uploadImage'
 import LocationAutocomplete from '../components/LocationAutocomplete'
@@ -28,6 +29,8 @@ export default function CreateEvent() {
   const { user, profile } = useAuth()
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
+  const [hasPayoutProfile, setHasPayoutProfile] = useState(null)
+  const [checkingPayout, setCheckingPayout] = useState(false)
   const [imageMode, setImageMode] = useState('upload')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
@@ -163,6 +166,18 @@ export default function CreateEvent() {
     }
     return true
   }
+
+  const isPaidEvent = form.pricing_type === 'paid' || form.pricing_type === 'mixed' || form.tiers.some(t => Number(t.price) > 0)
+
+  useEffect(() => {
+    if (step === 5 && isPaidEvent && user) {
+      setCheckingPayout(true)
+      PayoutService.getProfile(user.id)
+        .then(profile => setHasPayoutProfile(!!profile && !!profile.subaccount_code))
+        .catch(() => setHasPayoutProfile(false))
+        .finally(() => setCheckingPayout(false))
+    }
+  }, [step])
 
   function goNext() {
     if (step === 1 && !validateStep1()) return
@@ -1074,6 +1089,20 @@ export default function CreateEvent() {
                 </div>
               </div>
 
+              {/* Payout account warning for paid events */}
+              {isPaidEvent && step === 5 && hasPayoutProfile === false && !checkingPayout && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+                  <DollarSign className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-amber-300 font-semibold text-sm">Payout Account Required</p>
+                    <p className="text-gray-400 text-sm mt-1">You need to set up your bank account before publishing a paid event. This ensures you receive your earnings from ticket sales.</p>
+                    <button onClick={() => navigate('/dashboard?tab=payouts')} className="mt-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-lg text-sm">
+                      Set Up Payout Account
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Action buttons */}
               <div className="flex gap-3">
                 <button onClick={() => setStep(4)} className="bg-white/5 hover:bg-white/10 text-white font-semibold py-3 px-5 rounded-xl flex items-center justify-center gap-2">
@@ -1083,9 +1112,9 @@ export default function CreateEvent() {
                   className="bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 text-amber-400 font-semibold py-3 px-5 rounded-xl flex items-center justify-center gap-2 transition-colors">
                   {submitting ? '...' : 'Save Draft'}
                 </button>
-                <button onClick={() => handleSubmit('published')} disabled={submitting}
+                <button onClick={() => handleSubmit('published')} disabled={submitting || (isPaidEvent && !hasPayoutProfile)}
                   className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-                  {uploading ? 'Uploading image...' : submitting ? 'Publishing...' : 'Publish Event'}
+                  {uploading ? 'Uploading image...' : submitting ? 'Publishing...' : (isPaidEvent && hasPayoutProfile === false) ? '⚠️ Set Up Payouts First' : checkingPayout ? 'Checking...' : 'Publish Event'}
                 </button>
               </div>
             </div>
