@@ -167,6 +167,131 @@ function QRModal({ ticket, onClose }) {
   )
 }
 
+function OrganizerAgreementModal({ isOpen, onClose }) {
+  if (!isOpen) return null
+  const sections = [
+    {
+      title: '1. Organizer Responsibility',
+      body: 'The Organizer is solely responsible for the planning, management, promotion, execution, and delivery of their event. Tixo acts only as a technology platform that enables ticket sales and attendee management.',
+    },
+    {
+      title: '2. Accuracy of Information',
+      body: 'The Organizer agrees to provide accurate and up-to-date information regarding their identity, event details, payout information, and any other information requested by Tixo. Tixo reserves the right to verify submitted information and may suspend or restrict accounts that provide false, misleading, or incomplete information.',
+    },
+    {
+      title: '3. Compliance with Laws',
+      body: 'The Organizer agrees that all events listed on Tixo will comply with applicable laws and regulations in Nigeria and any jurisdiction where the event is held. The Organizer shall not use Tixo to promote illegal, fraudulent, deceptive, or prohibited activities.',
+    },
+    {
+      title: '4. Ticket Revenue and Fees',
+      body: 'By using Tixo, the Organizer authorizes Tixo to deduct applicable platform fees, payment processing fees, taxes, refunds, chargebacks, and other applicable charges before settlement of ticket revenue. The Organizer acknowledges that payout amounts may differ from gross ticket sales due to these deductions.',
+    },
+    {
+      title: '5. Payouts and Settlement',
+      body: 'Tixo facilitates payouts through approved payment providers and banking partners. Tixo may delay, suspend, or withhold payouts where reasonably necessary to:',
+      bullets: [
+        'Investigate suspected fraud',
+        'Verify Organizer information',
+        'Resolve attendee disputes',
+        'Process refunds',
+        'Comply with legal or regulatory requirements',
+        'Protect the integrity of the platform',
+      ],
+    },
+    {
+      title: '6. Refunds and Event Changes',
+      body: 'The Organizer remains responsible for refund obligations arising from:',
+      bullets: [
+        'Event cancellation',
+        'Significant event changes',
+        'Failure to deliver advertised services',
+        'Misrepresentation of the event',
+      ],
+      footer: 'Tixo reserves the right to facilitate refunds where necessary to protect attendees and the platform.',
+    },
+    {
+      title: '7. Chargebacks and Disputes',
+      body: "The Organizer accepts responsibility for chargebacks, payment disputes, and claims relating to their event. Tixo may recover related costs, penalties, and losses from future payouts where permitted by law.",
+    },
+    {
+      title: '8. Prohibited Activities',
+      body: 'Organizers may not use Tixo for:',
+      bullets: [
+        'Fraudulent schemes',
+        'Pyramid or investment programs',
+        'Unlicensed financial products',
+        'Illegal gambling',
+        'Counterfeit ticket sales',
+        'Events that violate applicable laws',
+      ],
+      footer: 'Tixo may immediately suspend accounts engaged in prohibited activities.',
+    },
+    {
+      title: "9. Limitation of Tixo's Role",
+      body: "Tixo does not organize, sponsor, manage, supervise, or guarantee any event listed on the platform. Tixo's role is limited to providing ticketing, registration, payment facilitation, and related technology services.",
+    },
+    {
+      title: '10. Suspension and Termination',
+      body: 'Tixo may suspend or terminate Organizer accounts that:',
+      bullets: [
+        'Violate these Terms',
+        'Present excessive risk to attendees',
+        'Generate unusual fraud activity',
+        'Fail verification requirements',
+      ],
+    },
+    {
+      title: '11. Indemnity',
+      body: 'The Organizer agrees to indemnify and hold harmless Tixo, its directors, employees, and partners from claims, damages, losses, liabilities, and expenses arising from:',
+      bullets: [
+        "The Organizer's event",
+        'Breach of these Terms',
+        'Violation of applicable laws',
+        "Claims made by attendees relating to the Organizer's event",
+      ],
+    },
+    {
+      title: '12. Acceptance',
+      body: 'By creating a Tixo Organizer Account, the Organizer confirms that they have read, understood, and agreed to these Terms and Conditions.',
+    },
+  ]
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl p-8 max-w-2xl mx-auto w-full mx-4 max-h-[80vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+          <X className="w-5 h-5" />
+        </button>
+        <h3 className="text-white font-bold text-xl mb-2">Tixo Organizer Agreement</h3>
+        <p className="text-gray-400 text-sm mb-6">By creating a Tixo Organizer Account and Subaccount, you agree to the following terms:</p>
+        <div className="space-y-5">
+          {sections.map((s, i) => (
+            <div key={i}>
+              <h4 className="text-purple-300 font-semibold text-sm mb-1.5">{s.title}</h4>
+              <p className="text-gray-400 text-sm leading-relaxed">{s.body}</p>
+              {s.bullets && (
+                <ul className="mt-2 space-y-1 pl-4">
+                  {s.bullets.map((b, j) => (
+                    <li key={j} className="text-gray-400 text-sm leading-relaxed list-disc">{b}</li>
+                  ))}
+                </ul>
+              )}
+              {s.footer && (
+                <p className="text-gray-400 text-sm leading-relaxed mt-2">{s.footer}</p>
+              )}
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="w-full mt-8 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold py-2.5 rounded-xl transition-colors"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user, profile, loading: authLoading, setProfile } = useAuth()
@@ -180,6 +305,9 @@ export default function Dashboard() {
 
   // QR modal state
   const [qrTicket, setQrTicket] = useState(null)
+
+  // Organizer agreement modal state
+  const [showAgreement, setShowAgreement] = useState(false)
 
   // Transfer modal state
   const [transferTicket, setTransferTicket] = useState(null)
@@ -664,6 +792,7 @@ export default function Dashboard() {
       <div className="max-w-5xl mx-auto">
         {/* QR Modal */}
         {qrTicket && <QRModal ticket={qrTicket} onClose={() => setQrTicket(null)} />}
+        {showAgreement && <OrganizerAgreementModal isOpen={showAgreement} onClose={() => setShowAgreement(false)} />}
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -1737,11 +1866,18 @@ export default function Dashboard() {
                     <div className="border border-white/10 rounded-xl p-4 bg-white/[0.02]">
                       <div className="flex items-center gap-2 mb-3">
                         <Shield className="w-4 h-4 text-[#FF6B35]" />
-                        <span className="text-sm font-semibold text-white">Disclaimer</span>
+                        <span className="text-sm font-semibold text-white">Tixo Organizer Agreement</span>
                       </div>
-                      <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line mb-4">
-                        {`By submitting this form, I confirm that:\n• The bank details provided are accurate and belong to me\n• I authorize Tixo to use these details for payout processing\n• I understand that providing false information may result in account suspension\n• I agree to Tixo's Terms of Service and Privacy Policy regarding payment processing`}
+                      <p className="text-xs text-gray-400 leading-relaxed mb-2">
+                        By submitting this form, you agree to the Tixo Organizer Terms and Conditions covering organizer responsibilities, payout policies, refund obligations, and dispute handling.
                       </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowAgreement(true)}
+                        className="text-pink-400 hover:text-pink-300 hover:underline text-sm font-semibold cursor-pointer mb-4 inline-block"
+                      >
+                        Read full agreement →
+                      </button>
                       <label className="flex items-start gap-3 cursor-pointer select-none">
                         <span
                           className="mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 border transition-colors"
@@ -1758,7 +1894,7 @@ export default function Dashboard() {
                           checked={disclaimerAccepted}
                           onChange={e => setDisclaimerAccepted(e.target.checked)}
                         />
-                        <span className="text-sm text-gray-300">I accept the above terms and conditions</span>
+                        <span className="text-sm text-gray-300">I confirm that I am authorized to organize this event and agree to the Tixo Organizer Terms and Conditions, including payout, refund, and dispute policies.</span>
                       </label>
                     </div>
 
