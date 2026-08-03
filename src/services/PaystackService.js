@@ -67,9 +67,8 @@ const PaystackService = {
     // Add subaccount for split payments (95% organizer / 5% Tixo)
     if (subaccount) {
       config.subaccount = subaccount
-      // bearer: 'subaccount' means organizer bears Paystack transaction fees
-      // bearer: 'account' means Tixo (main account) bears fees
-      // Default (no bearer): transaction fees are split proportionally
+      // Tixo (main account) bears all Paystack transaction fees
+      config.bearer = 'account'
     }
 
     const handler = window.PaystackPop.setup(config)
