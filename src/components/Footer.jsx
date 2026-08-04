@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Twitter, Instagram, Youtube, Mail } from 'lucide-react'
+import { ArrowRight, Twitter, Instagram, Facebook, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const linkGroups = [
@@ -100,9 +100,9 @@ export default function Footer() {
             </a>
             <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
               {[
-                { Icon: Twitter, url: 'https://twitter.com' },
-                { Icon: Instagram, url: 'https://instagram.com' },
-                { Icon: Youtube, url: 'https://youtube.com' },
+                { Icon: Twitter, url: 'https://x.com/tixoonline' },
+                { Icon: Instagram, url: 'https://www.instagram.com/tixo.online?igsh=MXA5NTduOGV3ZHhjYw==' },
+                { Icon: Facebook, url: 'https://www.facebook.com' },
               ].map(({ Icon, url }, i) => (
                 <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
                   width: 36, height: 36,
