@@ -25,7 +25,7 @@ const linkGroups = [
   {
     title: 'Company',
     links: [
-      { label: 'About Tixo', to: '/' },
+      { label: 'About Tixo', to: '/about' },
       { label: 'Sign Up', to: '/signup' },
       { label: 'Login', to: '/login' },
       { label: 'Privacy Policy', to: '/privacy' },

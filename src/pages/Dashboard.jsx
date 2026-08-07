@@ -372,6 +372,8 @@ export default function Dashboard() {
   const [savingPayout, setSavingPayout] = useState(false)
   const [nin, setNin] = useState('')
   const [showNin, setShowNin] = useState(false)
+  const [bvn, setBvn] = useState('')
+  const [showBvn, setShowBvn] = useState(false)
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false)
 
   useEffect(() => {
@@ -479,6 +481,7 @@ export default function Dashboard() {
         })
         setResolvedAccount({ account_name: profile.account_name })
         if (profile.nin) setNin(profile.nin)
+        if (profile.bvn) setBvn(profile.bvn)
         if (profile.disclaimer_accepted) setDisclaimerAccepted(true)
       }
     } catch (e) { console.error('Load payout data error:', e) }
@@ -515,6 +518,7 @@ export default function Dashboard() {
         accountNumber: payoutForm.account_number,
         accountName: resolvedAccount.account_name,
         nin: nin.trim(),
+        bvn: bvn.trim(),
         disclaimerAccepted
       })
       toast.success('Payout profile saved! You\'ll receive 95% of ticket sales automatically 🎉')
@@ -1862,6 +1866,28 @@ export default function Dashboard() {
                       </div>
                     </div>
 
+                    {/* BVN Identity Verification */}
+                    <div>
+                      <label className="text-sm text-gray-300 mb-1 block">BVN (Bank Verification Number)</label>
+                      <div className="relative">
+                        <input
+                          type={showBvn ? 'text' : 'password'}
+                          maxLength={11}
+                          value={bvn}
+                          onChange={e => setBvn(e.target.value.replace(/\D/g, ''))}
+                          placeholder="11-digit BVN"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-11 text-white focus:outline-none focus:border-white/20 font-mono tracking-wider"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowBvn(!showBvn)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                        >
+                          {showBvn ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Disclaimer */}
                     <div className="border border-white/10 rounded-xl p-4 bg-white/[0.02]">
                       <div className="flex items-center gap-2 mb-3">
@@ -1901,7 +1927,7 @@ export default function Dashboard() {
                     {/* Save button */}
                     <button
                       onClick={handleSavePayout}
-                      disabled={savingPayout || !resolvedAccount?.account_name || nin.length !== 11 || !disclaimerAccepted}
+                      disabled={savingPayout || !resolvedAccount?.account_name || nin.length !== 11 || bvn.length !== 11 || !disclaimerAccepted}
                       className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold py-3.5 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {savingPayout ? (
