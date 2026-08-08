@@ -125,29 +125,74 @@ function QRModal({ ticket, onClose }) {
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
   }
 
+  const eventDate = ticket.events?.date ? new Date(ticket.events.date + 'T00:00:00') : null
+  const calendarUrl = eventDate ? (() => {
+    const title = encodeURIComponent(ticket.event_title || 'Event')
+    const loc = encodeURIComponent(ticket.events?.location || '')
+    const dateStr = eventDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    const endDate = new Date(eventDate.getTime() + 2 * 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dateStr}/${endDate}&location=${loc}`
+  })() : null
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#12121a] border border-white/10 rounded-2xl p-8 max-w-sm w-full mx-4 relative" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#12121a] border border-white/10 rounded-2xl p-6 sm:p-8 max-w-sm w-full mx-4 relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition">
           <X className="w-5 h-5" />
         </button>
-        <h3 className="text-white font-bold text-lg mb-1 text-center">{ticket.event_title}</h3>
+
+        {/* Event title */}
+        <h3 className="text-white font-bold text-lg mb-1 text-center pr-6">{ticket.event_title}</h3>
         {ticket.attendee_name && (
           <p className="text-pink-400 text-sm text-center font-semibold mb-1">🎫 {ticket.attendee_name}</p>
         )}
-        <p className="text-gray-400 text-sm text-center mb-6">{ticket.tier_name}{ticket.quantity > 1 ? ` · x${ticket.quantity}` : ''}</p>
-        <div className="flex justify-center mb-4" ref={qrRef}>
+        <p className="text-gray-400 text-sm text-center mb-4">{ticket.tier_name}{ticket.quantity > 1 ? ` · x${ticket.quantity}` : ''}</p>
+
+        {/* QR code */}
+        <div className="flex justify-center mb-3" ref={qrRef}>
           <div className="bg-white rounded-xl p-4">
             <QRCodeSVG value={ticket.check_in_code || ticket.id} size={200} level="H" />
           </div>
         </div>
-        <p className="text-center text-pink-400 font-mono font-bold text-lg tracking-wider mb-2">{ticket.check_in_code || '—'}</p>
-        <button onClick={handleDownload}
-          className="w-full mt-2 mb-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors">
-          <Download className="w-5 h-5" /> Download Ticket QR
-        </button>
+        <p className="text-center text-pink-400 font-mono font-bold text-lg tracking-wider mb-4">{ticket.check_in_code || '—'}</p>
+
+        {/* Event details */}
+        <div className="bg-white/5 rounded-xl p-4 mb-4 space-y-2">
+          {ticket.events?.organizer_name && (
+            <div className="flex items-center gap-2 text-sm">
+              <User className="w-4 h-4 text-pink-400 flex-shrink-0" />
+              <span className="text-gray-300">{ticket.events.organizer_name}</span>
+            </div>
+          )}
+          {eventDate && (
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <span className="text-gray-300">{eventDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            </div>
+          )}
+          {ticket.events?.location && (
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-green-400 flex-shrink-0" />
+              <span className="text-gray-300">{ticket.events.location}</span>
+            </div>
+          )}
+          {ticket.events?.attendance_mode === 'virtual' && (
+            <div className="flex items-center gap-2 text-sm">
+              <Globe className="w-4 h-4 text-purple-400 flex-shrink-0" />
+              <span className="text-gray-300">Virtual Event</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-sm">
+            <Ticket className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+            <span className="text-gray-300">
+              {ticket.is_rsvp || Number(ticket.total_price) === 0 ? 'Free' : `₦${Number(ticket.total_price).toLocaleString()}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Status */}
         {ticket.checked_in ? (
-          <div className="flex items-center justify-center gap-2 mt-2">
+          <div className="flex items-center justify-center gap-2 mb-4">
             <span className="text-green-400 bg-green-500/20 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4" /> Checked In
             </span>
@@ -156,12 +201,26 @@ function QRModal({ ticket, onClose }) {
             )}
           </div>
         ) : (
-          <div className="flex items-center justify-center mt-2">
+          <div className="flex items-center justify-center mb-4">
             <span className="text-amber-400 bg-amber-500/20 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5">
               <Clock className="w-4 h-4" /> Pending
             </span>
           </div>
         )}
+
+        {/* Action buttons */}
+        <div className="space-y-2">
+          <button onClick={handleDownload}
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors">
+            <Download className="w-5 h-5" /> Download Ticket
+          </button>
+          {calendarUrl && (
+            <a href={calendarUrl} target="_blank" rel="noopener noreferrer"
+              className="w-full bg-white/10 hover:bg-white/15 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors">
+              <Calendar className="w-5 h-5" /> Add to Calendar
+            </a>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -897,54 +956,31 @@ export default function Dashboard() {
                       const isAttended = t.checked_in || autoAttended
 
                       return (
-                        <div key={t.id} className={`bg-white/5 border rounded-xl p-4 sm:p-5 transition ${isMissed ? 'border-red-500/20 opacity-70' : isAttended ? 'border-green-500/20' : 'border-white/10 hover:border-white/15'}`}>
-                          {/* Top row: image + event info + QR (desktop) */}
-                          <div className="flex items-start gap-3 sm:gap-4 cursor-pointer" onClick={() => navigate(`/events/${t.event_id}`)}>
+                        <div key={t.id} className={`bg-white/5 border rounded-xl p-4 sm:p-5 transition cursor-pointer ${isMissed ? 'border-red-500/20 opacity-70' : isAttended ? 'border-green-500/20' : 'border-white/10 hover:border-white/20 hover:bg-white/[0.07]'}`} onClick={() => setQrTicket(t)}>
+                          {/* Card: image + info + QR */}
+                          <div className="flex items-center gap-3 sm:gap-4">
                             {/* Event image */}
                             {t.events?.image && (
                               <img src={t.events.image} alt="" className={`w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover flex-shrink-0 ${isMissed ? 'opacity-50 grayscale' : ''}`} />
                             )}
-                            {/* Event details */}
+                            {/* Event title + tier */}
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-white font-bold text-sm sm:text-base leading-tight">{t.event_title}</h3>
+                              <h3 className="text-white font-bold text-sm sm:text-base leading-tight truncate">{t.event_title}</h3>
                               {t.attendee_name && (
                                 <p className="text-pink-400 text-xs sm:text-sm font-medium mt-0.5">🎫 {t.attendee_name}</p>
                               )}
                               <p className="text-gray-400 text-xs sm:text-sm mt-0.5">{t.tier_name}{t.quantity > 1 ? ` · x${t.quantity}` : ''}</p>
-                              <div className="flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
-                                {t.events?.date && (
-                                  <p className="text-gray-500 text-xs flex items-center gap-1">
-                                    <Calendar className="w-3 h-3 flex-shrink-0" />
-                                    {new Date(t.events.date + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                                  </p>
-                                )}
-                                {t.events?.location && (
-                                  <p className="text-gray-500 text-xs flex items-center gap-1">
-                                    <MapPin className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate max-w-[120px] sm:max-w-[150px]">{t.events.location}</span>
-                                  </p>
-                                )}
-                              </div>
-                              {isAttended && t.checked_in_at && (
-                                <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" /> Checked in {new Date(t.checked_in_at).toLocaleString()}
-                                </p>
-                              )}
                             </div>
-                            {/* QR code - hidden on mobile, shown on desktop */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setQrTicket(t) }}
-                              className={`bg-white rounded-lg p-1.5 hover:scale-105 transition-transform cursor-pointer flex-shrink-0 hidden sm:block ${isMissed ? 'opacity-40' : ''}`}
-                              title="View QR code"
-                            >
-                              <QRCodeSVG value={t.check_in_code || t.id} size={48} level="M" />
-                            </button>
+                            {/* Bigger QR code */}
+                            <div className={`bg-white rounded-lg p-1.5 sm:p-2 flex-shrink-0 ${isMissed ? 'opacity-40' : ''}`}>
+                              <QRCodeSVG value={t.check_in_code || t.id} size={56} level="M" className="sm:hidden" />
+                              <QRCodeSVG value={t.check_in_code || t.id} size={72} level="M" className="hidden sm:block" />
+                            </div>
                           </div>
 
-                          {/* Bottom row: badges + actions */}
+                          {/* Bottom row: Transfer button */}
                           <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-                            {/* Left: status badges */}
-                            <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
                               {isAttended ? (
                                 <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
                                   <CheckCircle2 className="w-2.5 h-2.5" /> Attended
@@ -958,39 +994,18 @@ export default function Dashboard() {
                                   <Clock className="w-2.5 h-2.5" /> Upcoming
                                 </span>
                               )}
-                              {t.is_rsvp && <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">RSVP</span>}
-                              {t.attendance_mode === 'virtual' && <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Virtual</span>}
-                              {t.transfer_status === 'transferred' && (
-                                <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Transferred</span>
-                              )}
                             </div>
-
-                            {/* Right: price + actions */}
-                            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                              {t.is_rsvp || Number(t.total_price) === 0 ? (
-                                <span className="text-green-400 font-bold text-sm flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Free</span>
-                              ) : (
-                                <span className="text-pink-400 font-bold text-sm">₦{Number(t.total_price).toLocaleString()}</span>
-                              )}
-                              {/* Transfer button */}
-                              {!isPast && !t.transfer_status && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setTransferTicket(t) }}
-                                  className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors flex items-center gap-1"
-                                  title="Transfer ticket"
-                                >
-                                  <Send className="w-3 h-3" /> <span className="hidden sm:inline">Transfer</span>
-                                </button>
-                              )}
-                              {/* QR button - shown on mobile only */}
+                            {!isPast && !t.transfer_status ? (
                               <button
-                                onClick={(e) => { e.stopPropagation(); setQrTicket(t) }}
-                                className={`bg-white rounded-lg p-1 hover:scale-105 transition-transform cursor-pointer flex-shrink-0 sm:hidden ${isMissed ? 'opacity-40' : ''}`}
-                                title="View QR code"
+                                onClick={(e) => { e.stopPropagation(); setTransferTicket(t) }}
+                                className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors flex items-center gap-1.5"
+                                title="Transfer ticket"
                               >
-                                <QRCodeSVG value={t.check_in_code || t.id} size={32} level="M" />
+                                <Send className="w-3.5 h-3.5" /> Transfer Ticket
                               </button>
-                            </div>
+                            ) : t.transfer_status === 'transferred' ? (
+                              <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Transferred</span>
+                            ) : null}
                           </div>
                         </div>
                       )
