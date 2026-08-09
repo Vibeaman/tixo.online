@@ -3,35 +3,19 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, Twitter, Instagram, Facebook, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const linkGroups = [
-  {
-    title: 'Discover',
-    links: [
-      { label: 'All Events', to: '/events' },
-      { label: 'Music', to: '/category/music' },
-      { label: 'Tech', to: '/category/tech' },
-      { label: 'Food & Drink', to: '/category/food' },
-      { label: 'Sports', to: '/category/sports' },
-      { label: 'Festivals', to: '/category/festivals' },
-    ],
-  },
-  {
-    title: 'Host',
-    links: [
-      { label: 'Create Event', to: '/create' },
-      { label: 'Dashboard', to: '/dashboard' },
-    ],
-  },
-  {
-    title: 'Company',
-    links: [
-      { label: 'About Tixo', to: '/about' },
-      { label: 'Sign Up', to: '/signup' },
-      { label: 'Login', to: '/login' },
-      { label: 'Privacy Policy', to: '/privacy' },
-      { label: 'Terms of Service', to: '/terms' },
-    ],
-  },
+const footerLinks = [
+  { label: 'All Events', to: '/events' },
+  { label: 'Create Event', to: '/create' },
+  { label: 'Dashboard', to: '/dashboard' },
+  { label: 'About Tixo', to: '/about' },
+  { label: 'Privacy Policy', to: '/privacy' },
+  { label: 'Terms of Service', to: '/terms' },
+]
+
+const socials = [
+  { Icon: Twitter, url: 'https://x.com/tixoonline' },
+  { Icon: Instagram, url: 'https://www.instagram.com/tixo.online?igsh=MXA5NTduOGV3ZHhjYw==' },
+  { Icon: Facebook, url: 'https://www.facebook.com' },
 ]
 
 export default function Footer() {
@@ -58,7 +42,7 @@ export default function Footer() {
               style={{
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
                 borderRight: 'none', padding: '12px 16px', color: 'white', fontSize: '0.85rem',
-                outline: 'none', minWidth: 220
+                outline: 'none', minWidth: 220, borderRadius: '8px 0 0 8px',
               }}
             />
             <button type="submit" style={{
@@ -66,7 +50,7 @@ export default function Footer() {
               border: 'none', color: 'white', padding: '12px 18px',
               fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.03em',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-              textTransform: 'uppercase',
+              textTransform: 'uppercase', borderRadius: '0 8px 8px 0',
             }}>
               SUBSCRIBE <ArrowRight size={14} />
             </button>
@@ -75,80 +59,67 @@ export default function Footer() {
       </div>
 
       {/* Main footer */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px 32px' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-          gap: 40
-        }}>
-          {/* Brand col */}
-          <div>
-            <img src="/tixo-logo.png" alt="Tixo" style={{ height: 32, marginBottom: 16 }} />
-            <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-              Africa's premier event discovery and ticketing platform. Discover. Book. Experience.
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px 32px' }}>
+        {/* Brand row: logo + tagline + socials */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <img src="/tixo-logo.png" alt="Tixo" style={{ height: 32 }} />
+            <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+              Discover. Book. Experience.
             </p>
-            {/* Contact email */}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <a href="mailto:bayorobertonline@gmail.com" style={{
-              display: 'flex', alignItems: 'center', gap: 8,
+              display: 'flex', alignItems: 'center', gap: 6,
               fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)',
-              textDecoration: 'none', marginTop: 14, transition: 'color 0.2s',
+              textDecoration: 'none', transition: 'color 0.2s',
             }}
               onMouseEnter={e => e.currentTarget.style.color = 'white'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
             >
               <Mail size={14} /> bayorobertonline@gmail.com
             </a>
-            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-              {[
-                { Icon: Twitter, url: 'https://x.com/tixoonline' },
-                { Icon: Instagram, url: 'https://www.instagram.com/tixo.online?igsh=MXA5NTduOGV3ZHhjYw==' },
-                { Icon: Facebook, url: 'https://www.facebook.com' },
-              ].map(({ Icon, url }, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
-                  width: 36, height: 36,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
-                  color: 'rgba(255,255,255,0.5)', transition: 'all 0.2s', borderRadius: 8,
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)' }}
-                >
-                  <Icon size={16} />
-                </a>
-              ))}
-            </div>
+            {socials.map(({ Icon, url }, i) => (
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
+                width: 36, height: 36,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+                color: 'rgba(255,255,255,0.5)', transition: 'all 0.2s', borderRadius: 8,
+              }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)' }}
+              >
+                <Icon size={16} />
+              </a>
+            ))}
           </div>
+        </div>
 
-          {/* Link columns */}
-          {linkGroups.map((g, i) => (
-            <div key={i}>
-              <h4 style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16, color: 'rgba(255,255,255,0.25)' }}>{g.title}</h4>
-              {g.links.map((l, j) => (
-                <Link key={j} to={l.to} style={{
-                  display: 'block', padding: '5px 0', fontSize: '0.82rem',
-                  color: 'rgba(255,255,255,0.45)', textDecoration: 'none',
-                  transition: 'color 0.2s'
-                }}
-                  onMouseEnter={e => e.target.style.color = 'white'}
-                  onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.45)'}
-                >{l.label}</Link>
-              ))}
-            </div>
+        {/* Single row of links */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px 24px',
+          paddingTop: 24, paddingBottom: 24,
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+          borderBottom: '1px solid rgba(255,255,255,0.04)',
+        }}>
+          {footerLinks.map((l, i) => (
+            <Link key={i} to={l.to} style={{
+              fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)',
+              textDecoration: 'none', transition: 'color 0.2s',
+            }}
+              onMouseEnter={e => e.target.style.color = 'white'}
+              onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.45)'}
+            >{l.label}</Link>
           ))}
         </div>
 
         {/* Bottom bar */}
         <div style={{
-          marginTop: 48, paddingTop: 24,
-          borderTop: '1px solid rgba(255,255,255,0.04)',
-          display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12,
-          fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)'
+          marginTop: 24,
+          display: 'flex', flexWrap: 'wrap', justifyContent: 'center',
+          fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)',
         }}>
           <span>© 2026 Tixo.online — All rights reserved.</span>
-          <div style={{ display: 'flex', gap: 20 }}>
-            <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy</Link>
-            <Link to="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>Terms</Link>
-          </div>
         </div>
       </div>
     </footer>
