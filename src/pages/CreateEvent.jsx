@@ -957,6 +957,7 @@ export default function CreateEvent() {
                               <option value="text">Text</option>
                               <option value="number">Number</option>
                               <option value="tel">Phone</option>
+                              <option value="select">Dropdown</option>
                             </select>
                             <button
                               type="button"
@@ -969,6 +970,46 @@ export default function CreateEvent() {
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
+                          {field.type === 'select' && (
+                            <div className="mt-2 pl-1">
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {(field.options || []).map((opt, optIdx) => (
+                                  <span key={optIdx} className="inline-flex items-center gap-1 bg-purple-500/20 text-purple-300 text-xs px-2.5 py-1 rounded-full">
+                                    {opt}
+                                    <button type="button" onClick={() => {
+                                      const newOpts = (field.options || []).filter((_, i) => i !== optIdx)
+                                      updateCustomField(field.id, 'options', newOpts)
+                                    }} className="hover:text-red-300 ml-0.5">&times;</button>
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Add option (e.g. Male)"
+                                  className="flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault()
+                                      const val = e.target.value.trim()
+                                      if (val) {
+                                        updateCustomField(field.id, 'options', [...(field.options || []), val])
+                                        e.target.value = ''
+                                      }
+                                    }
+                                  }}
+                                />
+                                <button type="button" onClick={e => {
+                                  const input = e.target.previousElementSibling
+                                  const val = input.value.trim()
+                                  if (val) {
+                                    updateCustomField(field.id, 'options', [...(field.options || []), val])
+                                    input.value = ''
+                                  }
+                                }} className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-xs px-3 py-1.5 rounded-lg transition-colors">Add</button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
