@@ -158,12 +158,6 @@ function QRModal({ ticket, onClose }) {
 
         {/* Event details */}
         <div className="bg-white/5 rounded-xl p-4 mb-4 space-y-2">
-          {ticket.events?.organizer_name && (
-            <div className="flex items-center gap-2 text-sm">
-              <User className="w-4 h-4 text-pink-400 flex-shrink-0" />
-              <span className="text-gray-300">{ticket.events.organizer_name}</span>
-            </div>
-          )}
           {eventDate && (
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-blue-400 flex-shrink-0" />
