@@ -1085,35 +1085,22 @@ export default function Dashboard() {
                   </div>
                 )}
                 {publishedEvents.map(ev => (
-                  <div key={ev.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => navigate(`/events/${ev.id}`)}>
-                      {ev.image && <img src={ev.image} alt="" className="w-16 h-16 rounded-lg object-cover hidden sm:block flex-shrink-0" />}
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-white font-bold truncate">{ev.title}</h3>
-                          <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Published</span>
-                          <EventTypeBadge type={ev.event_type} />
-                          {ev.reshare_enabled && (
-                            <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                              <Share2 className="w-2.5 h-2.5" /> Reshare
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-400 text-sm flex items-center gap-1"><Calendar className="w-3 h-3" />{ev.date}{ev.end_date && ev.end_date !== ev.date ? ` – ${ev.end_date}` : ''}</p>
-                        <p className="text-gray-500 text-sm flex items-center gap-1">
-                          {ev.event_type === 'virtual' ? <Video className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
-                          {ev.location}
-                        </p>
+                  <div key={ev.id} className="bg-white/5 border border-white/10 rounded-xl p-5">
+                    <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/events/${ev.id}`)}>
+                      {ev.image && <img src={ev.image} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-white font-bold truncate">{ev.title}</h3>
+                        <p className="text-gray-400 text-sm mt-1">{ev.date}{ev.end_date && ev.end_date !== ev.date ? ` – ${ev.end_date}` : ''}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                    <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/10">
                       <button onClick={() => navigate(`/edit-event/${ev.id}`)}
-                        className="text-pink-400 hover:text-pink-300 p-2 hover:bg-white/5 rounded-lg transition" title="Edit event">
-                        <Edit3 className="w-4 h-4" />
+                        className="flex-1 flex items-center justify-center gap-2 bg-pink-500/15 hover:bg-pink-500/25 text-pink-400 hover:text-pink-300 px-4 py-2.5 rounded-xl font-semibold text-sm transition">
+                        <Edit3 className="w-4 h-4" /> Edit Event
                       </button>
                       <button onClick={() => handleDeleteEvent(ev.id)}
-                        className="text-red-400 hover:text-red-300 p-2 hover:bg-white/5 rounded-lg transition" title="Delete event">
-                        <Trash2 className="w-4 h-4" />
+                        className="flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 px-4 py-2.5 rounded-xl font-semibold text-sm transition">
+                        <Trash2 className="w-4 h-4" /> Delete
                       </button>
                     </div>
                   </div>
