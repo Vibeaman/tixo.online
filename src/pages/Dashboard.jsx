@@ -908,14 +908,6 @@ export default function Dashboard() {
               </div>
             ) : (
               <>
-                {/* Summary stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <StatCard icon={Ticket} label="Total Tickets" value={tickets.length} />
-                  <StatCard icon={Calendar} label="Upcoming" value={upcomingTickets.length} color="text-blue-400" />
-                  <StatCard icon={CheckCircle2} label="Attended" value={attendedTickets.length} color="text-green-400" />
-                  <StatCard icon={X} label="Missed" value={missedTickets.length} color="text-red-400" />
-                </div>
-
                 {/* Sub-filter tabs */}
                 <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
                   {ticketSubTabs.map(st => (
