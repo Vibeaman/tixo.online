@@ -1290,22 +1290,22 @@ export default function Dashboard() {
                   </div>
 
                   {/* Search & Filter Bar */}
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search by name, email, or ticket code..."
-                          value={attendeeSearch}
-                          onChange={e => setAttendeeSearch(e.target.value)}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-pink-500/50"
-                        />
-                      </div>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6 space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search by name, email, or ticket code..."
+                        value={attendeeSearch}
+                        onChange={e => setAttendeeSearch(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-pink-500/50"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
                       <select
                         value={attendeeFilterTier}
                         onChange={e => setAttendeeFilterTier(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500/50 appearance-none"
+                        className="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-pink-500/50 w-full"
                       >
                         <option value="" className="bg-[#050510]">All Tiers</option>
                         {uniqueTiers.map(t => <option key={t} value={t} className="bg-[#050510]">{t}</option>)}
@@ -1313,7 +1313,7 @@ export default function Dashboard() {
                       <select
                         value={attendeeFilterPayment}
                         onChange={e => setAttendeeFilterPayment(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500/50 appearance-none"
+                        className="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-pink-500/50 w-full"
                       >
                         <option value="" className="bg-[#050510]">All Payments</option>
                         {uniquePaymentStatuses.map(s => <option key={s} value={s} className="bg-[#050510]">{s}</option>)}
@@ -1321,21 +1321,21 @@ export default function Dashboard() {
                       <select
                         value={attendeeFilterCheckin}
                         onChange={e => setAttendeeFilterCheckin(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500/50 appearance-none"
+                        className="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-pink-500/50 w-full"
                       >
                         <option value="" className="bg-[#050510]">All Check-in</option>
                         <option value="checked" className="bg-[#050510]">Checked In</option>
                         <option value="not_checked" className="bg-[#050510]">Not Checked In</option>
                       </select>
-                      <button
-                        onClick={() => exportAttendeesCSV(filteredAttendees, selectedEvent?.title)}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
-                      >
-                        <Download className="w-4 h-4" />
-                        Export CSV
-                      </button>
                     </div>
-                    <p className="text-gray-500 text-xs mt-2">{filteredAttendees.length} of {eventAttendees.length} attendees</p>
+                    <button
+                      onClick={() => exportAttendeesCSV(filteredAttendees, selectedEvent?.title)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Event Data
+                    </button>
+                    <p className="text-gray-500 text-xs">{filteredAttendees.length} of {eventAttendees.length} attendees</p>
                   </div>
 
                   {/* Attendee Table - Desktop */}
