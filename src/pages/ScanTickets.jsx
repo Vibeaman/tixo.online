@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   QrCode, Camera, Search, CheckCircle2, XCircle, Users,
   ArrowLeft, Ticket, Clock, User, ScanLine, AlertCircle, Undo2
@@ -319,7 +319,9 @@ function AttendeeList({ eventId, userId, onBack }) {
 
 export default function ScanTickets() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
+  const eventParam = new URLSearchParams(location.search).get('event')
 
   // View state
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -363,6 +365,25 @@ export default function ScanTickets() {
     }
     load()
   }, [user])
+
+  // Auto-select event from URL param, or redirect back to dashboard
+  useEffect(() => {
+    if (eventsLoading) return
+    if (events.length === 0) return
+    if (selectedEvent) return
+
+    if (eventParam) {
+      const matchingEvent = events.find((e) => String(e.id) === String(eventParam))
+      if (matchingEvent) {
+        handleSelectEvent(matchingEvent)
+      } else {
+        navigate('/dashboard')
+      }
+    } else {
+      navigate('/dashboard')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, eventsLoading, eventParam])
 
   // Start / stop QR scanner
   useEffect(() => {
@@ -511,76 +532,14 @@ export default function ScanTickets() {
     )
   }
 
-  // ── Event Selection View ───────────────────────────────────────────────────
+  // ── Loading / Redirecting View ─────────────────────────────────────────────
 
   if (!selectedEvent) {
     return (
-      <div className="min-h-screen bg-[#050510] text-white">
-        {/* Header */}
-        <div className="sticky top-0 z-30 bg-[#050510]/90 backdrop-blur-lg border-b border-white/10">
-          <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-lg font-bold">Scan Tickets</h1>
-              <p className="text-xs text-white/50">Select an event to begin</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
-          {eventsLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : events.length === 0 ? (
-            <div className="text-center py-20 text-white/40">
-              <QrCode className="w-12 h-12 mx-auto mb-4 opacity-40" />
-              <p className="font-medium">No events found</p>
-              <p className="text-sm mt-1">Create an event first to start scanning tickets.</p>
-            </div>
-          ) : (
-            events.map((event) => (
-              <button
-                key={event.id}
-                onClick={() => handleSelectEvent(event)}
-                className="w-full text-left bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/15 rounded-2xl p-4 transition-all group"
-              >
-                <div className="flex items-start gap-4">
-                  {event.banner_url || event.image_url ? (
-                    <img
-                      src={event.banner_url || event.image_url}
-                      alt=""
-                      className="w-16 h-16 rounded-xl object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                      <Ticket className="w-6 h-6 text-pink-400" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white group-hover:text-pink-400 transition-colors truncate">
-                      {event.title || event.name}
-                    </h3>
-                    <p className="text-sm text-white/50 mt-0.5">
-                      {event.date
-                        ? new Date(event.date).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })
-                        : 'Date TBD'}
-                    </p>
-                    {event.venue && (
-                      <p className="text-xs text-white/30 mt-0.5 truncate">{event.venue}</p>
-                    )}
-                  </div>
-                  <QrCode className="w-5 h-5 text-white/20 group-hover:text-pink-400 transition-colors shrink-0 mt-1" />
-                </div>
-              </button>
-            ))
-          )}
+      <div className="min-h-screen bg-[#050510] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white/50 text-sm">Loading scanner…</p>
         </div>
       </div>
     )

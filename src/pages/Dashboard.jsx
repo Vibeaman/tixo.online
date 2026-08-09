@@ -1117,22 +1117,6 @@ export default function Dashboard() {
               <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
             ) : (
               <>
-                {/* Scanner link */}
-                <div className="bg-white/5 border border-white/15 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                      <ScanLine className="w-6 h-6 text-pink-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-bold text-lg">QR Code Scanner</h3>
-                      <p className="text-gray-400 text-sm">Scan attendee tickets to check them in</p>
-                    </div>
-                  </div>
-                  <Link to="/scan" className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-6 py-3 rounded-xl font-medium text-sm transition-colors whitespace-nowrap">
-                    <ScanLine className="w-4 h-4" /> Open Scanner
-                  </Link>
-                </div>
-
                 {/* ═══ PENDING APPROVALS (Private Virtual Events) ═══ */}
                 {pendingApprovals.length > 0 && (
                   <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 mb-8">
@@ -1175,13 +1159,6 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* Overview Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                  <StatCard icon={Users} label="Total Attendees" value={totalTicketsAll} color="text-pink-400" />
-                  <StatCard icon={CheckCircle2} label="Checked In" value={totalCheckedIn} color="text-green-400" />
-                  <StatCard icon={Clock} label="Not Checked In" value={totalTicketsAll - totalCheckedIn} color="text-amber-400" />
-                </div>
-
                 {/* Per-event check-in stats */}
                 <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-pink-400" /> Check-in by Event
@@ -1199,7 +1176,7 @@ export default function Dashboard() {
                       const checked = Number(stat.checked_in_count) || 0
                       const pct = total > 0 ? Math.round((checked / total) * 100) : 0
                       return (
-                        <div key={stat.event_id} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-white/15 transition">
+                        <Link to={`/scan?event=${stat.event_id}`} key={stat.event_id} className="block bg-white/5 border border-white/10 rounded-xl p-5 hover:border-white/15 transition">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3 min-w-0">
                               {stat.event_image && <img src={stat.event_image} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />}
@@ -1213,11 +1190,6 @@ export default function Dashboard() {
                                 <p className="text-white font-bold text-lg">{pct}%</p>
                                 <p className="text-gray-500 text-[10px]">{checked}/{total} checked in</p>
                               </div>
-                              <Link to={`/scan?event=${stat.event_id}`}
-                                className="text-pink-400 hover:text-pink-300 p-2 hover:bg-white/5 rounded-lg transition"
-                                title="Scan for this event">
-                                <ScanLine className="w-5 h-5" />
-                              </Link>
                             </div>
                           </div>
                           {/* Progress bar */}
@@ -1231,7 +1203,7 @@ export default function Dashboard() {
                             <span className="text-green-400 text-xs">{checked} checked in</span>
                             <span className="text-amber-400 text-xs">{stat.not_checked_in_count || (total - checked)} remaining</span>
                           </div>
-                        </div>
+                        </Link>
                       )
                     })}
                   </div>
