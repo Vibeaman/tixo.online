@@ -1117,6 +1117,22 @@ export default function Dashboard() {
               <div className="text-center py-16"><div className="inline-block w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
             ) : (
               <>
+                {/* Scanner link */}
+                <div className="bg-white/5 border border-white/15 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                      <ScanLine className="w-6 h-6 text-pink-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-lg">QR Code Scanner</h3>
+                      <p className="text-gray-400 text-sm">Scan attendee tickets to check them in</p>
+                    </div>
+                  </div>
+                  <Link to="/scan" className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-6 py-3 rounded-xl font-medium text-sm transition-colors whitespace-nowrap">
+                    <ScanLine className="w-4 h-4" /> Open Scanner
+                  </Link>
+                </div>
+
                 {/* ═══ PENDING APPROVALS (Private Virtual Events) ═══ */}
                 {pendingApprovals.length > 0 && (
                   <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 mb-8">

@@ -366,7 +366,7 @@ export default function ScanTickets() {
     load()
   }, [user])
 
-  // Auto-select event from URL param, or redirect back to dashboard
+  // Auto-select event from URL param (if provided)
   useEffect(() => {
     if (eventsLoading) return
     if (events.length === 0) return
@@ -376,11 +376,7 @@ export default function ScanTickets() {
       const matchingEvent = events.find((e) => String(e.id) === String(eventParam))
       if (matchingEvent) {
         handleSelectEvent(matchingEvent)
-      } else {
-        navigate('/dashboard')
       }
-    } else {
-      navigate('/dashboard')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, eventsLoading, eventParam])
@@ -532,14 +528,60 @@ export default function ScanTickets() {
     )
   }
 
-  // ── Loading / Redirecting View ─────────────────────────────────────────────
+  // ── Loading View ──────────────────────────────────────────────────────────
 
-  if (!selectedEvent) {
+  if (eventsLoading) {
     return (
       <div className="min-h-screen bg-[#050510] text-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-white/50 text-sm">Loading scanner…</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Event Selection View ────────────────────────────────────────────────
+
+  if (!selectedEvent) {
+    return (
+      <div className="min-h-screen bg-[#050510] text-white pt-24 pb-16 px-4">
+        <div className="max-w-lg mx-auto">
+          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+          </button>
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+              <ScanLine className="w-6 h-6 text-pink-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold">QR Code Scanner</h2>
+              <p className="text-gray-400 text-sm">Select an event to start scanning</p>
+            </div>
+          </div>
+          {events.length === 0 ? (
+            <div className="text-center py-12 bg-white/5 border border-white/10 rounded-2xl">
+              <ScanLine className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">No events found</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {events.map(event => (
+                <button
+                  key={event.id}
+                  onClick={() => handleSelectEvent(event)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-4 hover:border-white/20 hover:bg-white/8 transition text-left"
+                >
+                  {event.image && <img src={event.image} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-bold text-sm truncate">{event.title || event.name}</h3>
+                    <p className="text-gray-500 text-xs">{event.date ? new Date(event.date).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</p>
+                  </div>
+                  <ScanLine className="w-5 h-5 text-pink-400 flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     )
