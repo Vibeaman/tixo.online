@@ -146,6 +146,7 @@ export default function EventDetail() {
   const [reshareLink, setReshareLink] = useState('')
   const [generatingLink, setGeneratingLink] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [privateLinkCopied, setPrivateLinkCopied] = useState(false)
   const [showResharePanel, setShowResharePanel] = useState(false)
 
   const [showGuestForm, setShowGuestForm] = useState(false)
@@ -290,6 +291,27 @@ export default function EventDetail() {
     try { const link = await ReferralService.getOrCreateLink(id, user.id); setReshareLink(`${window.location.origin}/events/${id}?ref=${link.referral_code}`); setShowResharePanel(true) } catch (e) { toast.error(e.message || 'Failed to generate link') } finally { setGeneratingLink(false) }
   }
   function copyReshareLink() { navigator.clipboard.writeText(reshareLink); setLinkCopied(true); toast.success('Referral link copied!'); setTimeout(() => setLinkCopied(false), 3000) }
+
+  function copyPrivateLink() {
+    const url = `${window.location.origin}/${event.slug || event.id}`
+    navigator.clipboard.writeText(url)
+    setPrivateLinkCopied(true)
+    toast.success('Event link copied!')
+    setTimeout(() => setPrivateLinkCopied(false), 3000)
+  }
+
+  function sharePrivateWhatsApp() {
+    const url = `${window.location.origin}/${event.slug || event.id}`
+    const text = `You're invited to "${event.title}" on Tixo! 🎫`
+    window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + url)}`, '_blank')
+  }
+
+  function sharePrivateEmail() {
+    const url = `${window.location.origin}/${event.slug || event.id}`
+    const subject = encodeURIComponent(`You're invited: ${event.title}`)
+    const body = encodeURIComponent(`Hi!\n\nYou're invited to "${event.title}" on Tixo.\n\nView the event and get your tickets here:\n${url}\n\nSee you there! 🎫`)
+    window.open(`mailto:?subject=${subject}&body=${body}`)
+  }
 
   function triggerGuestCheckout(action) { setGuestAction(action); setShowGuestForm(true) }
 
@@ -477,6 +499,7 @@ export default function EventDetail() {
           <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, color: 'white', lineHeight: 1.1, marginBottom: 16 }}>
             {event.title}
             {event.is_recurring && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(168,85,247,0.15)', color: '#c084fc', padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, marginLeft: 12, verticalAlign: 'middle' }}>Recurring: {event.recurrence_pattern ? event.recurrence_pattern.charAt(0).toUpperCase() + event.recurrence_pattern.slice(1) : 'Recurring'}</span>}
+            {event.is_private && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, marginLeft: 12, verticalAlign: 'middle' }}><Eye size={12} /> Private</span>}
           </h1>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
             {event.event_type !== 'virtual' && (<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><MapPin size={15} style={{ color: 'var(--purple-light)' }} /> {event.location}</span>)}
@@ -507,6 +530,35 @@ export default function EventDetail() {
           {(isVirtual || isHybrid) && event.virtual_link && (<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Video size={18} style={{ color: '#60a5fa' }} /></div><div><p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>Virtual Event{isPrivateVirtual && <span style={{ fontSize: '0.72rem', fontWeight: 700, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: 999 }}>Private</span>}</p>{(purchaseSuccess || hasRsvpd) && !isPrivateVirtual ? (<a href={event.virtual_link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple-light)', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4 }}>Join online <ExternalLink size={12} /></a>) : (purchaseSuccess || hasRsvpd) && isPrivateVirtual ? (<p style={{ color: '#f59e0b', fontSize: '0.82rem' }}>Waiting for organizer approval</p>) : isPrivateVirtual ? (<p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem' }}>Link sent after organizer approval</p>) : (<p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem' }}>Link available after registration</p>)}</div></div>)}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}><div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>{event.organizer_avatar ? (<img src={event.organizer_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />) : (<span style={{ fontWeight: 800, fontSize: '0.85rem' }}>{(event.organizer_name || 'U')[0].toUpperCase()}</span>)}</div><div><p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>Organized by</p><p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'white' }}>{event.organizer_name || 'Unknown'}</p></div></div>
         </div>
+
+        {event.is_private && user && user.id === event.organizer_id && (
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(251,191,36,0.04))', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 16, padding: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Share2 size={18} style={{ color: '#f59e0b' }} />
+                </div>
+                <div>
+                  <h3 style={{ fontWeight: 800, color: 'white', fontSize: '1.05rem' }}>Share This Private Event</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem' }}>This event is unlisted. Share the link with people you want to invite.</p>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                <button onClick={copyPrivateLink} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: privateLinkCopied ? 'rgba(74,222,128,0.15)' : 'rgba(245,158,11,0.15)', border: `1px solid ${privateLinkCopied ? 'rgba(74,222,128,0.3)' : 'rgba(245,158,11,0.3)'}`, borderRadius: 12, padding: '14px', cursor: 'pointer', color: privateLinkCopied ? '#4ade80' : '#fbbf24', fontWeight: 700, fontSize: '0.88rem', transition: 'all 0.2s' }}>
+                  {privateLinkCopied ? <><Check size={16} /> Link Copied!</> : <><Copy size={16} /> Copy Event Link</>}
+                </button>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <button onClick={sharePrivateWhatsApp} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.2)', borderRadius: 12, padding: '12px', cursor: 'pointer', color: '#25D366', fontWeight: 700, fontSize: '0.85rem' }}>
+                    <MessageCircle size={16} /> WhatsApp
+                  </button>
+                  <button onClick={sharePrivateEmail} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 12, padding: '12px', cursor: 'pointer', color: '#60a5fa', fontWeight: 700, fontSize: '0.85rem' }}>
+                    <Send size={16} /> Email Invite
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {event.reshare_enabled && (<div style={{ marginBottom: 32 }}><div style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(236,72,153,0.06))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 24 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><DollarSign size={18} style={{ color: 'var(--purple-light)' }} /></div><div><h3 style={{ fontWeight: 800, color: 'white', fontSize: '1.05rem' }}>Reshare & Earn</h3><p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem' }}>Earn 2.5% commission on every ticket sold through your link</p></div></div>{!showResharePanel ? (<button onClick={handleGenerateReshareLink} disabled={generatingLink} style={{ width: '100%', background: 'var(--purple)', border: 'none', color: 'white', fontWeight: 700, padding: '14px', borderRadius: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: '0.9rem' }}><Share2 size={16} /> {generatingLink ? 'Generating...' : 'Get Your Referral Link'}</button>) : (<div style={{ display: 'flex', gap: 8 }}><input readOnly value={reshareLink} style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px 14px', color: 'white', fontSize: '0.82rem', outline: 'none' }} /><button onClick={copyReshareLink} style={{ background: linkCopied ? '#16a34a' : 'var(--purple)', border: 'none', color: 'white', padding: '12px 18px', borderRadius: 10, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>{linkCopied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}</button></div>)}</div></div>)}
 

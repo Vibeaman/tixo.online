@@ -1034,6 +1034,7 @@ export default function Dashboard() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="text-white font-bold truncate">{ev.title}</h3>
+                              {ev.is_private && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 700, marginLeft: 8 }}>Private</span>}
                               <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">Draft</span>
                               <EventTypeBadge type={ev.event_type} />
                               {ev.reshare_enabled && (
@@ -1089,7 +1090,10 @@ export default function Dashboard() {
                     <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/events/${ev.id}`)}>
                       {ev.image && <img src={ev.image} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />}
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-white font-bold truncate">{ev.title}</h3>
+                        <div className="flex items-center flex-wrap">
+                          <h3 className="text-white font-bold truncate">{ev.title}</h3>
+                          {ev.is_private && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 700, marginLeft: 8 }}>Private</span>}
+                        </div>
                         <p className="text-gray-400 text-sm mt-1">{ev.date}{ev.end_date && ev.end_date !== ev.date ? ` – ${ev.end_date}` : ''}</p>
                       </div>
                     </div>
