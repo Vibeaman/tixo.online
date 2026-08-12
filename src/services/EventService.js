@@ -29,6 +29,7 @@ const EventService = {
       .from('events')
       .select('*')
       .or('status.eq.published,status.is.null')
+      .or('is_private.eq.false,is_private.is.null')
       .order('created_at', { ascending: false })
     if (error) throw error
     return data
@@ -62,6 +63,7 @@ const EventService = {
       .from('events')
       .select('*')
       .or('status.eq.published,status.is.null')
+      .or('is_private.eq.false,is_private.is.null')
       .or(`title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%,category.ilike.%${query}%`)
       .order('created_at', { ascending: false })
     if (error) throw error
@@ -73,6 +75,7 @@ const EventService = {
       .from('events')
       .select('*')
       .or('status.eq.published,status.is.null')
+      .or('is_private.eq.false,is_private.is.null')
       .ilike('category', category)
       .order('created_at', { ascending: false })
     if (error) throw error
@@ -84,6 +87,7 @@ const EventService = {
       .from('events')
       .select('*')
       .or('status.eq.published,status.is.null')
+      .or('is_private.eq.false,is_private.is.null')
       .order('created_at', { ascending: false })
       .limit(limit)
     if (error) throw error
@@ -96,6 +100,7 @@ const EventService = {
       .select('*')
       .eq('is_featured', true)
       .or('status.eq.published,status.is.null')
+      .or('is_private.eq.false,is_private.is.null')
       .order('watchers', { ascending: false })
       .limit(4)
     if (error) throw error
@@ -165,7 +170,7 @@ const EventService = {
   },
 
   async searchAdvanced({ query, category, location, dateFrom, dateTo, eventType }) {
-    let q = supabase.from('events').select('*').or('status.eq.published,status.is.null')
+    let q = supabase.from('events').select('*').or('status.eq.published,status.is.null').or('is_private.eq.false,is_private.is.null')
     if (query) q = q.or(`title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`)
     if (category && category !== 'All') q = q.ilike('category', category)
     if (location) q = q.ilike('location', `%${location}%`)
@@ -194,6 +199,7 @@ const EventService = {
       .from('events')
       .select('*')
       .or('status.eq.published,status.is.null')
+      .or('is_private.eq.false,is_private.is.null')
       .gte('date', today)
       .order('date', { ascending: true })
       .limit(limit)
