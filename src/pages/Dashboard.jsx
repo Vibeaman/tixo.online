@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter, Shield, EyeOff } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter, Shield, EyeOff, Lock } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -993,6 +993,24 @@ export default function Dashboard() {
                               <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Transferred</span>
                             ) : null}
                           </div>
+
+                          {/* Virtual event link */}
+                          {t.events && (t.events.event_type === 'virtual' || t.events.event_type === 'hybrid') && t.events.virtual_link && (
+                            <div className="mt-3 pt-3 border-t border-white/5">
+                              {t.events.virtual_access === 'private' && !t.approved ? (
+                                <div className="flex items-center gap-2">
+                                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                                  <span className="text-amber-400 text-xs font-medium">Awaiting organizer approval for meeting link</span>
+                                </div>
+                              ) : (
+                                <a href={t.events.virtual_link} target="_blank" rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg px-3 py-2 text-xs font-bold transition-colors">
+                                  <Video className="w-3.5 h-3.5" /> Join Virtual Event <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )
                     })}

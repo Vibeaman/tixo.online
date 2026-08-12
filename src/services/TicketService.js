@@ -132,6 +132,19 @@ const TicketService = {
     return data
   },
 
+  // Get a user's ticket for a specific event (including private-event approval status)
+  async getUserTicket(eventId, userId) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('id, approved, attendance_mode, is_rsvp')
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .limit(1)
+      .single()
+    if (error && error.code !== 'PGRST116') throw error
+    return data || null
+  },
+
   async getByUser(userId) {
     const { data, error } = await supabase
       .from('tickets')
