@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Repeat, Clock, Sparkles, ClipboardList, Phone, Share2, Info, DollarSign, Ticket, Users } from 'lucide-react'
+import { MapPin, Video, Globe, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Repeat, Clock, Sparkles, ClipboardList, Phone, Share2, Info, DollarSign, Ticket, Users, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import { useAuth } from '../context/AuthContext'
@@ -42,6 +42,7 @@ export default function EditEvent() {
     image: '', tags: '',
     pricing_type: 'paid',
     is_recurring: false,
+    is_private: false,
     recurrence_pattern: 'weekly',
     recurrence_end_date: '',
     tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }],
@@ -79,6 +80,7 @@ export default function EditEvent() {
           tags: ev.tags?.join(', ') || '',
           pricing_type: ev.ticket_tiers?.length && ev.ticket_tiers.some(t => Number(t.price) > 0) ? 'paid' : 'free',
           is_recurring: ev.is_recurring || false,
+          is_private: ev.is_private || false,
           recurrence_pattern: ev.recurrence_pattern || 'weekly',
           recurrence_end_date: ev.recurrence_end_date || '',
           tiers: ev.ticket_tiers?.length
@@ -248,6 +250,7 @@ export default function EditEvent() {
         virtual_link: form.virtual_link || null,
         image: finalImage,
         is_recurring: form.is_recurring,
+        is_private: (form.event_type !== 'virtual') ? form.is_private : false,
         recurrence_pattern: form.is_recurring ? form.recurrence_pattern : null,
         recurrence_end_date: form.is_recurring ? form.recurrence_end_date : null,
         ticket_tiers: form.tiers.map(t => ({
@@ -399,6 +402,37 @@ export default function EditEvent() {
                   </div>
                 )}
               </div>
+
+              {/* Private Event */}
+              {form.event_type !== 'virtual' && (
+                <div className={`border rounded-xl p-4 transition-all ${form.is_private ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/10 bg-white/5'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${form.is_private ? 'bg-amber-500/20' : 'bg-white/10'}`}>
+                        <Eye className={`w-5 h-5 ${form.is_private ? 'text-amber-400' : 'text-gray-500'}`} />
+                      </div>
+                      <div>
+                        <p className="text-white font-semibold text-sm">Private Event</p>
+                        <p className="text-gray-500 text-xs">Only visible to people with the link</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, is_private: !f.is_private }))}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${form.is_private ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-white/10'}`}
+                    >
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${form.is_private ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                  {form.is_private && (
+                    <div className="mt-3 pt-3 border-t border-white/10">
+                      <p className="text-amber-300/60 text-xs">
+                        This event won't appear on the homepage or events page. Only people you share the link with will be able to find and register for it.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {form.event_type !== 'virtual' && (
                 <div><label className="text-sm text-gray-300 mb-1 block">Location *</label>

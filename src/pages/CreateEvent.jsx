@@ -47,6 +47,7 @@ export default function CreateEvent() {
     pricing_type: 'paid',
     reshare_enabled: false,
     is_recurring: false,
+    is_private: false,
     recurrence_pattern: 'weekly',
     recurrence_end_date: '',
     tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid', unlimited: false, max_per_purchase: 1 }],
@@ -216,6 +217,7 @@ export default function CreateEvent() {
         image: finalImage,
         reshare_enabled: form.reshare_enabled,
         is_recurring: form.is_recurring,
+        is_private: (form.event_type !== 'virtual') ? form.is_private : false,
         recurrence_pattern: form.is_recurring ? form.recurrence_pattern : null,
         recurrence_end_date: form.is_recurring ? form.recurrence_end_date : null,
         organizer_id: user.id,
@@ -485,6 +487,37 @@ export default function CreateEvent() {
                   </div>
                 )}
               </div>
+
+              {/* Private Event */}
+              {form.event_type !== 'virtual' && (
+                <div className={`border rounded-xl p-4 transition-all ${form.is_private ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/10 bg-white/5'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${form.is_private ? 'bg-amber-500/20' : 'bg-white/10'}`}>
+                        <Eye className={`w-5 h-5 ${form.is_private ? 'text-amber-400' : 'text-gray-500'}`} />
+                      </div>
+                      <div>
+                        <p className="text-white font-semibold text-sm">Private Event</p>
+                        <p className="text-gray-500 text-xs">Only visible to people with the link</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, is_private: !f.is_private }))}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${form.is_private ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-white/10'}`}
+                    >
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${form.is_private ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                  {form.is_private && (
+                    <div className="mt-3 pt-3 border-t border-white/10">
+                      <p className="text-amber-300/60 text-xs">
+                        This event won't appear on the homepage or events page. Only people you share the link with will be able to find and register for it.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Location */}
               {form.event_type !== 'virtual' && (
@@ -1080,6 +1113,7 @@ export default function CreateEvent() {
                     {(form.event_type === 'virtual' || form.event_type === 'hybrid') && (
                       <p><span className="text-gray-500">Virtual Access:</span> {form.virtual_access === 'private' ? 'Private (approval required)' : 'Public (instant access)'}</p>
                     )}
+                    {form.is_private && <p><span className="text-gray-500">Visibility:</span> Private (link only)</p>}
                   </div>
                 </div>
 
