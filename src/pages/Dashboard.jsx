@@ -170,10 +170,24 @@ function QRModal({ ticket, onClose }) {
               <span className="text-gray-300">{ticket.events.location}</span>
             </div>
           )}
-          {ticket.events?.attendance_mode === 'virtual' && (
+          {(ticket.events?.event_type === 'virtual' || ticket.events?.event_type === 'hybrid') && (
             <div className="flex items-center gap-2 text-sm">
               <Globe className="w-4 h-4 text-purple-400 flex-shrink-0" />
-              <span className="text-gray-300">Virtual Event</span>
+              <span className="text-gray-300">{ticket.events.event_type === 'hybrid' ? 'Hybrid Event' : 'Virtual Event'}</span>
+            </div>
+          )}
+          {(ticket.events?.event_type === 'virtual' || ticket.events?.event_type === 'hybrid') && ticket.events?.virtual_link && (
+            <div className="flex items-center gap-2 text-sm">
+              <Video className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              {ticket.events.virtual_access === 'private' && !ticket.approved ? (
+                <span className="text-amber-400 text-xs font-medium">Awaiting approval for meeting link</span>
+              ) : (
+                <a href={ticket.events.virtual_link} target="_blank" rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">
+                  Join Online
+                </a>
+              )}
             </div>
           )}
           <div className="flex items-center gap-2 text-sm">
