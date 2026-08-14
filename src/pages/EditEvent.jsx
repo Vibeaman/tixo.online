@@ -62,7 +62,7 @@ export default function EditEvent() {
         const ev = await EventService.getById(id)
         if (!user || ev.organizer_id !== user.id) {
           toast.error('You can only edit your own events')
-          navigate('/dashboard')
+          navigate('/dashboard?tab=events')
           return
         }
         setForm({
@@ -124,7 +124,7 @@ export default function EditEvent() {
         setOriginalTitle(ev.title || '')
       } catch (e) {
         toast.error('Event not found')
-        navigate('/dashboard')
+        navigate('/dashboard?tab=events')
       } finally {
         setLoading(false)
       }
@@ -277,7 +277,7 @@ export default function EditEvent() {
       }
       await EventService.update(id, updates)
       toast.success('✅ Event updated!')
-      navigate('/dashboard')
+      navigate('/dashboard?tab=events')
     } catch (e) {
       toast.error(e.message || 'Failed to update event')
     } finally {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter, Shield, EyeOff, Lock } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
@@ -361,8 +361,13 @@ function OrganizerAgreementModal({ isOpen, onClose }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user, profile, loading: authLoading, setProfile } = useAuth()
-  const [tab, setTab] = useState('tickets')
+  const [tab, setTab] = useState(() => {
+    const urlTab = searchParams.get('tab')
+    const validTabs = ['tickets', 'events', 'checkin', 'attendees', 'analytics', 'payouts', 'referrals', 'notifications', 'settings']
+    return validTabs.includes(urlTab) ? urlTab : 'tickets'
+  })
   const [tickets, setTickets] = useState([])
   const [myEvents, setMyEvents] = useState([])
   const [loading, setLoading] = useState(true)

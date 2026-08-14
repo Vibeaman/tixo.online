@@ -294,7 +294,7 @@ export default function CreateEvent() {
       } else if (!form.is_recurring || !form.recurrence_end_date) {
         toast.success('Event published!')
       }
-      navigate('/dashboard')
+      navigate('/dashboard?tab=events')
     } catch (e) {
       toast.error(e.message || 'Failed to create event')
     } finally {
