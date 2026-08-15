@@ -50,7 +50,7 @@ export default function CreateEvent() {
     is_private: false,
     recurrence_pattern: 'weekly',
     recurrence_end_date: '',
-    tiers: [{ name: 'General', price: 0, available: 100, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid', unlimited: false, max_per_purchase: 1 }],
+    tiers: [{ name: 'General', price: 0, available: '', description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid', unlimited: false, max_per_purchase: 1 }],
     registration_fields: [
       { id: 'phone', label: 'Phone Number', type: 'tel', enabled: false, required: false },
       { id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Non-binary', 'Prefer not to say'], enabled: false, required: false },
@@ -92,7 +92,7 @@ export default function CreateEvent() {
       const tiers = [...f.tiers]; tiers[i] = { ...tiers[i], [field]: val }; return { ...f, tiers }
     })
   }
-  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: 50, description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: form.pricing_type === 'mixed' ? 'paid' : 'paid', unlimited: false, max_per_purchase: 1 }] })) }
+  function addTier() { setForm(f => ({ ...f, tiers: [...f.tiers, { name: '', price: 0, available: '', description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: form.pricing_type === 'mixed' ? 'paid' : 'paid', unlimited: false, max_per_purchase: 1 }] })) }
   function removeTier(i) { setForm(f => ({ ...f, tiers: f.tiers.filter((_, idx) => idx !== i) })) }
 
   function toggleRegField(id) {
@@ -225,7 +225,7 @@ export default function CreateEvent() {
         ticket_tiers: form.tiers.map(t => ({
           name: t.name,
           price: Number(t.price),
-          available: t.unlimited ? null : Number(t.available),
+          available: t.unlimited ? null : (Number(t.available) || 100),
           unlimited: !!t.unlimited,
           description: t.description || '',
           early_bird: t.early_bird,
@@ -708,7 +708,10 @@ export default function CreateEvent() {
                   {/* Max Per Purchase */}
                   <div className="flex items-center gap-3">
                     <Users className="w-4 h-4 text-gray-500" />
-                    <label className="text-xs text-gray-400">Max per person</label>
+                    <div>
+                      <label className="text-xs text-gray-400">Purchase per person</label>
+                      <p className="text-[10px] text-gray-600">How many tickets one person can buy</p>
+                    </div>
                     <input
                       type="number"
                       min="1"
@@ -1135,7 +1138,7 @@ export default function CreateEvent() {
                         <span className="text-gray-500">·</span>
                         <span className="text-gray-500">{t.unlimited ? 'Unlimited' : `${t.available} spots`}</span>
                         <span className="text-gray-500">·</span>
-                        <span className="text-gray-500">Max {t.max_per_purchase || 1}/person</span>
+                        <span className="text-gray-500">{t.max_per_purchase || 1} per person</span>
                         {t.early_bird && <span className="text-amber-400 text-xs ml-auto">Early Bird</span>}
                       </div>
                     ))}

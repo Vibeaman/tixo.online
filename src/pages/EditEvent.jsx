@@ -546,7 +546,10 @@ export default function EditEvent() {
                   {/* Max Per Purchase */}
                   <div className="flex items-center gap-3">
                     <Users className="w-4 h-4 text-gray-500" />
-                    <label className="text-xs text-gray-400">Max per person</label>
+                    <div>
+                      <label className="text-xs text-gray-400">Purchase per person</label>
+                      <p className="text-[10px] text-gray-600">How many tickets one person can buy</p>
+                    </div>
                     <input
                       type="number"
                       min="1"
