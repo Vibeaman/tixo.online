@@ -13,9 +13,20 @@ import { useAuth } from '../context/AuthContext'
 import ShareButton from '../components/ShareButton'
 
 /* --- Helpers --- */
+// Parse date + time as guaranteed local time (avoids UTC drift in some browsers)
+function parseLocalDateTime(dateStr, timeStr) {
+  if (!dateStr) return null
+  const [y, m, d] = dateStr.split('-').map(Number)
+  if (timeStr) {
+    const [h, min] = timeStr.split(':').map(Number)
+    return new Date(y, m - 1, d, h || 0, min || 0, 0)
+  }
+  return new Date(y, m - 1, d, 0, 0, 0)
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return { month: '', day: '', full: '', weekday: '' }
-  const d = new Date(dateStr + 'T00:00:00')
+  const d = parseLocalDateTime(dateStr)
   return {
     month: d.toLocaleString('en', { month: 'short' }).toUpperCase(),
     day: d.getDate(),
@@ -47,7 +58,7 @@ function Countdown({ date, time }) {
   const [expired, setExpired] = useState(false)
 
   useEffect(() => {
-    const target = new Date(`${date}T${time || '00:00:00'}`)
+    const target = parseLocalDateTime(date, time || '00:00')
     const update = () => {
       const diff = target - Date.now()
       if (diff <= 0) { setExpired(true); return }
@@ -272,7 +283,7 @@ export default function EventDetail() {
     if (!tier) return 0
     if (tier.early_bird && tier.early_bird_price != null && tier.early_bird_end_date) {
       const now = new Date()
-      const endDate = new Date(tier.early_bird_end_date + 'T23:59:59')
+      const endDate = parseLocalDateTime(tier.early_bird_end_date, '23:59')
       if (now <= endDate) return Number(tier.early_bird_price)
     }
     return Number(tier.price) || 0
@@ -290,7 +301,7 @@ export default function EventDetail() {
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0)
   const eventEndRef = event ? (event.end_date || event.date) : null
   const eventEndTimeRef = event ? (event.end_time || event.time || '23:59') : '23:59'
-  const isEventEnded = eventEndRef ? new Date(`${eventEndRef}T${eventEndTimeRef}:00`) < new Date() : false
+  const isEventEnded = eventEndRef ? parseLocalDateTime(eventEndRef, eventEndTimeRef) < new Date() : false
   const showFloatingCart = cartCount > 0 && !isFreeEvent && !purchaseSuccess && !cartSummaryVisible && !showAttendeeForm && !isEventEnded
 
   function scrollToCart() { cartSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setFloaterExpanded(false) }

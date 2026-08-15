@@ -340,14 +340,18 @@ export default function EditEvent() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm text-gray-300 mb-1 block">Start Date *</label>
+                  <p className="text-gray-500 text-[11px] mb-1">When does your event begin?</p>
                   <input name="date" type="date" value={form.date} onChange={update} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" /></div>
                 <div><label className="text-sm text-gray-300 mb-1 block">Start Time</label>
+                  <p className="text-gray-500 text-[11px] mb-1">What time does it kick off?</p>
                   <input name="time" type="time" value={form.time} onChange={update} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm text-gray-300 mb-1 block">End Date</label>
+                  <p className="text-gray-500 text-[11px] mb-1">When does it wrap up?</p>
                   <input name="end_date" type="date" value={form.end_date} onChange={update} min={form.date} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" /></div>
                 <div><label className="text-sm text-gray-300 mb-1 block">End Time</label>
+                  <p className="text-gray-500 text-[11px] mb-1">What time does it finish?</p>
                   <input name="end_time" type="time" value={form.end_time} onChange={update} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" /></div>
               </div>
 
