@@ -50,7 +50,7 @@ export default function CreateEvent() {
     is_private: false,
     recurrence_pattern: 'weekly',
     recurrence_end_date: '',
-    tiers: [{ name: 'General', price: 0, available: '', description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid', unlimited: false, max_per_purchase: 1 }],
+    tiers: [{ name: '', price: 0, available: '', description: '', early_bird: false, early_bird_price: 0, early_bird_end_date: '', tier_type: 'paid', unlimited: false, max_per_purchase: 1 }],
     registration_fields: [
       { id: 'phone', label: 'Phone Number', type: 'tel', enabled: false, required: false },
       { id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Non-binary', 'Prefer not to say'], enabled: false, required: false },
@@ -607,7 +607,7 @@ export default function CreateEvent() {
                         ...f,
                         pricing_type: 'free',
                         reshare_enabled: false,
-                        tiers: f.tiers.map(t => ({ ...t, price: 0, tier_type: 'free', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }))
+                        tiers: f.tiers.map(t => ({ ...t, name: t.name || 'General', price: 0, tier_type: 'free', early_bird: false, early_bird_price: 0, early_bird_end_date: '' }))
                       }))
                     }}
                     className={`p-4 rounded-xl border text-center transition-all ${form.pricing_type === 'free' ? 'border-green-500/30 bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
