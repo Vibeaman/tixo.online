@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe, Share2, DollarSign, Info, Repeat, Clock, Sparkles, ClipboardList, Phone, Lock, Unlock, ScanLine, Users, Layers, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
+import TimeInput12h from '../components/TimeInput12h'
 import PayoutService from '../services/PayoutService'
 import { useAuth } from '../context/AuthContext'
 import { uploadEventImage } from '../lib/uploadImage'
@@ -413,8 +414,7 @@ export default function CreateEvent() {
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">Start Time</label>
                   <p className="text-gray-500 text-[11px] mb-1">What time does it kick off?</p>
-                  <input name="time" type="time" value={form.time} onChange={update}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" />
+                  <TimeInput12h name="time" value={form.time} onChange={update} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -427,8 +427,7 @@ export default function CreateEvent() {
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">End Time</label>
                   <p className="text-gray-500 text-[11px] mb-1">What time does it finish?</p>
-                  <input name="end_time" type="time" value={form.end_time} onChange={update}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" />
+                  <TimeInput12h name="end_time" value={form.end_time} onChange={update} />
                 </div>
               </div>
 
