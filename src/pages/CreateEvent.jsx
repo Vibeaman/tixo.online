@@ -226,7 +226,7 @@ export default function CreateEvent() {
         ticket_tiers: form.tiers.map(t => ({
           name: t.name,
           price: Number(t.price),
-          available: t.unlimited ? null : (Number(t.available) || 100),
+          available: t.unlimited ? null : (t.available === '' || t.available === undefined ? null : Number(t.available)),
           unlimited: !!t.unlimited,
           description: t.description || '',
           early_bird: t.early_bird,
@@ -708,8 +708,8 @@ export default function CreateEvent() {
                   <div className="flex items-center gap-3">
                     <Users className="w-4 h-4 text-gray-500" />
                     <div>
-                      <label className="text-xs text-gray-400">Purchase per person</label>
-                      <p className="text-[10px] text-gray-600">How many tickets one person can buy</p>
+                      <label className="text-xs text-gray-400">Purchase per time</label>
+                      <p className="text-[10px] text-gray-600">Max tickets a buyer can get in one order</p>
                     </div>
                     <input
                       type="number"
@@ -1137,7 +1137,7 @@ export default function CreateEvent() {
                         <span className="text-gray-500">·</span>
                         <span className="text-gray-500">{t.unlimited ? 'Unlimited' : `${t.available} spots`}</span>
                         <span className="text-gray-500">·</span>
-                        <span className="text-gray-500">{t.max_per_purchase || 1} per person</span>
+                        <span className="text-gray-500">{t.max_per_purchase || 1} per time</span>
                         {t.early_bird && <span className="text-amber-400 text-xs ml-auto">Early Bird</span>}
                       </div>
                     ))}
