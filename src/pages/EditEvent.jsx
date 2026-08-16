@@ -34,6 +34,7 @@ export default function EditEvent() {
   const [uploading, setUploading] = useState(false)
   const [existingSlug, setExistingSlug] = useState(null)
   const [originalTitle, setOriginalTitle] = useState('')
+  const [eventEnded, setEventEnded] = useState(false)
   const fileInputRef = useRef(null)
   const [form, setForm] = useState({
     title: '', description: '',
@@ -123,6 +124,14 @@ export default function EditEvent() {
         if (ev.image) setImagePreview(ev.image)
         setExistingSlug(ev.slug || null)
         setOriginalTitle(ev.title || '')
+
+        // Check if event has already ended
+        const endDate = ev.end_date || ev.date
+        const endTime = ev.end_time || ev.time || '23:59'
+        if (endDate) {
+          const endDT = new Date(`${endDate}T${endTime}`)
+          if (endDT < new Date()) setEventEnded(true)
+        }
       } catch (e) {
         toast.error('Event not found')
         navigate('/dashboard?tab=events')
@@ -208,6 +217,15 @@ export default function EditEvent() {
   async function handleSubmit() {
     setSubmitting(true)
     try {
+      // If event ended, force original date/time values (no pushing forward)
+      if (eventEnded) {
+        const ev = await EventService.getById(id)
+        form.date = ev.date
+        form.time = ev.time
+        form.end_date = ev.end_date || ev.date
+        form.end_time = ev.end_time || ev.time
+      }
+
       let finalImage = form.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800'
       if (imageFile) {
         setUploading(true)
@@ -339,17 +357,22 @@ export default function EditEvent() {
                   ))}
                 </div>
               </div>
+              {eventEnded && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-300 text-sm">
+                  🔒 This event has ended. Date and time cannot be changed.
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm text-gray-300 mb-1 block">Start Date *</label>
-                  <input name="date" type="date" value={form.date} onChange={update} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" /></div>
+                  <input name="date" type="date" value={form.date} onChange={update} disabled={eventEnded} className={`w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 ${eventEnded ? 'opacity-50 cursor-not-allowed' : ''}`} /></div>
                 <div><label className="text-sm text-gray-300 mb-1 block">Start Time</label>
-                  <TimeInput12h name="time" value={form.time} onChange={update} /></div>
+                  <TimeInput12h name="time" value={form.time} onChange={eventEnded ? () => {} : update} /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm text-gray-300 mb-1 block">End Date *</label>
-                  <input name="end_date" type="date" value={form.end_date} onChange={update} min={form.date} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20" /></div>
+                  <input name="end_date" type="date" value={form.end_date} onChange={update} min={form.date} disabled={eventEnded} className={`w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 ${eventEnded ? 'opacity-50 cursor-not-allowed' : ''}`} /></div>
                 <div><label className="text-sm text-gray-300 mb-1 block">End Time</label>
-                  <TimeInput12h name="end_time" value={form.end_time} onChange={update} /></div>
+                  <TimeInput12h name="end_time" value={form.end_time} onChange={eventEnded ? () => {} : update} /></div>
               </div>
 
               {/* Recurring Events */}
