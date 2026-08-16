@@ -200,7 +200,7 @@ const EventService = {
       .select('*')
       .or('status.eq.published,status.is.null')
       .or('is_private.eq.false,is_private.is.null')
-      .gte('date', today)
+      .or(`end_date.gte.${today},date.gte.${today}`)
       .order('date', { ascending: true })
       .limit(limit)
     if (error) throw error

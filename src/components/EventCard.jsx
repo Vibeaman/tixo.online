@@ -16,7 +16,13 @@ export default function EventCard({ event }) {
 
   const eventEndRef = event.end_date || event.date
   const eventEndTimeRef = event.end_time || event.time || '23:59'
-  const isEnded = eventEndRef ? new Date(`${eventEndRef}T${eventEndTimeRef}:00`) < new Date() : false
+  // Parse as guaranteed local time (avoids UTC drift in some browsers with ISO strings)
+  const isEnded = (() => {
+    if (!eventEndRef) return false
+    const [y, m, d] = eventEndRef.split('-').map(Number)
+    const [h, min] = (eventEndTimeRef || '23:59').split(':').map(Number)
+    return new Date(y, m - 1, d, h || 0, min || 0, 0) < new Date()
+  })()
 
   let dateDisplay = event.date || ''
   if (event.end_date && event.end_date !== event.date) {

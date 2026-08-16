@@ -404,6 +404,7 @@ export default function CreateEvent() {
               </div>
 
               {/* Date range */}
+              <p className="text-xs text-gray-400 -mb-1">When does your event start? Tickets go on sale once you publish.</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">Start Date *</label>
@@ -415,6 +416,7 @@ export default function CreateEvent() {
                   <TimeInput12h name="time" value={form.time} onChange={update} />
                 </div>
               </div>
+              <p className="text-xs text-gray-400 -mb-1">When does it wrap up? Tickets stay on sale until this time.</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-300 mb-1 block">End Date *</label>
