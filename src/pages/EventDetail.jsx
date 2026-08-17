@@ -255,12 +255,15 @@ export default function EventDetail() {
 
   // Auto-fill first attendee slot when profile loads after slots were created
   useEffect(() => {
-    if (attendeeSlots.length > 0 && profile?.full_name && !attendeeSlots[0].name) {
-      const updated = [...attendeeSlots]
-      updated[0] = { ...updated[0], name: profile.full_name, email: updated[0].email || user?.email || '' }
-      setAttendeeSlots(updated)
+    if (attendeeSlots.length > 0 && !attendeeSlots[0].name) {
+      const name = profile?.full_name || user?.user_metadata?.full_name
+      if (name) {
+        const updated = [...attendeeSlots]
+        updated[0] = { ...updated[0], name, email: updated[0].email || user?.email || '' }
+        setAttendeeSlots(updated)
+      }
     }
-  }, [profile, attendeeSlots.length])
+  }, [profile, user, attendeeSlots])
 
   /* --- Cart helpers --- */
   function cartQty(tierName) { return cart[tierName] || 0 }
@@ -341,18 +344,18 @@ export default function EventDetail() {
   /* --- RSVP handler --- */
   async function handleRsvp(guestInfo = null) {
     if (!user && !guestInfo) { triggerGuestCheckout('rsvp'); return }
-    if (user && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) { setGuestAction('rsvp'); setGuestName(profile?.full_name || ''); setGuestEmail(user.email || ''); setShowGuestForm(true); return }
+    if (user && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) { setGuestAction('rsvp'); setGuestName(profile?.full_name || user?.user_metadata?.full_name || ''); setGuestEmail(user.email || ''); setShowGuestForm(true); return }
     setRsvping(true)
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
-      const ticket = await TicketService.purchase({ eventId: event.id, eventTitle: event.title, tierName: tiers[0]?.name || 'General', quantity: 1, totalPrice: 0, userId: user?.id || null, guestName: guestInfo?.name || null, guestEmail: guestInfo?.email || null, referralCode: refCode || null, attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'), isRsvp: true, attendeeName: guestInfo?.name || profile?.full_name || null, attendeeEmail: guestInfo?.email || user?.email || null, paymentStatus: 'free', registrationData: guestInfo?.registrationData || registrationData })
+      const ticket = await TicketService.purchase({ eventId: event.id, eventTitle: event.title, tierName: tiers[0]?.name || 'General', quantity: 1, totalPrice: 0, userId: user?.id || null, guestName: guestInfo?.name || null, guestEmail: guestInfo?.email || null, referralCode: refCode || null, attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'), isRsvp: true, attendeeName: guestInfo?.name || profile?.full_name || user?.user_metadata?.full_name || null, attendeeEmail: guestInfo?.email || user?.email || null, paymentStatus: 'free', registrationData: guestInfo?.registrationData || registrationData })
       sessionStorage.removeItem(`ref_${id}`)
       setHasRsvpd(true); setPurchaseSuccess(true); setShowGuestForm(false)
       toast.success('RSVP confirmed!')
       // Send confirmation email for free RSVP
       const rsvpEmail = guestInfo?.email || user?.email
       if (rsvpEmail && ticket) {
-        fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: rsvpEmail, buyerName: guestInfo?.name || profile?.full_name || '', eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: [{ tierName: ticket.tier_name, quantity: 1, totalPrice: 0, checkInCode: ticket.check_in_code, attendeeName: ticket.attendee_name }], totalAmount: 0, paymentReference: ticket.payment_reference || 'free-rsvp', paymentDate: new Date().toISOString() }) }).catch(err => console.warn('RSVP email failed:', err))
+        fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: rsvpEmail, buyerName: guestInfo?.name || profile?.full_name || user?.user_metadata?.full_name || '', eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: [{ tierName: ticket.tier_name, quantity: 1, totalPrice: 0, checkInCode: ticket.check_in_code, attendeeName: ticket.attendee_name }], totalAmount: 0, paymentReference: ticket.payment_reference || 'free-rsvp', paymentDate: new Date().toISOString() }) }).catch(err => console.warn('RSVP email failed:', err))
       }
     } catch (e) { toast.error(e.message || 'RSVP failed') } finally { setRsvping(false) }
   }
@@ -360,17 +363,17 @@ export default function EventDetail() {
   /* --- Reserve free tier --- */
   async function handleReserveFreeTier(tier, guestInfo = null) {
     if (!user && !guestInfo) { triggerGuestCheckout('rsvp'); return }
-    if (user && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) { setGuestAction('rsvp'); setGuestName(profile?.full_name || ''); setGuestEmail(user.email || ''); setShowGuestForm(true); return }
+    if (user && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) { setGuestAction('rsvp'); setGuestName(profile?.full_name || user?.user_metadata?.full_name || ''); setGuestEmail(user.email || ''); setShowGuestForm(true); return }
     setRsvping(true)
     try {
       const refCode = sessionStorage.getItem(`ref_${id}`)
-      const ticket = await TicketService.purchase({ eventId: event.id, eventTitle: event.title, tierName: tier.name, quantity: 1, totalPrice: 0, userId: user?.id || null, guestName: guestInfo?.name || null, guestEmail: guestInfo?.email || null, referralCode: refCode || null, attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'), isRsvp: true, attendeeName: guestInfo?.name || profile?.full_name || null, attendeeEmail: guestInfo?.email || user?.email || null, paymentStatus: 'free', registrationData: guestInfo?.registrationData || registrationData })
+      const ticket = await TicketService.purchase({ eventId: event.id, eventTitle: event.title, tierName: tier.name, quantity: 1, totalPrice: 0, userId: user?.id || null, guestName: guestInfo?.name || null, guestEmail: guestInfo?.email || null, referralCode: refCode || null, attendanceMode: event.event_type === 'hybrid' ? attendanceMode : (event.event_type === 'virtual' ? 'virtual' : 'in-person'), isRsvp: true, attendeeName: guestInfo?.name || profile?.full_name || user?.user_metadata?.full_name || null, attendeeEmail: guestInfo?.email || user?.email || null, paymentStatus: 'free', registrationData: guestInfo?.registrationData || registrationData })
       setReservedFreeTiers(prev => ({ ...prev, [tier.name]: true }))
       toast.success(`Spot reserved for ${tier.name}!`)
       // Send confirmation email for free tier reservation
       const reserveEmail = guestInfo?.email || user?.email
       if (reserveEmail && ticket) {
-        fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: reserveEmail, buyerName: guestInfo?.name || profile?.full_name || '', eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: [{ tierName: ticket.tier_name, quantity: 1, totalPrice: 0, checkInCode: ticket.check_in_code, attendeeName: ticket.attendee_name }], totalAmount: 0, paymentReference: ticket.payment_reference || 'free-reservation', paymentDate: new Date().toISOString() }) }).catch(err => console.warn('Free tier email failed:', err))
+        fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: reserveEmail, buyerName: guestInfo?.name || profile?.full_name || user?.user_metadata?.full_name || '', eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: [{ tierName: ticket.tier_name, quantity: 1, totalPrice: 0, checkInCode: ticket.check_in_code, attendeeName: ticket.attendee_name }], totalAmount: 0, paymentReference: ticket.payment_reference || 'free-reservation', paymentDate: new Date().toISOString() }) }).catch(err => console.warn('Free tier email failed:', err))
       }
     } catch (e) { toast.error(e.message || 'Reservation failed') } finally { setRsvping(false) }
   }
@@ -378,10 +381,10 @@ export default function EventDetail() {
   /* --- Cart checkout handler --- */
   async function handleCheckout(guestInfo = null) {
     if (!user) { toast.error('Please create an account or log in to purchase tickets'); navigate('/login'); return }
-    if (user && registrationFields.length > 0 && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) { setGuestAction('checkout'); setGuestName(profile?.full_name || ''); setGuestEmail(user.email || ''); setShowGuestForm(true); return }
+    if (user && registrationFields.length > 0 && !guestInfo?.registrationData && Object.keys(registrationData).length === 0) { setGuestAction('checkout'); setGuestName(profile?.full_name || user?.user_metadata?.full_name || ''); setGuestEmail(user.email || ''); setShowGuestForm(true); return }
     if (cartItems.length === 0) return
 
-    const buyerName = profile?.full_name || guestInfo?.name || pendingGuestInfo?.name || ''
+    const buyerName = profile?.full_name || user?.user_metadata?.full_name || guestInfo?.name || pendingGuestInfo?.name || ''
 
     if (cartCount >= 1 && !showAttendeeForm) {
       const slots = []
@@ -415,7 +418,7 @@ export default function EventDetail() {
       if (cartTotal > 0) {
         setPaymentProcessing(true)
         const buyerEmail = user?.email || effectiveGuestInfo?.email
-        const buyerNameForPayment = profile?.full_name || effectiveGuestInfo?.name || ''
+        const buyerNameForPayment = profile?.full_name || user?.user_metadata?.full_name || effectiveGuestInfo?.name || ''
         try {
           const result = await PaystackService.pay({ email: buyerEmail, amount: cartTotal, name: buyerNameForPayment, subaccount: organizerSubaccount || undefined, metadata: { event_id: event.id, event_title: event.title, user_id: user?.id || null, guest_name: effectiveGuestInfo?.name || null, guest_email: effectiveGuestInfo?.email || null, attendance_mode: mode, tickets: purchaseItems.map(item => ({ tier_name: item.tierName, quantity: item.quantity, total_price: item.totalPrice, attendee_name: item.attendeeName })) } })
           paymentReference = result.reference; paymentStatus = 'verified'; paymentChannel = result.channel; paidAmount = result.amount
@@ -448,7 +451,7 @@ export default function EventDetail() {
       })
       // Summary email to buyer if multiple tickets
       if (buyerEmailAddr && tickets.length > 1) {
-        fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: buyerEmailAddr, buyerName: profile?.full_name || effectiveGuestInfo?.name || '', eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: tickets.map(t => ({ tierName: t.tier_name, quantity: 1, totalPrice: t.total_price, checkInCode: t.check_in_code, attendeeName: t.attendee_name })), totalAmount: paidAmount || 0, paymentReference, paymentDate: new Date().toISOString() }) }).catch(err => console.warn('Buyer summary email failed:', err))
+        fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: buyerEmailAddr, buyerName: profile?.full_name || user?.user_metadata?.full_name || effectiveGuestInfo?.name || '', eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: tickets.map(t => ({ tierName: t.tier_name, quantity: 1, totalPrice: t.total_price, checkInCode: t.check_in_code, attendeeName: t.attendee_name })), totalAmount: paidAmount || 0, paymentReference, paymentDate: new Date().toISOString() }) }).catch(err => console.warn('Buyer summary email failed:', err))
       }
     } catch (e) { toast.error(e.message || 'Purchase failed') } finally { setBuying(false); setPaymentProcessing(false) }
   }
@@ -487,7 +490,7 @@ export default function EventDetail() {
     if (!commentText.trim()) return
     if (!user) { toast.error('Please log in to comment'); navigate('/login'); return }
     setPosting(true)
-    try { const nc = await CommentService.add({ eventId: id, userId: user.id, userName: profile?.full_name || user.email.split('@')[0], userAvatar: profile?.avatar_url || null, content: commentText.trim() }); setComments(prev => [nc, ...prev]); setCommentText(''); toast.success('Comment posted!') } catch (e) { toast.error(e.message || 'Failed to post comment') } finally { setPosting(false) }
+    try { const nc = await CommentService.add({ eventId: id, userId: user.id, userName: profile?.full_name || user?.user_metadata?.full_name || user.email.split('@')[0], userAvatar: profile?.avatar_url || null, content: commentText.trim() }); setComments(prev => [nc, ...prev]); setCommentText(''); toast.success('Comment posted!') } catch (e) { toast.error(e.message || 'Failed to post comment') } finally { setPosting(false) }
   }
   async function handleDeleteComment(commentId) { try { await CommentService.delete(commentId); setComments(prev => prev.filter(c => c.id !== commentId)); toast.success('Comment deleted') } catch { toast.error('Failed to delete comment') } }
 
