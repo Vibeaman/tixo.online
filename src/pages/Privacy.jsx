@@ -114,7 +114,7 @@ export default function Privacy() {
             <h2 className="text-white font-bold text-xl mb-3">11. Contact Us</h2>
             <p>
               If you have questions about this Privacy Policy, please contact us at{' '}
-              <a href="mailto:bayorobertonline@gmail.com" className="text-pink-400 hover:text-pink-300 transition-colors">bayorobertonline@gmail.com</a>.
+              <a href="mailto:onlinetixo@gmail.com" className="text-pink-400 hover:text-pink-300 transition-colors">onlinetixo@gmail.com</a>.
             </p>
           </section>
         </div>

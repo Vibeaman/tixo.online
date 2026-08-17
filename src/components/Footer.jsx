@@ -69,7 +69,7 @@ export default function Footer() {
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <a href="mailto:bayorobertonline@gmail.com" style={{
+            <a href="mailto:onlinetixo@gmail.com" style={{
               display: 'flex', alignItems: 'center', gap: 6,
               fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)',
               textDecoration: 'none', transition: 'color 0.2s',
@@ -77,7 +77,7 @@ export default function Footer() {
               onMouseEnter={e => e.currentTarget.style.color = 'white'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
             >
-              <Mail size={14} /> bayorobertonline@gmail.com
+              <Mail size={14} /> onlinetixo@gmail.com
             </a>
             {socials.map(({ Icon, url }, i) => (
               <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
