@@ -150,9 +150,22 @@ const TicketService = {
       .from('tickets')
       .select('*, events(*)')
       .eq('user_id', userId)
+      .or('transfer_status.is.null,transfer_status.neq.transferred')
       .order('purchased_at', { ascending: false })
     if (error) throw error
     return data
+  },
+
+  async claimTransferredTickets(userId, email) {
+    if (!userId || !email) return []
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({ user_id: userId, transfer_status: 'claimed' })
+      .eq('transferred_to_email', email.toLowerCase().trim())
+      .eq('transfer_status', 'transferred')
+      .select('*, events(*)')
+    if (error) { console.error('Failed to claim transferred tickets:', error); return [] }
+    return data || []
   },
 
   // Check if user already RSVP'd to an event
@@ -282,14 +295,26 @@ const TicketService = {
 
   // Transfer a ticket to another person
   async transferTicket(ticketId, recipientEmail, recipientName) {
+    const { data: recipientProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', recipientEmail.toLowerCase().trim())
+      .limit(1)
+      .single()
+    
+    const updatePayload = {
+      transferred_to_email: recipientEmail,
+      transferred_to_name: recipientName,
+      transferred_at: new Date().toISOString(),
+      transfer_status: recipientProfile ? 'claimed' : 'transferred',
+    }
+    if (recipientProfile) {
+      updatePayload.user_id = recipientProfile.id
+    }
+    
     const { data, error } = await supabase
       .from('tickets')
-      .update({
-        transferred_to_email: recipientEmail,
-        transferred_to_name: recipientName,
-        transferred_at: new Date().toISOString(),
-        transfer_status: 'transferred'
-      })
+      .update(updatePayload)
       .eq('id', ticketId)
       .select('*, events(*)')
       .single()

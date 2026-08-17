@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import TicketService from '../services/TicketService'
 
 const AuthContext = createContext(null)
 
@@ -16,6 +17,11 @@ export function AuthProvider({ children }) {
         .eq('id', userId)
         .single()
       setProfile(data)
+      if (data?.email) {
+        TicketService.claimTransferredTickets(userId, data.email).then(claimed => {
+          if (claimed.length > 0) console.log(`Claimed ${claimed.length} transferred ticket(s)`)
+        }).catch(err => console.error('Failed to claim tickets:', err))
+      }
     } catch (e) {
       console.warn('Profile fetch failed:', e.message)
     }
