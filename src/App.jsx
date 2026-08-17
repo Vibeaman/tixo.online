@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { Helmet, HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 
 import Navbar from './components/Navbar'
@@ -32,6 +33,10 @@ import About from './pages/About'
 function Landing() {
   return (
     <>
+      <Helmet>
+        <title>Tixo — Buy & Sell Event Tickets Online | Create Free Events</title>
+        <meta name="description" content="Tixo is the easiest way to discover events, buy tickets, and create your own events for free. Sell tickets online with instant payouts." />
+      </Helmet>
       <Hero />
       <HomeEvents />
       <RoleCards />
@@ -81,6 +86,7 @@ function Layout() {
 export default function App() {
   return (
     <BrowserRouter>
+      <HelmetProvider>
       <AuthProvider>
         <ScrollToTop />
         <Toaster
@@ -97,6 +103,7 @@ export default function App() {
         />
         <Layout />
       </AuthProvider>
+      </HelmetProvider>
     </BrowserRouter>
   )
 }

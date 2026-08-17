@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Calendar, MapPin, Ticket, ArrowRight } from 'lucide-react'
@@ -21,6 +22,11 @@ export default function CategoryView() {
   }, [name])
 
   return (
+    <>
+      <Helmet>
+        <title>{decodeURIComponent(name || 'Events')} Events | Tixo</title>
+        <meta name="description" content={`Discover the best ${decodeURIComponent(name || '')} events and buy tickets on Tixo.`} />
+      </Helmet>
     <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-7xl mx-auto">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors">
@@ -64,5 +70,7 @@ export default function CategoryView() {
         )}
       </div>
     </div>
+    </>
+
   )
 }

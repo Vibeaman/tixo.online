@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Type, FileText, Image, Tag, Ticket, Plus, Trash2, ArrowRight, ArrowLeft, Check, Upload, X, Link, Video, Globe, Share2, DollarSign, Info, Repeat, Clock, Sparkles, ClipboardList, Phone, Lock, Unlock, ScanLine, Users, Layers, Eye } from 'lucide-react'
@@ -312,7 +313,12 @@ export default function CreateEvent() {
   const standardPlatform = Math.round(samplePrice * 0.05)
 
   return (
-    <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
+    <>
+      <Helmet>
+        <title>Create an Event for Free | Tixo</title>
+        <meta name="description" content="Host your event on Tixo. Create event pages, sell tickets, and manage attendees — all for free." />
+      </Helmet>
+<div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-2 text-center">Create Event</h1>
         <p className="text-gray-400 text-center mb-8">Fill in the details to publish your event</p>
@@ -1202,5 +1208,7 @@ export default function CreateEvent() {
         </div>
       </div>
     </div>
+    </>
+
   )
 }

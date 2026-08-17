@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /scan
+Disallow: /reset-password
+
+Sitemap: https://tixo.online/api/sitemap.xml

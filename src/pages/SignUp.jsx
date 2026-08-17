@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import React, { useState, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, Ticket, Sparkles, Zap, Heart } from 'lucide-react'
@@ -73,6 +74,10 @@ export default function SignUp() {
 
   if (success) {
     return (
+    <>
+      <Helmet>
+        <title>Sign Up | Tixo</title>
+      </Helmet>
       <div className="min-h-screen auth-gradient-bg flex items-center justify-center px-4 py-20">
         <div className="w-full max-w-md text-center" style={{ animation: 'bounceIn 0.6s ease' }}>
           <div className="auth-card rounded-2xl p-10 space-y-5">
@@ -95,6 +100,7 @@ export default function SignUp() {
           </div>
         </div>
       </div>
+    </>
     )
   }
 

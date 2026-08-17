@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter, Shield, EyeOff, Lock } from 'lucide-react'
@@ -864,6 +865,10 @@ export default function Dashboard() {
   ]
 
   return (
+    <>
+      <Helmet>
+        <title>Dashboard | Tixo</title>
+      </Helmet>
     <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
         {/* QR Modal */}
@@ -2478,5 +2483,7 @@ export default function Dashboard() {
         )}
       </div>
     </div>
+    </>
+
   )
 }

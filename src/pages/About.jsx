@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Sparkles, Search, LayoutDashboard, ShieldCheck, TrendingUp, ListChecks, Rocket } from 'lucide-react'
@@ -45,6 +46,11 @@ const managementTools = [
 
 export default function About() {
   return (
+    <>
+      <Helmet>
+        <title>About Tixo — The Event Ticketing Platform</title>
+        <meta name="description" content="Learn about Tixo, the modern event ticketing platform built for creators and attendees." />
+      </Helmet>
     <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-4xl mx-auto">
         <Link to="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-8 transition-colors">
@@ -176,5 +182,7 @@ export default function About() {
         </section>
       </div>
     </div>
+    </>
+
   )
 }

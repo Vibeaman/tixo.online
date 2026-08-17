@@ -1,10 +1,15 @@
+import { Helmet } from 'react-helmet-async'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Shield } from 'lucide-react'
 
 export default function Privacy() {
   return (
-    <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
+    <>
+      <Helmet>
+        <title>Privacy Policy | Tixo</title>
+      </Helmet>
+<div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-3xl mx-auto">
         <Link to="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Home
@@ -120,5 +125,7 @@ export default function Privacy() {
         </div>
       </div>
     </div>
+    </>
+
   )
 }

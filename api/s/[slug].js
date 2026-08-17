@@ -79,6 +79,26 @@ export default async function handler(req, res) {
     const fullDesc = escapeHtml(
       `${event.description ? event.description.substring(0, 200) : 'Discover and book tickets on Tixo'}${date ? ' | ' + date : ''}${location ? ' | ' + location : ''}`
     )
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Event',
+      name: event.title || 'Event on Tixo',
+      description: (event.description || 'Discover and book tickets on Tixo').substring(0, 300),
+      image: rawImage || 'https://tixo.online/og-default.png',
+      url: `https://tixo.online/${slug}`,
+      startDate: event.date ? `${event.date}${event.time ? `T${event.time}` : ''}` : undefined,
+      endDate: event.end_date ? `${event.end_date}${event.end_time ? `T${event.end_time}` : ''}` : undefined,
+      location: { '@type': 'Place', name: event.location || 'Online event', address: event.location || undefined },
+      offers: (event.tiers || event.ticket_tiers || []).map((tier, index) => ({
+        '@type': 'Offer',
+        name: tier.name || `Ticket ${index + 1}`,
+        price: Number(tier.price || 0),
+        priceCurrency: 'NGN',
+        url: `https://tixo.online/${slug}`,
+        availability: 'https://schema.org/InStock',
+      })),
+    }
+    const jsonLdScript = JSON.stringify(jsonLd).replace(/</g, '\u003c')
 
     const html = `<!DOCTYPE html>
 <html>

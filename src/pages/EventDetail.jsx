@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign, Monitor, MapPinned, CheckCircle2, X, ChevronUp, ArrowRight, Eye, Download, Zap, User } from 'lucide-react'
@@ -496,6 +497,8 @@ export default function EventDetail() {
 
   /* --- Loading --- */
   if (loading) return <div className="min-h-screen bg-[#050510] flex items-center justify-center"><div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
+
+  const seoDescription = event?.description?.slice(0, 160) || `Get tickets for ${event?.title || 'this event'} on Tixo.`
   if (!event) return null
 
   const startDate = formatDate(event.date)
@@ -510,7 +513,12 @@ export default function EventDetail() {
   const showVirtualLink = (purchaseSuccess || hasRsvpd) && (isVirtual || (isHybrid && attendanceMode === 'virtual')) && event.virtual_link && (!isPrivateVirtual || isApprovedPrivate)
 
   return (
-    <div className="min-h-screen bg-[#050510]" style={{ paddingTop: 64 }}>
+    <>
+      <Helmet>
+        <title>{event.title} — Tickets on Tixo</title>
+        <meta name="description" content={seoDescription} />
+      </Helmet>
+      <div className="min-h-screen bg-[#050510]" style={{ paddingTop: 64 }}>
       {event.date && <Countdown date={event.date} time={event.time} />}
       <div style={{ position: 'relative', width: '100%', minHeight: 420, overflow: 'hidden' }}>
         <img src={event.image} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
@@ -649,5 +657,6 @@ export default function EventDetail() {
         </div>
       )}
     </div>
+    </>
   )
 }

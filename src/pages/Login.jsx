@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import React, { useState, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Ticket, Sparkles, Music, PartyPopper } from 'lucide-react'
@@ -56,6 +57,10 @@ export default function Login() {
   }
 
   return (
+    <>
+      <Helmet>
+        <title>Log In | Tixo</title>
+      </Helmet>
     <div className="min-h-screen flex auth-gradient-bg">
       {/* Left Panel — Brand */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden">
@@ -189,5 +194,7 @@ export default function Login() {
         </div>
       </div>
     </div>
+    </>
+
   )
 }

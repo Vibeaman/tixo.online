@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Search, SlidersHorizontal, MapPin, Calendar, Ticket, ArrowRight, Filter, X } from 'lucide-react'
@@ -118,7 +119,12 @@ export default function BrowseEvents() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
+    <>
+      <Helmet>
+        <title>Browse Events Near You | Tixo</title>
+        <meta name="description" content="Find concerts, parties, workshops, and more. Browse and buy tickets to the hottest events on Tixo." />
+      </Helmet>
+<div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold text-white mb-3">Browse Events</h1>
@@ -280,5 +286,7 @@ export default function BrowseEvents() {
         )}
       </div>
     </div>
+    </>
+
   )
 }
