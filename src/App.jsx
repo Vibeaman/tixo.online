@@ -29,6 +29,7 @@ import CategoryView from './pages/CategoryView'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import About from './pages/About'
+import AdminDashboard from './pages/AdminDashboard'
 
 function Landing() {
   return (
@@ -56,7 +57,7 @@ function ScrollToTop() {
 
 function Layout() {
   const { pathname } = useLocation()
-  const hideNavFooter = ['/signup', '/login', '/forgot-password', '/reset-password'].includes(pathname)
+  const hideNavFooter = ['/signup', '/login', '/forgot-password', '/reset-password'].includes(pathname) || pathname.startsWith('/admin')
 
   return (
     <div style={{ minHeight: '100vh', background: '#050510' }}>
@@ -77,6 +78,7 @@ function Layout() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/about" element={<About />} />
+        <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
       {!hideNavFooter && <Footer />}
     </div>
