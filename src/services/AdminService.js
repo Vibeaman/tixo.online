@@ -30,7 +30,7 @@ const AdminService = {
     const { data, error } = await supabase
       .from('tickets')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('purchased_at', { ascending: false })
     if (error) throw error
     return data || []
   },
@@ -39,7 +39,6 @@ const AdminService = {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .order('created_at', { ascending: false })
     if (error) throw error
     return data || []
   },
