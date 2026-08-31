@@ -13,6 +13,8 @@
     { "source": "/category/:path*", "destination": "/index.html" },
     { "source": "/privacy", "destination": "/index.html" },
     { "source": "/terms", "destination": "/index.html" },
+    { "source": "/about", "destination": "/index.html" },
+    { "source": "/admin", "destination": "/index.html" },
     { "source": "/:slug", "destination": "/api/s/:slug" }
   ]
 }
