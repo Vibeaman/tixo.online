@@ -2,11 +2,58 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Shield, BarChart3, Calendar, Ticket, Users, DollarSign, Search,
-  Menu, X, ArrowLeft, CheckCircle2, Clock, Loader2,
+  Menu, X, ArrowLeft, CheckCircle2, Clock, Loader2, Lock,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAuth } from '../context/AuthContext'
 import AdminService from '../services/AdminService'
+
+const ADMIN_PASSCODE = 'peak'
+const ADMIN_SESSION_KEY = 'tixo_admin_unlocked'
+
+function PasscodeGate({ onUnlock }) {
+  const [code, setCode] = useState('')
+  const [error, setError] = useState('')
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    if (code.trim().toLowerCase() === ADMIN_PASSCODE) {
+      sessionStorage.setItem(ADMIN_SESSION_KEY, '1')
+      onUnlock()
+    } else {
+      setError('Incorrect passcode')
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#050510] px-4">
+      <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-xl p-8 w-full max-w-sm">
+        <div className="flex justify-center mb-4">
+          <div className="w-12 h-12 rounded-full bg-pink-500/10 flex items-center justify-center">
+            <Lock className="w-6 h-6 text-pink-400" />
+          </div>
+        </div>
+        <h1 className="text-white font-bold text-lg text-center mb-1">Admin Access</h1>
+        <p className="text-gray-500 text-sm text-center mb-6">Enter the passcode to continue</p>
+        <input
+          type="password"
+          maxLength={4}
+          value={code}
+          onChange={e => { setCode(e.target.value); setError('') }}
+          placeholder="Passcode"
+          autoFocus
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-center tracking-widest focus:outline-none focus:border-pink-500/50 mb-3"
+        />
+        {error && <p className="text-red-400 text-xs text-center mb-3">{error}</p>}
+        <button
+          type="submit"
+          className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 rounded-lg transition-colors"
+        >
+          Unlock
+        </button>
+      </form>
+    </div>
+  )
+}
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -117,11 +164,7 @@ function eventStats(events, tickets) {
 }
 
 export default function AdminDashboard() {
-  const { user, loading: authLoading } = useAuth()
-  const navigate = useNavigate()
-
-  const [checking, setChecking] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem(ADMIN_SESSION_KEY) === '1')
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
@@ -130,23 +173,6 @@ export default function AdminDashboard() {
   const [eventSearch, setEventSearch] = useState('')
   const [ticketSearch, setTicketSearch] = useState('')
   const [userSearch, setUserSearch] = useState('')
-
-  useEffect(() => {
-    if (authLoading) return
-    if (!user) {
-      setChecking(false)
-      navigate('/')
-      return
-    }
-    AdminService.isAdmin(user.id).then(ok => {
-      setIsAdmin(ok)
-      setChecking(false)
-      if (!ok) {
-        toast.error('Access denied')
-        navigate('/')
-      }
-    })
-  }, [authLoading, user])
 
   useEffect(() => {
     if (!isAdmin) return
@@ -201,15 +227,9 @@ export default function AdminDashboard() {
     )
   }, [stats, userSearch])
 
-  if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050510]">
-        <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
-      </div>
-    )
+  if (!isAdmin) {
+    return <PasscodeGate onUnlock={() => setIsAdmin(true)} />
   }
-
-  if (!isAdmin) return null
 
   return (
     <div className="min-h-screen bg-[#050510] flex">
