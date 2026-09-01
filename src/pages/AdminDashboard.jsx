@@ -465,7 +465,14 @@ function TicketsTab({ tickets, search, setSearch }) {
               <tr key={t.id} className="border-b border-white/5 hover:bg-white/5">
                 <td className="px-4 py-3 text-gray-400 font-mono text-xs">{(t.id || '').slice(-8)}</td>
                 <td className="px-4 py-3 text-white max-w-[10rem] truncate">{t.event_title || '—'}</td>
-                <td className="px-4 py-3 text-gray-400">{t.attendee_name || t.guest_name || 'Guest'}</td>
+                <td className="px-4 py-3 text-gray-400">
+                  {t.transfer_status === 'transferred' && t.transferred_to_name
+                    ? t.transferred_to_name
+                    : (t.attendee_name || t.guest_name || 'Guest')}
+                  {t.transfer_status === 'transferred' && (
+                    <span className="ml-1 text-[10px] text-gray-500">(transferred)</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-400">{t.tier_name || '—'}</td>
                 <td className="px-4 py-3 text-right text-white">{t.quantity || 1}</td>
                 <td className="px-4 py-3 text-right text-pink-400 font-bold">{naira(t.paid_amount)}</td>
