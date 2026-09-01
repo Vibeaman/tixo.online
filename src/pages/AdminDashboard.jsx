@@ -141,8 +141,9 @@ function last30DaysRevenue(tickets) {
   }
   const map = Object.fromEntries(days.map(d => [d, 0]))
   for (const t of tickets) {
-    if (!t.created_at) continue
-    const day = t.created_at.slice(0, 10)
+    const ts = t.purchased_at || t.created_at
+    if (!ts) continue
+    const day = ts.slice(0, 10)
     if (day in map) map[day] += Number(t.paid_amount) || 0
   }
   return days.map(d => ({ day: d.slice(5), value: map[d] }))
