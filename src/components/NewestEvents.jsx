@@ -12,8 +12,8 @@ export default function NewestEvents() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await EventService.getAll() // already ordered by created_at DESC
-        setEvents((data || []).slice(0, 6))
+        const data = await EventService.getNewest(6)
+        setEvents(data || [])
       } catch (e) { console.error(e) }
       finally { setLoading(false) }
     }
