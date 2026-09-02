@@ -341,7 +341,7 @@ function OverviewTab({ stats, topEvents, revenueTrend }) {
 
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h3 className="text-white font-bold text-sm mb-4">Revenue — Last 30 Days</h3>
-        <MiniLineChart data={revenueTrend} />
+        <MiniLineChart data={revenueTrend} formatValue={naira} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -375,22 +375,112 @@ function OverviewTab({ stats, topEvents, revenueTrend }) {
   )
 }
 
-function MiniLineChart({ data }) {
+function MiniLineChart({ data, formatValue = (v) => v }) {
+  const [active, setActive] = useState(null)
+
   if (!data || data.length === 0) return <p className="text-gray-500 text-sm text-center py-8">No data yet</p>
+
   const max = Math.max(...data.map(d => d.value), 1)
-  const width = 100
-  const height = 40
-  const points = data.map((d, i) => {
-    const x = (i / (data.length - 1)) * width
-    const y = height - (d.value / max) * height
-    return `${x},${y}`
-  }).join(' ')
+  const width = 300
+  const height = 120
+  const padTop = 10
+  const padBottom = 20
+  const chartH = height - padTop - padBottom
+  const stepX = data.length > 1 ? width / (data.length - 1) : 0
+
+  const coords = data.map((d, i) => ({
+    x: stepX * i,
+    y: padTop + (chartH - (d.value / max) * chartH),
+    ...d,
+  }))
+
+  const linePoints = coords.map(c => `${c.x},${c.y}`).join(' ')
+  const areaPoints = `0,${height - padBottom} ${linePoints} ${width},${height - padBottom}`
+
+  const total = data.reduce((sum, d) => sum + d.value, 0)
+  const nonZero = data.filter(d => d.value > 0)
+  const avg = nonZero.length ? total / nonZero.length : 0
+  const peak = data.reduce((best, d) => (d.value > best.value ? d : best), data[0])
+
+  const gridLines = [0.25, 0.5, 0.75].map(f => padTop + chartH * f)
+
+  const activePoint = active !== null ? coords[active] : null
 
   return (
     <div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-32" preserveAspectRatio="none">
-        <polyline points={points} fill="none" stroke="#ec4899" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-      </svg>
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="bg-white/5 rounded-lg px-3 py-2">
+          <p className="text-[10px] text-gray-500 uppercase">Total</p>
+          <p className="text-white font-bold text-sm">{formatValue(total)}</p>
+        </div>
+        <div className="bg-white/5 rounded-lg px-3 py-2">
+          <p className="text-[10px] text-gray-500 uppercase">Avg / Active Day</p>
+          <p className="text-white font-bold text-sm">{formatValue(avg)}</p>
+        </div>
+        <div className="bg-white/5 rounded-lg px-3 py-2">
+          <p className="text-[10px] text-gray-500 uppercase">Peak Day</p>
+          <p className="text-white font-bold text-sm">{formatValue(peak?.value || 0)}</p>
+          <p className="text-[10px] text-gray-500">{peak?.day}</p>
+        </div>
+      </div>
+
+      <div className="relative">
+        {activePoint && (
+          <div
+            className="absolute z-10 -translate-x-1/2 -translate-y-full bg-[#0d0d1a] border border-pink-500/40 rounded-lg px-2 py-1 text-[10px] whitespace-nowrap pointer-events-none"
+            style={{ left: `${(activePoint.x / width) * 100}%`, top: `${(activePoint.y / height) * 100}%` }}
+          >
+            <p className="text-gray-400">{activePoint.day}</p>
+            <p className="text-pink-400 font-bold">{formatValue(activePoint.value)}</p>
+          </div>
+        )}
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="w-full h-40 touch-none"
+          preserveAspectRatio="none"
+          onMouseLeave={() => setActive(null)}
+          onMouseMove={e => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const relX = ((e.clientX - rect.left) / rect.width) * width
+            const idx = stepX > 0 ? Math.round(relX / stepX) : 0
+            setActive(Math.min(Math.max(idx, 0), data.length - 1))
+          }}
+          onTouchMove={e => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const touch = e.touches[0]
+            const relX = ((touch.clientX - rect.left) / rect.width) * width
+            const idx = stepX > 0 ? Math.round(relX / stepX) : 0
+            setActive(Math.min(Math.max(idx, 0), data.length - 1))
+          }}
+        >
+          {gridLines.map((y, i) => (
+            <line key={i} x1="0" x2={width} y1={y} y2={y} stroke="#ffffff" strokeOpacity="0.06" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          ))}
+          <defs>
+            <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ec4899" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#ec4899" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <polygon points={areaPoints} fill="url(#revenueFill)" stroke="none" />
+          <polyline points={linePoints} fill="none" stroke="#ec4899" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          {coords.map((c, i) => (
+            <circle
+              key={i}
+              cx={c.x}
+              cy={c.y}
+              r={active === i ? 3 : c.value > 0 ? 1.6 : 0}
+              fill={active === i ? '#fff' : '#ec4899'}
+              stroke={active === i ? '#ec4899' : 'none'}
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          {active !== null && (
+            <line x1={coords[active].x} x2={coords[active].x} y1={padTop} y2={height - padBottom} stroke="#ec4899" strokeOpacity="0.3" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          )}
+        </svg>
+      </div>
       <div className="flex justify-between text-[10px] text-gray-500 mt-1">
         <span>{data[0]?.day}</span>
         <span>{data[data.length - 1]?.day}</span>
@@ -558,7 +648,7 @@ function RevenueTab({ stats, topEvents, revenueTrend }) {
 
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h3 className="text-white font-bold text-sm mb-4">Revenue — Last 30 Days</h3>
-        <MiniLineChart data={revenueTrend} />
+        <MiniLineChart data={revenueTrend} formatValue={naira} />
       </div>
     </div>
   )
