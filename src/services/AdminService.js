@@ -43,15 +43,41 @@ const AdminService = {
     return data || []
   },
 
+  // Referral commissions — used to split ticket revenue between Tixo, organizers, and referrers
+  async getAllReferralCommissions() {
+    try {
+      const { data, error } = await supabase
+        .from('referral_commissions')
+        .select('*')
+      if (error) throw error
+      return data || []
+    } catch (e) {
+      console.warn('getAllReferralCommissions failed:', e.message)
+      return []
+    }
+  },
+
   async getStats() {
-    const [events, tickets, users] = await Promise.all([
+    const [events, tickets, users, referralCommissions] = await Promise.all([
       this.getAllEvents(),
       this.getAllTickets(),
       this.getAllUsers(),
+      this.getAllReferralCommissions(),
     ])
 
-    let totalRevenue = 0
-    let paidRevenue = 0
+    // Map ticket_id -> commission row, for tickets sold through a referral link
+    const commissionByTicket = {}
+    for (const c of referralCommissions) {
+      if (c.ticket_id) commissionByTicket[c.ticket_id] = c
+    }
+
+    const STANDARD_TIXO_RATE = 0.05 // Tixo's normal platform cut on ticket sales
+
+    let totalRevenue = 0       // gross amount buyers paid
+    let paidRevenue = 0        // gross amount buyers paid, paid/verified tickets only
+    let tixoRevenue = 0        // Tixo's actual platform earnings (its cut)
+    let organizerRevenue = 0   // what organizers keep/get paid out
+    let referrerRevenue = 0    // commissions paid out to referrers
     let totalTicketsSold = 0
     let paidTicketsCount = 0
     let freeTicketsCount = 0
@@ -68,6 +94,16 @@ const AdminService = {
       if (status === 'paid' || status === 'verified') {
         paidTicketsCount += qty
         paidRevenue += amount
+
+        const commission = commissionByTicket[t.id]
+        if (commission) {
+          tixoRevenue += Number(commission.platform_fee) || 0
+          referrerRevenue += Number(commission.commission_amount) || 0
+          organizerRevenue += Number(commission.organizer_revenue) || 0
+        } else {
+          tixoRevenue += amount * STANDARD_TIXO_RATE
+          organizerRevenue += amount * (1 - STANDARD_TIXO_RATE)
+        }
       } else if (status === 'free') {
         freeTicketsCount += qty
       }
@@ -76,6 +112,9 @@ const AdminService = {
     return {
       totalRevenue,
       paidRevenue,
+      tixoRevenue,
+      organizerRevenue,
+      referrerRevenue,
       totalTicketsSold,
       paidTicketsCount,
       freeTicketsCount,

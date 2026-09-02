@@ -339,6 +339,24 @@ function OverviewTab({ stats, topEvents, revenueTrend }) {
         <StatCard icon={Clock} label="Free Tickets" value={stats.freeTicketsCount.toLocaleString()} color="text-gray-400" />
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-pink-500/15 to-purple-500/10 border border-pink-500/30 rounded-xl p-4">
+          <p className="text-pink-300 text-xs font-semibold uppercase tracking-wide mb-1">Tixo Revenue (platform cut)</p>
+          <p className="text-white text-2xl font-extrabold">{naira(stats.tixoRevenue)}</p>
+          <p className="text-white/40 text-xs mt-1">What Tixo actually earns from ticket sales</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <p className="text-blue-300 text-xs font-semibold uppercase tracking-wide mb-1">Organizer Payouts</p>
+          <p className="text-white text-2xl font-extrabold">{naira(stats.organizerRevenue)}</p>
+          <p className="text-white/40 text-xs mt-1">What event organizers keep after fees</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <p className="text-yellow-300 text-xs font-semibold uppercase tracking-wide mb-1">Referral Commissions</p>
+          <p className="text-white text-2xl font-extrabold">{naira(stats.referrerRevenue)}</p>
+          <p className="text-white/40 text-xs mt-1">Paid out to users who reshared tickets</p>
+        </div>
+      </div>
+
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h3 className="text-white font-bold text-sm mb-4">Revenue — Last 30 Days</h3>
         <MiniLineChart data={revenueTrend} formatValue={naira} />
@@ -639,6 +657,24 @@ function RevenueTab({ stats, topEvents, revenueTrend }) {
         <StatCard icon={CheckCircle2} label="Paid Revenue" value={naira(stats.paidRevenue)} color="text-green-400" />
         <StatCard icon={Ticket} label="Paid Tickets" value={stats.paidTicketsCount.toLocaleString()} color="text-blue-400" />
         <StatCard icon={Clock} label="Free Tickets" value={stats.freeTicketsCount.toLocaleString()} color="text-gray-400" />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-pink-500/15 to-purple-500/10 border border-pink-500/30 rounded-xl p-4">
+          <p className="text-pink-300 text-xs font-semibold uppercase tracking-wide mb-1">Tixo Revenue (platform cut)</p>
+          <p className="text-white text-2xl font-extrabold">{naira(stats.tixoRevenue)}</p>
+          <p className="text-white/40 text-xs mt-1">5% standard, 7.5% on referred sales</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <p className="text-blue-300 text-xs font-semibold uppercase tracking-wide mb-1">Organizer Payouts</p>
+          <p className="text-white text-2xl font-extrabold">{naira(stats.organizerRevenue)}</p>
+          <p className="text-white/40 text-xs mt-1">What event organizers keep after fees</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <p className="text-yellow-300 text-xs font-semibold uppercase tracking-wide mb-1">Referral Commissions</p>
+          <p className="text-white text-2xl font-extrabold">{naira(stats.referrerRevenue)}</p>
+          <p className="text-white/40 text-xs mt-1">Paid out to users who reshared tickets</p>
+        </div>
       </div>
 
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
