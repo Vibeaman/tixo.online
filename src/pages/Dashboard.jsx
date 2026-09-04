@@ -1946,6 +1946,31 @@ export default function Dashboard() {
                       </label>
                     </div>
 
+                    {/* Missing-requirements checklist — tells the organizer exactly why Save is disabled */}
+                    {!savingPayout && (!resolvedAccount?.account_name || nin.length !== 11 || bvn.length !== 11 || !disclaimerAccepted) && (
+                      <div className="border border-amber-500/20 bg-amber-500/5 rounded-xl p-4">
+                        <p className="text-amber-400 text-xs font-semibold mb-2">Complete these to activate payouts:</p>
+                        <ul className="space-y-1.5 text-xs">
+                          <li className={`flex items-center gap-2 ${resolvedAccount?.account_name ? 'text-green-400' : 'text-gray-400'}`}>
+                            {resolvedAccount?.account_name ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> : <span className="w-3.5 h-3.5 rounded-full border border-gray-500 flex-shrink-0" />}
+                            Verify your bank account number{payoutForm.account_number && !resolvedAccount?.account_name ? ' (click "Verify" above — was reset because the account number or bank changed)' : ''}
+                          </li>
+                          <li className={`flex items-center gap-2 ${nin.length === 11 ? 'text-green-400' : 'text-gray-400'}`}>
+                            {nin.length === 11 ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> : <span className="w-3.5 h-3.5 rounded-full border border-gray-500 flex-shrink-0" />}
+                            Enter your 11-digit NIN{nin.length > 0 && nin.length !== 11 ? ` (currently ${nin.length} digits)` : ''}
+                          </li>
+                          <li className={`flex items-center gap-2 ${bvn.length === 11 ? 'text-green-400' : 'text-gray-400'}`}>
+                            {bvn.length === 11 ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> : <span className="w-3.5 h-3.5 rounded-full border border-gray-500 flex-shrink-0" />}
+                            Enter your 11-digit BVN{bvn.length > 0 && bvn.length !== 11 ? ` (currently ${bvn.length} digits)` : ''}
+                          </li>
+                          <li className={`flex items-center gap-2 ${disclaimerAccepted ? 'text-green-400' : 'text-gray-400'}`}>
+                            {disclaimerAccepted ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> : <span className="w-3.5 h-3.5 rounded-full border border-gray-500 flex-shrink-0" />}
+                            Accept the Organizer Agreement checkbox
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
                     {/* Save button */}
                     <button
                       onClick={handleSavePayout}
