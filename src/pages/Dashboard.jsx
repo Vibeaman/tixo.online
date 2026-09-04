@@ -561,9 +561,10 @@ export default function Dashboard() {
     finally { setLoadingPayout(false) }
   }
 
-  async function handleResolveAccount() {
+  async function handleResolveAccount(opts = {}) {
+    const { silent = false } = opts
     if (!payoutForm.account_number || payoutForm.account_number.length < 10 || !payoutForm.bank_code) {
-      toast.error('Enter a valid 10-digit account number and select a bank')
+      if (!silent) toast.error('Enter a valid 10-digit account number and select a bank')
       return
     }
     setResolvingAccount(true)
@@ -575,6 +576,15 @@ export default function Dashboard() {
     } catch (e) { toast.error(e.message || 'Could not verify account') }
     finally { setResolvingAccount(false) }
   }
+
+  // Auto-verify the account the moment a 10-digit number + bank are both present —
+  // most people never notice the separate "Verify" button, so do it for them.
+  useEffect(() => {
+    if (payoutForm.account_number.length === 10 && payoutForm.bank_code && !resolvedAccount && !resolvingAccount) {
+      handleResolveAccount({ silent: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payoutForm.account_number, payoutForm.bank_code])
 
   async function handleSavePayout() {
     if (!resolvedAccount?.account_name) {
