@@ -176,7 +176,7 @@ export default function About() {
               Tixo exists in the space between organizers and attendees, holding a trusted marketplace where great events are given room to thrive, and memorable moments are given room to begin.
             </p>
             <p className="text-lg font-semibold" style={gradientText}>
-              At Tixo, we do more than sell tickets — we help people discover experiences, find their communities, and hold onto moments worth remembering.
+              At Tixo, we do more than sell tickets. We help people discover experiences, find their communities, and hold onto moments worth remembering.
             </p>
           </div>
         </section>
