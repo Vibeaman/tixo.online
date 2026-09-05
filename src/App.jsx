@@ -32,6 +32,7 @@ import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import About from './pages/About'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminTxp from './pages/AdminTxp'
 import ReferralRedirect from './pages/ReferralRedirect'
 
 function Landing() {
@@ -85,6 +86,7 @@ function Layout() {
         <Route path="/about" element={<About />} />
         <Route path="/ref/:code" element={<ReferralRedirect />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/txp" element={<AdminTxp />} />
       </Routes>
       {!hideNavFooter && <Footer />}
     </div>

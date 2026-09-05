@@ -692,6 +692,185 @@ const TxpService = {
     return data || []
   },
 
+  // ── Admin: Rules ──────────────────────────────────────────
+
+  /** Fetch every txp_rule (admin view — includes disabled rules) */
+  async getAllRules() {
+    const { data, error } = await supabase
+      .from('txp_rules')
+      .select('*')
+      .order('action')
+    if (error) throw error
+    return data || []
+  },
+
+  /** Update a txp_rule by its row id (admin) */
+  async updateRuleById(id, updates) {
+    const { data, error } = await supabase
+      .from('txp_rules')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // ── Admin: Settings ───────────────────────────────────────
+
+  /** Fetch every txp_setting row (admin view) */
+  async getAllSettings() {
+    const { data, error } = await supabase
+      .from('txp_settings')
+      .select('*')
+      .order('key')
+    if (error) throw error
+    return data || []
+  },
+
+  /** Upsert a single setting by key */
+  async upsertSetting(key, value, description) {
+    const payload = { key, value: String(value), updated_at: new Date().toISOString() }
+    if (description !== undefined) payload.description = description
+
+    const { data, error } = await supabase
+      .from('txp_settings')
+      .upsert([payload], { onConflict: 'key' })
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // ── Admin: User Wallets ───────────────────────────────────
+
+  /** Search profiles by name/email and attach their TXP wallet balances */
+  async searchUsers(query) {
+    let profileQuery = supabase
+      .from('profiles')
+      .select('id, full_name, email, avatar_url, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    const q = (query || '').trim()
+    if (q) {
+      profileQuery = profileQuery.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
+    }
+
+    const { data: profiles, error } = await profileQuery
+    if (error) throw error
+    if (!profiles?.length) return []
+
+    const ids = profiles.map(p => p.id)
+    const { data: wallets } = await supabase
+      .from('txp_wallets')
+      .select('*')
+      .in('user_id', ids)
+
+    const walletByUser = {}
+    ;(wallets || []).forEach(w => { walletByUser[w.user_id] = w })
+
+    return profiles.map(p => ({
+      ...p,
+      wallet: walletByUser[p.id] || { available: 0, pending: 0, lifetime_earned: 0, lifetime_redeemed: 0 }
+    }))
+  },
+
+  /** Fetch a user's transaction ledger (admin view) */
+  async getUserTransactions(userId, limit = 50) {
+    const { data, error } = await supabase
+      .from('txp_transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error) throw error
+    return data || []
+  },
+
+  /** Admin: manually award TXP to a user (available immediately) */
+  async adminAward(userId, amount, reason) {
+    const amt = Math.abs(Number(amount) || 0)
+    if (!userId || amt <= 0) throw new Error('Invalid user or amount')
+    return this._award(userId, amt, 'admin_award', { note: reason || '' }, 'available')
+  },
+
+  /** Admin: manually deduct TXP from a user's available balance */
+  async adminDeduct(userId, amount, reason) {
+    const amt = Math.abs(Number(amount) || 0)
+    if (!userId || amt <= 0) throw new Error('Invalid user or amount')
+
+    const wallet = await this.getWallet(userId)
+
+    const { data: txn, error: txnErr } = await supabase
+      .from('txp_transactions')
+      .insert([{
+        user_id: userId,
+        amount: -amt,
+        type: 'debit',
+        status: 'available',
+        reason: 'admin_deduct',
+        metadata: { note: reason || '' }
+      }])
+      .select()
+      .single()
+    if (txnErr) throw txnErr
+
+    const { error: walletErr } = await supabase
+      .from('txp_wallets')
+      .update({
+        available: (wallet.available || 0) - amt,
+        lifetime_redeemed: (wallet.lifetime_redeemed || 0) + amt,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+    if (walletErr) throw walletErr
+
+    return txn
+  },
+
+  // ── Admin: Referral Campaigns ─────────────────────────────
+
+  /** Fetch every referral campaign (active + inactive) */
+  async getAllCampaigns() {
+    const { data, error } = await supabase
+      .from('referral_campaigns')
+      .select('*')
+      .order('milestone_count')
+    if (error) throw error
+    return data || []
+  },
+
+  async createCampaign(data) {
+    const { data: created, error } = await supabase
+      .from('referral_campaigns')
+      .insert([data])
+      .select()
+      .single()
+    if (error) throw error
+    return created
+  },
+
+  async updateCampaign(id, data) {
+    const { data: updated, error } = await supabase
+      .from('referral_campaigns')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return updated
+  },
+
+  async deleteCampaign(id) {
+    const { error } = await supabase
+      .from('referral_campaigns')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    return true
+  },
+
   // ── Helpers ───────────────────────────────────────────────
 
   reasonLabel(reason) {
@@ -710,7 +889,9 @@ const TxpService = {
       referral_campaign_bonus: 'Referral campaign bonus',
       redemption: 'Points redeemed',
       ticket_redemption: 'Paid with Tixo Points',
-      redemption_reversed: 'Points refunded'
+      redemption_reversed: 'Points refunded',
+      admin_award: 'Awarded by admin',
+      admin_deduct: 'Deducted by admin'
     }
     return labels[reason] || reason.replace(/_/g, ' ')
   }
