@@ -15,6 +15,7 @@
     { "source": "/terms", "destination": "/index.html" },
     { "source": "/about", "destination": "/index.html" },
     { "source": "/admin", "destination": "/index.html" },
+    { "source": "/ref/:code", "destination": "/api/ref/:code" },
     { "source": "/:slug", "destination": "/api/s/:slug" }
   ]
 }

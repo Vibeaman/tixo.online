@@ -10,6 +10,7 @@ import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
 import UserService from '../services/UserService'
 import ReferralService from '../services/ReferralService'
+import TxpService from '../services/TxpService'
 import NotificationService from '../services/NotificationService'
 import PayoutService from '../services/PayoutService'
 
@@ -411,6 +412,8 @@ export default function Dashboard() {
 
   // Referral state
   const [referralLinks, setReferralLinks] = useState([])
+  const [myReferralCode, setMyReferralCode] = useState('')
+  const [loadingReferralCode, setLoadingReferralCode] = useState(false)
   const [commissions, setCommissions] = useState([])
   const [loadingReferrals, setLoadingReferrals] = useState(false)
   const [selectedEventStats, setSelectedEventStats] = useState(null)
@@ -470,6 +473,16 @@ export default function Dashboard() {
   // Load referral data
   useEffect(() => {
     if (tab === 'referrals' && user) loadReferralData()
+  }, [tab, user])
+
+  useEffect(() => {
+    if (tab === 'referrals' && user && !myReferralCode) {
+      setLoadingReferralCode(true)
+      TxpService.getOrCreateReferralCode(user.id)
+        .then(code => setMyReferralCode(code))
+        .catch(err => console.error('Failed to load referral code:', err))
+        .finally(() => setLoadingReferralCode(false))
+    }
   }, [tab, user])
 
   // Load analytics data
@@ -2040,6 +2053,39 @@ export default function Dashboard() {
                   <StatCard icon={MousePointer} label="Total Clicks" value={totalClicks} />
                   <StatCard icon={Ticket} label="Tickets Sold" value={commissions.length} color="text-green-400" />
                   <StatCard icon={DollarSign} label="Total Earned" value={`₦${totalEarned.toLocaleString()}`} color="text-green-400" />
+                </div>
+
+                {/* TXP Referral Link */}
+                <div className="mb-8 bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-2xl p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-pink-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-lg">Invite Friends, Earn TXP</h3>
+                      <p className="text-gray-400 text-sm">Share your link and earn 100 TXP per signup + 250 TXP on their first purchase</p>
+                    </div>
+                  </div>
+                  {loadingReferralCode ? (
+                    <div className="h-12 bg-white/5 rounded-xl animate-pulse" />
+                  ) : myReferralCode ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-mono truncate">
+                        {window.location.origin}/ref/{myReferralCode}
+                      </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/ref/${myReferralCode}`)
+                          toast.success('Referral link copied!')
+                        }}
+                        className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-5 py-3 rounded-xl font-semibold text-sm transition-all hover:-translate-y-0.5 flex-shrink-0"
+                      >
+                        <Copy className="w-4 h-4" /> Copy
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Unable to load your referral link. Please try again.</p>
+                  )}
                 </div>
 
                 {commissions.length > 0 && (

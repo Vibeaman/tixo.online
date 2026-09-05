@@ -331,6 +331,47 @@ const TxpService = {
 
   // ── Referrals ─────────────────────────────────────────────
 
+  /** Generate a unique 8-char referral code */
+  _generateReferralCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+    let code = ''
+    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)]
+    return code
+  },
+
+  /** Get or create the user's personal referral code */
+  async getOrCreateReferralCode(userId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('referral_code')
+      .eq('id', userId)
+      .single()
+
+    if (profile?.referral_code) return profile.referral_code
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = this._generateReferralCode()
+      const { error } = await supabase
+        .from('profiles')
+        .update({ referral_code: code })
+        .eq('id', userId)
+      if (!error) return code
+      if (error.code !== '23505') throw error
+    }
+    throw new Error('Failed to generate unique referral code')
+  },
+
+  /** Look up a user by their referral code */
+  async getUserByReferralCode(code) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .eq('referral_code', code)
+      .single()
+    if (error) return null
+    return data
+  },
+
   async getUserReferrals(userId) {
     const { data, error } = await supabase
       .from('txp_referrals')

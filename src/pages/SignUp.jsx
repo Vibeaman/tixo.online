@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async'
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, Ticket, Sparkles, Zap, Heart } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -23,6 +23,13 @@ export default function SignUp() {
   const redirectTo = useMemo(() => {
     const r = searchParams.get('redirect')
     return r && r.startsWith('/') ? r : '/dashboard'
+  }, [searchParams])
+
+  useEffect(() => {
+    const refCode = searchParams.get('ref')
+    if (refCode) {
+      localStorage.setItem('tixo_referral_code', refCode)
+    }
   }, [searchParams])
   const [form, setForm] = useState({ fullName: '', email: '', password: '', confirm: '' })
   const [show, setShow] = useState(false)
