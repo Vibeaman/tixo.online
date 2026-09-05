@@ -8,12 +8,26 @@
 -- can only ever see the logged-in admin's own wallet row -- every other
 -- user appears as 0 TXP, even though their balance is correct in the DB.
 --
--- Mirrors the existing "public config" pattern already used for txp_rules
--- ("Anyone can read rules", using (true)) since this app has no
--- service-role backend to scope admin reads to.
+-- Unlike a broad "anyone can read" policy, this locks visibility to real
+-- admin accounts only, using the existing profiles.is_admin column
+-- (already relied on elsewhere, e.g. AdminService.isAdmin()). A
+-- SECURITY DEFINER helper avoids infinite recursion from a policy that
+-- would otherwise query profiles (itself RLS-protected) inline.
 
-create policy "Anyone can read all wallets" on public.txp_wallets
-  for select using (true);
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+$$;
 
-create policy "Anyone can read all transactions" on public.txp_transactions
-  for select using (true);
+grant execute on function public.is_admin() to authenticated, anon;
+
+create policy "Admins can read all wallets" on public.txp_wallets
+  for select using (public.is_admin());
+
+create policy "Admins can read all transactions" on public.txp_transactions
+  for select using (public.is_admin());
