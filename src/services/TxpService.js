@@ -437,9 +437,9 @@ const TxpService = {
     return released
   },
 
-  // ── Redeem ────────────────────────────────────────────────
+  // ── Redeem (generic, legacy signature retained for compatibility) ────
 
-  async redeemPoints(userId, amount, reason = 'redemption', metadata = {}) {
+  async _redeemGeneric(userId, amount, reason = 'redemption', metadata = {}) {
     const wallet = await this.getWallet(userId)
     if ((wallet.available || 0) < amount) return null
 
@@ -461,6 +461,132 @@ const TxpService = {
     if (walletErr) throw walletErr
 
     return txn
+  },
+
+  // ── Phase 5: Pay with TXP at Checkout ─────────────────────
+
+  /** Fetch admin-configurable redemption settings (rate + max %) */
+  async getRedemptionSettings() {
+    const { data, error } = await supabase
+      .from('txp_settings')
+      .select('key, value')
+      .in('key', ['redemption_rate', 'max_txp_percentage'])
+    if (error) throw error
+
+    const map = {}
+    ;(data || []).forEach(row => { map[row.key] = row.value })
+
+    return {
+      redemptionRate: Number(map.redemption_rate ?? 100),
+      maxTxpPercentage: Number(map.max_txp_percentage ?? 100)
+    }
+  },
+
+  /**
+   * Pure calculation of how much TXP can be applied to a given order total.
+   * redemptionRate = TXP per ₦100 (e.g. 100 TXP = ₦100 → 1 TXP = ₦1)
+   */
+  calculateRedemption(totalNaira, availableTxp, settings) {
+    const redemptionRate = settings?.redemptionRate || 100
+    const maxTxpPercentage = settings?.maxTxpPercentage ?? 100
+
+    const maxTxpNaira = totalNaira * (maxTxpPercentage / 100)
+    const txpToNaira = (availableTxp || 0) * (redemptionRate / 100)
+    const txpNairaToUse = Math.max(0, Math.min(maxTxpNaira, txpToNaira, totalNaira))
+    const txpToDeduct = txpNairaToUse > 0 ? Math.ceil(txpNairaToUse * (100 / redemptionRate)) : 0
+    const remainingToPay = Math.max(0, totalNaira - txpNairaToUse)
+    const coversFull = remainingToPay <= 0
+
+    return { maxTxpNaira, txpToNaira, txpNairaToUse, txpToDeduct, remainingToPay, coversFull }
+  },
+
+  /**
+   * Deduct TXP for a ticket purchase (partial or full redemption at checkout).
+   * Records a debit transaction + a txp_redemptions row for audit/refund purposes.
+   */
+  async redeemPoints(userId, txpAmount, nairaEquivalent, originalTotal, remainingPaid, ticketIds = []) {
+    if (!userId || !txpAmount || txpAmount <= 0) return null
+
+    const wallet = await this.getWallet(userId)
+    if ((wallet.available || 0) < txpAmount) throw new Error('Insufficient TXP balance')
+
+    const metadata = {
+      naira_equivalent: nairaEquivalent,
+      original_total: originalTotal,
+      remaining_paid: remainingPaid,
+      ticket_ids: ticketIds || []
+    }
+
+    const { data: txn, error: txnErr } = await supabase
+      .from('txp_transactions')
+      .insert([{ user_id: userId, amount: -txpAmount, type: 'debit', status: 'available', reason: 'ticket_redemption', metadata }])
+      .select()
+      .single()
+    if (txnErr) throw txnErr
+
+    const { error: walletErr } = await supabase
+      .from('txp_wallets')
+      .update({
+        available: (wallet.available || 0) - txpAmount,
+        lifetime_redeemed: (wallet.lifetime_redeemed || 0) + txpAmount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+    if (walletErr) throw walletErr
+
+    const { data: redemption, error: redemptionErr } = await supabase
+      .from('txp_redemptions')
+      .insert([{
+        user_id: userId,
+        ticket_ids: ticketIds || [],
+        txp_amount: txpAmount,
+        naira_equivalent: nairaEquivalent,
+        original_total: originalTotal,
+        remaining_paid: remainingPaid,
+        status: 'completed'
+      }])
+      .select()
+      .single()
+    if (redemptionErr) throw redemptionErr
+
+    return redemption
+  },
+
+  /** Attach the final created ticket IDs to a redemption row once tickets exist */
+  async attachRedemptionTickets(redemptionId, ticketIds) {
+    if (!redemptionId || !ticketIds?.length) return null
+    const { error } = await supabase
+      .from('txp_redemptions')
+      .update({ ticket_ids: ticketIds })
+      .eq('id', redemptionId)
+    if (error) throw error
+    return true
+  },
+
+  /**
+   * Reverse a TXP redemption (e.g. when a ticket is refunded).
+   * Credits the TXP back to the user's wallet and marks the redemption reversed.
+   */
+  async reverseRedemption(redemptionId) {
+    const { data: redemption, error } = await supabase
+      .from('txp_redemptions')
+      .select('*')
+      .eq('id', redemptionId)
+      .single()
+    if (error) throw error
+    if (!redemption || redemption.status === 'reversed') return null
+
+    await this._award(redemption.user_id, redemption.txp_amount, 'redemption_reversed', { redemption_id: redemptionId })
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('txp_redemptions')
+      .update({ status: 'reversed' })
+      .eq('id', redemptionId)
+      .select()
+      .single()
+    if (updateErr) throw updateErr
+
+    return updated
   },
 
   // ── Transactions / History ────────────────────────────────
@@ -577,7 +703,9 @@ const TxpService = {
       referral_registered: 'Referral signed up',
       referral_first_purchase: 'Referral first purchase',
       referral_campaign_bonus: 'Referral campaign bonus',
-      redemption: 'Points redeemed'
+      redemption: 'Points redeemed',
+      ticket_redemption: 'Paid with Tixo Points',
+      redemption_reversed: 'Points refunded'
     }
     return labels[reason] || reason.replace(/_/g, ' ')
   }

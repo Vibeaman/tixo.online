@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async'
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
-import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign, Monitor, MapPinned, CheckCircle2, X, ChevronUp, ArrowRight, Eye, Download, Zap, User } from 'lucide-react'
+import { MapPin, Calendar, Clock, Ticket, Share2, Heart, ArrowLeft, Minus, Plus, ShoppingCart, Video, Globe, ExternalLink, Users, MessageCircle, Send, Trash2, Copy, Check, TrendingUp, DollarSign, Monitor, MapPinned, CheckCircle2, X, ChevronUp, ArrowRight, Eye, Download, Zap, User, Wallet, CreditCard, Coins, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
@@ -124,6 +124,92 @@ function downloadIcs(event) {
   URL.revokeObjectURL(url)
 }
 
+/* --- Phase 5: Pay with TXP at Checkout — Payment Method Selector --- */
+function PaymentMethodSelector({ cartTotal, txpAvailable, txpCalc, paymentMethod, setPaymentMethod }) {
+  const selectedGradientBorder = {
+    border: '1px solid transparent',
+    backgroundImage: 'linear-gradient(#0b0b14, #0b0b14), linear-gradient(135deg, #ec4899, #a855f7, #06b6d4)',
+    backgroundOrigin: 'border-box',
+    backgroundClip: 'padding-box, border-box'
+  }
+
+  return (
+    <div className="mb-4">
+      <p className="text-xs font-bold text-gray-500 tracking-wider uppercase mb-2">Payment Method</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div
+          onClick={() => setPaymentMethod('cash')}
+          className="bg-gray-900/50 rounded-2xl p-4 cursor-pointer transition-all"
+          style={paymentMethod === 'cash' ? selectedGradientBorder : { border: '1px solid rgba(255,255,255,0.12)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+              <CreditCard size={18} className="text-white" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Pay with Cash</p>
+              <p className="text-gray-500 text-xs">Card, bank transfer, USSD</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          onClick={() => setPaymentMethod('txp')}
+          className="bg-gray-900/50 rounded-2xl p-4 cursor-pointer transition-all"
+          style={paymentMethod === 'txp' ? selectedGradientBorder : { border: '1px solid rgba(255,255,255,0.12)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+              <Coins size={18} className="text-yellow-400" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Pay with Tixo Points</p>
+              <p className="text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #ec4899, #a855f7, #06b6d4)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+                {txpAvailable.toLocaleString()} TXP available
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {paymentMethod === 'txp' && txpCalc && (
+        <div className="bg-gray-900/30 rounded-xl p-4">
+          <div className="flex justify-between text-sm mb-1.5">
+            <span className="text-gray-400">Total</span>
+            <span className="text-white font-semibold">N{Math.round(cartTotal).toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-sm mb-1.5">
+            <span className="text-gray-400">TXP discount</span>
+            <span className="font-semibold" style={{ color: '#a855f7' }}>
+              -N{Math.round(txpCalc.txpNairaToUse).toLocaleString()} ({txpCalc.txpToDeduct.toLocaleString()} TXP)
+            </span>
+          </div>
+          <div className="border-t border-white/10 my-2" />
+          {txpCalc.coversFull ? (
+            <div className="flex items-center gap-2 text-green-400 font-bold text-sm">
+              <Sparkles size={16} /> Fully covered by TXP! ✨
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Remaining to pay</span>
+                <span className="text-white font-bold">N{Math.round(txpCalc.remainingToPay).toLocaleString()}</span>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-500">
+                <Wallet size={13} />
+                Not enough TXP to cover the full amount.
+                <Link to="/wallet" className="inline-flex items-center gap-1 font-semibold" style={{ color: '#c084fc' }}>
+                  Earn more points <ArrowRight size={12} />
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function EventDetail() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
@@ -176,6 +262,12 @@ export default function EventDetail() {
   const [showFlyer, setShowFlyer] = useState(false)
 
   const [organizerSubaccount, setOrganizerSubaccount] = useState(null)
+
+  /* --- Phase 5: Pay with TXP --- */
+  const [paymentMethod, setPaymentMethod] = useState('cash') // 'cash' | 'txp'
+  const [txpWallet, setTxpWallet] = useState(null)
+  const [txpSettings, setTxpSettings] = useState(null)
+  const [redeeming, setRedeeming] = useState(false)
 
   /* --- Effects --- */
   useEffect(() => {
@@ -234,6 +326,21 @@ export default function EventDetail() {
     }
     loadSoldCounts()
   }, [event])
+
+  useEffect(() => {
+    async function loadTxp() {
+      if (!user?.id) { setTxpWallet(null); return }
+      try {
+        const [wallet, settings] = await Promise.all([
+          TxpService.getWallet(user.id),
+          TxpService.getRedemptionSettings()
+        ])
+        setTxpWallet(wallet)
+        setTxpSettings(settings)
+      } catch (e) { console.warn('Could not load TXP wallet/settings:', e) }
+    }
+    loadTxp()
+  }, [user])
 
   useEffect(() => {
     async function loadComments() {
@@ -304,6 +411,9 @@ export default function EventDetail() {
   const cartItems = Object.entries(cart).map(([name, qty]) => { const tier = tiers.find(t => t.name === name); const price = getEffectivePrice(tier); return { tierName: name, quantity: qty, price, totalPrice: price * qty } }).filter(i => i.quantity > 0)
   const cartTotal = cartItems.reduce((s, i) => s + i.totalPrice, 0)
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0)
+  const txpAvailable = txpWallet?.available || 0
+  const canPayWithTxp = !!user && cartTotal > 0 && txpAvailable > 0 && !!txpSettings
+  const txpCalc = (canPayWithTxp && txpSettings) ? TxpService.calculateRedemption(cartTotal, txpAvailable, txpSettings) : null
   const eventEndRef = event ? (event.end_date || event.date) : null
   const eventEndTimeRef = event ? (event.end_time || event.time || '23:59') : '23:59'
   const isEventEnded = eventEndRef ? parseLocalDateTime(eventEndRef, eventEndTimeRef) < new Date() : false
@@ -416,23 +526,73 @@ export default function EventDetail() {
       let paymentStatus = 'free'
       let paymentChannel = null
       let paidAmount = 0
+      let txpRedemption = null
+      const useTxp = paymentMethod === 'txp' && !!user?.id && !!txpCalc
 
       if (cartTotal > 0) {
-        setPaymentProcessing(true)
-        const buyerEmail = user?.email || effectiveGuestInfo?.email
-        const buyerNameForPayment = profile?.full_name || user?.user_metadata?.full_name || effectiveGuestInfo?.name || ''
-        try {
-          const result = await PaystackService.pay({ email: buyerEmail, amount: cartTotal, name: buyerNameForPayment, subaccount: organizerSubaccount || undefined, metadata: { event_id: event.id, event_title: event.title, user_id: user?.id || null, guest_name: effectiveGuestInfo?.name || null, guest_email: effectiveGuestInfo?.email || null, attendance_mode: mode, tickets: purchaseItems.map(item => ({ tier_name: item.tierName, quantity: item.quantity, total_price: item.totalPrice, attendee_name: item.attendeeName })) } })
-          paymentReference = result.reference; paymentStatus = 'verified'; paymentChannel = result.channel; paidAmount = result.amount
-        } catch (payErr) {
-          setPaymentProcessing(false); setBuying(false)
-          if (payErr.message === 'Payment cancelled') return
-          if (payErr.message && payErr.message.includes('Payment made but verification failed')) { toast.error(payErr.message + ' Please contact support with your reference number.') } else { toast.error(payErr.message || 'Payment failed') }
-          return
+        if (useTxp && txpCalc.coversFull) {
+          // Fully covered by TXP — no Paystack needed
+          setPaymentProcessing(true); setRedeeming(true)
+          try {
+            txpRedemption = await TxpService.redeemPoints(user.id, txpCalc.txpToDeduct, txpCalc.txpNairaToUse, cartTotal, 0, [])
+          } catch (txpErr) {
+            setPaymentProcessing(false); setBuying(false); setRedeeming(false)
+            toast.error(txpErr.message || 'Failed to redeem Tixo Points')
+            return
+          }
+          paymentReference = `txp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+          paymentStatus = 'verified'
+          paymentChannel = 'txp'
+          paidAmount = 0
+          setPaymentProcessing(false); setRedeeming(false)
+        } else if (useTxp) {
+          // Partial TXP + remaining paid via Paystack
+          setPaymentProcessing(true)
+          const buyerEmail = user?.email || effectiveGuestInfo?.email
+          const buyerNameForPayment = profile?.full_name || user?.user_metadata?.full_name || effectiveGuestInfo?.name || ''
+          try {
+            const result = await PaystackService.pay({ email: buyerEmail, amount: txpCalc.remainingToPay, name: buyerNameForPayment, subaccount: organizerSubaccount || undefined, metadata: { event_id: event.id, event_title: event.title, user_id: user?.id || null, guest_name: effectiveGuestInfo?.name || null, guest_email: effectiveGuestInfo?.email || null, attendance_mode: mode, txp_redemption: true, tickets: purchaseItems.map(item => ({ tier_name: item.tierName, quantity: item.quantity, total_price: item.totalPrice, attendee_name: item.attendeeName })) } })
+            paymentReference = result.reference; paymentStatus = 'verified'; paymentChannel = 'paystack+txp'; paidAmount = result.amount
+          } catch (payErr) {
+            setPaymentProcessing(false); setBuying(false)
+            if (payErr.message === 'Payment cancelled') return
+            if (payErr.message && payErr.message.includes('Payment made but verification failed')) { toast.error(payErr.message + ' Please contact support with your reference number.') } else { toast.error(payErr.message || 'Payment failed') }
+            return
+          }
+          // Cash portion succeeded — now deduct the TXP portion. Do NOT roll back the payment if this fails;
+          // surface an error so the buyer can contact support (tickets are still created below since they paid in full).
+          setRedeeming(true)
+          try {
+            txpRedemption = await TxpService.redeemPoints(user.id, txpCalc.txpToDeduct, txpCalc.txpNairaToUse, cartTotal, txpCalc.remainingToPay, [])
+          } catch (txpErr) {
+            console.error('TXP redemption failed after successful payment:', txpErr)
+            toast.error('Payment succeeded, but applying your Tixo Points failed. Please contact support with reference ' + paymentReference)
+          }
+          setRedeeming(false)
+          setPaymentProcessing(false)
+        } else {
+          // Standard cash-only Paystack flow (unchanged)
+          setPaymentProcessing(true)
+          const buyerEmail = user?.email || effectiveGuestInfo?.email
+          const buyerNameForPayment = profile?.full_name || user?.user_metadata?.full_name || effectiveGuestInfo?.name || ''
+          try {
+            const result = await PaystackService.pay({ email: buyerEmail, amount: cartTotal, name: buyerNameForPayment, subaccount: organizerSubaccount || undefined, metadata: { event_id: event.id, event_title: event.title, user_id: user?.id || null, guest_name: effectiveGuestInfo?.name || null, guest_email: effectiveGuestInfo?.email || null, attendance_mode: mode, tickets: purchaseItems.map(item => ({ tier_name: item.tierName, quantity: item.quantity, total_price: item.totalPrice, attendee_name: item.attendeeName })) } })
+            paymentReference = result.reference; paymentStatus = 'verified'; paymentChannel = result.channel; paidAmount = result.amount
+          } catch (payErr) {
+            setPaymentProcessing(false); setBuying(false)
+            if (payErr.message === 'Payment cancelled') return
+            if (payErr.message && payErr.message.includes('Payment made but verification failed')) { toast.error(payErr.message + ' Please contact support with your reference number.') } else { toast.error(payErr.message || 'Payment failed') }
+            return
+          }
         }
       }
 
       const tickets = await TicketService.purchaseMultiple({ eventId: event.id, eventTitle: event.title, items: purchaseItems, userId: user?.id || null, guestName: effectiveGuestInfo?.name || null, guestEmail: effectiveGuestInfo?.email || null, referralCode: refCode || null, attendanceMode: mode, isRsvp: false, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData: effectiveGuestInfo?.registrationData || registrationData })
+      // Attach the created ticket IDs to the TXP redemption record for audit/refund purposes
+      if (txpRedemption?.id) { TxpService.attachRedemptionTickets(txpRedemption.id, tickets.map(t => t.id)).catch(err => console.error('Failed to attach ticket ids to redemption:', err)) }
+      // Refresh wallet balance display after redeeming
+      if (txpRedemption && user?.id) { TxpService.getWallet(user.id).then(setTxpWallet).catch(() => {}) }
+      setPaymentMethod('cash')
       // Ticket purchase confirmed (paid via Paystack, or free) — release any pending TXP referral bonus for this buyer
       if (user?.id) { TxpService.completeReferralOnFirstPurchase(user.id).catch(err => console.error('Referral TXP completion error:', err)) }
       if (refCode && event.reshare_enabled) { try { const refLink = await ReferralService.getByCode(refCode); if (refLink && refLink.user_id !== user?.id) { await ReferralService.recordCommission({ referralLinkId: refLink.id, ticketId: tickets[0]?.id, eventId: event.id, referrerId: refLink.user_id, buyerId: user?.id || null, ticketAmount: cartTotal }) } } catch (e) { console.error('Commission tracking error:', e) } }
@@ -617,7 +777,17 @@ export default function EventDetail() {
         {!isEventEnded && !purchaseSuccess && !hasRsvpd && (<div id="tickets" style={{ marginBottom: 32 }}><h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'white', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{isFreeEvent ? 'RSVP' : 'Select Tickets'}</h2><p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.88rem', marginBottom: 24 }}>{isFreeEvent ? 'Pick your tier and confirm your spot' : isMixedEvent ? 'This event has both free and paid tiers - pick what suits you' : 'Join the experience. Pulse levels rising'}</p>
           {isFreeEvent ? (<><div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>{tiers.map((tier, i) => { const isReserved = reservedFreeTiers[tier.name]; const maxPerPurchase = tier.max_per_purchase || 1; return (<div key={tier.name} style={{ background: 'rgba(255,255,255,0.03)', border: `1.5px solid ${isReserved ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 16, padding: 24, transition: 'all 0.25s' }}><div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}><div style={{ width: 52, height: 52, borderRadius: 14, background: 'linear-gradient(135deg, #16a34a, #15803d)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Users size={24} style={{ color: 'white' }} /></div><div style={{ flex: 1 }}><h4 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white', marginBottom: 4 }}>{tier.name}</h4><p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{tier.description || `Access to ${event.title}`}</p><span style={{ display: 'inline-block', marginTop: 8, fontSize: '0.72rem', fontWeight: 700, color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.2)', padding: '4px 10px', borderRadius: 999 }}>Free - {maxPerPurchase} per purchase</span></div></div><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}><div><p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em', marginBottom: 2 }}>PRICE</p><p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#4ade80' }}>FREE</p></div><button onClick={() => handleReserveFreeTier(tier)} disabled={isReserved || rsvping || isTierSoldOut(tier)} style={{ background: isTierSoldOut(tier) ? 'rgba(239,68,68,0.15)' : isReserved ? 'rgba(74,222,128,0.15)' : '#16a34a', border: isReserved ? '1px solid rgba(74,222,128,0.3)' : isTierSoldOut(tier) ? '1px solid rgba(239,68,68,0.25)' : 'none', color: isTierSoldOut(tier) ? '#ef4444' : isReserved ? '#4ade80' : 'white', fontWeight: 800, padding: '12px 24px', borderRadius: 12, cursor: (isReserved || isTierSoldOut(tier)) ? 'default' : 'pointer', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s' }}>{isTierSoldOut(tier) ? 'Sold Out' : isReserved ? <><CheckCircle2 size={16} /> Reserved</> : rsvping ? 'Reserving...' : <><CheckCircle2 size={16} /> Reserve Spot</>}</button></div>{(() => { const isUnlimited = tier.unlimited || tier.available == null; const remaining = getTierRemaining(tier); const total = Number(tier.available) || 0; const pct = total > 0 ? remaining / total : 1; const soldOut = isTierSoldOut(tier); if (isUnlimited) return <p style={{ fontSize: '0.72rem', color: 'rgba(168,85,247,0.7)', marginTop: 6, fontWeight: 600 }}>Unlimited spots</p>; if (soldOut) return <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontSize: '0.72rem', fontWeight: 800, padding: '4px 10px', borderRadius: 999, border: '1px solid rgba(239,68,68,0.25)' }}>SOLD OUT</span></div>; const color = pct > 0.5 ? '#4ade80' : pct > 0.15 ? '#facc15' : '#ef4444'; return (<div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}><div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 4, background: color, transition: 'width 0.3s' }} /></div><span style={{ fontSize: '0.72rem', fontWeight: 700, color, whiteSpace: 'nowrap' }}>{remaining} left</span></div>) })()}</div>) })}</div></>) : (<><div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>{tiers.map((tier, i) => { const isTierFree = Number(tier.price) === 0; const qty = cartQty(tier.name); const isReserved = reservedFreeTiers[tier.name]; return (<div key={tier.name} style={{ background: 'rgba(255,255,255,0.03)', border: `1.5px solid ${(qty > 0 || isReserved) ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 16, padding: 24, transition: 'all 0.25s' }}><div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}><div style={{ width: 52, height: 52, borderRadius: 14, background: isTierFree ? 'linear-gradient(135deg, #16a34a, #15803d)' : 'linear-gradient(135deg, var(--purple), var(--purple-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{isTierFree ? <Users size={24} style={{ color: 'white' }} /> : <Zap size={24} style={{ color: 'white' }} />}</div><div style={{ flex: 1 }}><h4 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white', marginBottom: 4 }}>{tier.name}</h4><p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{tier.description || `Access to ${event.title}`}</p><span style={{ display: 'inline-block', marginTop: 8, fontSize: '0.72rem', fontWeight: 700, color: isTierFree ? '#4ade80' : 'rgba(255,255,255,0.5)', background: isTierFree ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isTierFree ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'}`, padding: '4px 10px', borderRadius: 999 }}>{isTierFree ? `Free - ${tier.max_per_purchase || 1} per purchase` : 'Admits 1 Person'}</span></div></div><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}><div><p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em', marginBottom: 2 }}>{isTierFree ? 'PRICE' : 'UNIT PRICE'}</p>{isTierFree ? (<p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#4ade80' }}>FREE</p>) : tier.early_bird && tier.early_bird_end_date && new Date(tier.early_bird_end_date) > new Date() ? (<div><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>N{Number(tier.early_bird_price || tier.price).toLocaleString()}</p><span style={{ background: 'rgba(250,204,21,0.15)', color: '#facc15', padding: '3px 8px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700 }}>Early Bird</span></div><p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through', marginTop: 2 }}>N{Number(tier.price).toLocaleString()}</p><p style={{ fontSize: '0.72rem', color: 'rgba(250,204,21,0.7)', marginTop: 2 }}>Early bird ends {new Date(tier.early_bird_end_date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</p></div>) : (<p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--purple-light)' }}>N{Number(tier.price).toLocaleString()}</p>)}</div>{isTierFree ? (<button onClick={() => handleReserveFreeTier(tier)} disabled={isReserved || rsvping || isTierSoldOut(tier)} style={{ background: isTierSoldOut(tier) ? 'rgba(239,68,68,0.15)' : isReserved ? 'rgba(74,222,128,0.15)' : '#16a34a', border: isReserved ? '1px solid rgba(74,222,128,0.3)' : isTierSoldOut(tier) ? '1px solid rgba(239,68,68,0.25)' : 'none', color: isTierSoldOut(tier) ? '#ef4444' : isReserved ? '#4ade80' : 'white', fontWeight: 800, padding: '12px 24px', borderRadius: 12, cursor: (isReserved || isTierSoldOut(tier)) ? 'default' : 'pointer', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s' }}>{isTierSoldOut(tier) ? 'Sold Out' : isReserved ? <><CheckCircle2 size={16} /> Reserved</> : rsvping ? 'Reserving...' : <><CheckCircle2 size={16} /> Reserve Spot</>}</button>) : (<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{qty > 0 && <button onClick={() => removeFromCart(tier.name)} style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.08)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={16} /></button>}{qty > 0 && <span style={{ fontWeight: 800, color: 'white', width: 24, textAlign: 'center' }}>{qty}</span>}<button onClick={() => addToCart(tier.name)} disabled={isTierSoldOut(tier)} style={{ width: 36, height: 36, borderRadius: 10, background: isTierSoldOut(tier) ? 'rgba(255,255,255,0.05)' : 'var(--purple)', border: 'none', color: isTierSoldOut(tier) ? 'rgba(255,255,255,0.2)' : 'white', cursor: isTierSoldOut(tier) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={16} /></button></div>)}</div>{(() => { const isUnlimited = tier.unlimited || tier.available == null; const remaining = getTierRemaining(tier); const total = Number(tier.available) || 0; const pct = total > 0 ? remaining / total : 1; const soldOut = isTierSoldOut(tier); if (isUnlimited) return <p style={{ fontSize: '0.72rem', color: 'rgba(168,85,247,0.7)', marginTop: 6, fontWeight: 600 }}>Unlimited spots</p>; if (soldOut) return <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontSize: '0.72rem', fontWeight: 800, padding: '4px 10px', borderRadius: 999, border: '1px solid rgba(239,68,68,0.25)' }}>SOLD OUT</span></div>; const color = pct > 0.5 ? '#4ade80' : pct > 0.15 ? '#facc15' : '#ef4444'; return (<div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}><div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 4, background: color, transition: 'width 0.3s' }} /></div><span style={{ fontSize: '0.72rem', fontWeight: 700, color, whiteSpace: 'nowrap' }}>{remaining} left</span></div>) })()}</div>) })}</div>
 
-            {showAttendeeForm && (<div ref={attendeeFormRef} style={{ background: 'rgba(255,255,255,0.03)', border: '1.5px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 24, marginBottom: 16 }}><div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}><Users size={20} style={{ color: 'var(--purple-light)' }} /><h3 style={{ fontWeight: 800, color: 'white', fontSize: '1.05rem' }}>Who's Coming?</h3></div><p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 20 }}>Enter a name and email for each ticket. Each person gets their own QR code sent directly to them.</p><div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{attendeeSlots.map((slot, i) => (<div key={i}>{(i === 0 || slot.tierName !== attendeeSlots[i - 1].tierName) && <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)', letterSpacing: '0.06em', marginBottom: 8, marginTop: i > 0 ? 12 : 0 }}>{slot.tierName.toUpperCase()} - N{Number(slot.price).toLocaleString()}</p>}<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><div style={{ position: 'relative' }}><input type="text" placeholder={i === 0 ? 'Your name' : `Attendee ${i + 1} name`} value={slot.name} onChange={e => { const updated = [...attendeeSlots]; updated[i] = { ...updated[i], name: e.target.value }; setAttendeeSlots(updated) }} style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.3)', border: `1px solid ${i === 0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 10, padding: '14px 16px', paddingRight: i === 0 ? 60 : 16, color: 'white', fontSize: '0.9rem', outline: 'none' }} />{i === 0 && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)', background: 'rgba(255,255,255,0.06)', padding: '3px 8px', borderRadius: 6 }}>You</span>}</div><input type="email" placeholder={i === 0 ? 'Your email' : `Attendee ${i + 1} email (they'll get their ticket)`} value={slot.email || ''} onChange={e => { const updated = [...attendeeSlots]; updated[i] = { ...updated[i], email: e.target.value }; setAttendeeSlots(updated) }} style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px 16px', color: 'white', fontSize: '0.85rem', outline: 'none' }} /></div></div>))}</div><div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 20, paddingTop: 16 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}><span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>Total</span><div style={{ textAlign: 'right' }}><span style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--purple-light)' }}>N{cartTotal.toLocaleString()}</span><p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginTop: 2 }}>{attendeeSlots.length} ticket{attendeeSlots.length > 1 ? 's' : ''} - {attendeeSlots.filter(s => s.name.trim()).length} named</p></div></div><div style={{ display: 'flex', gap: 10 }}><button type="button" onClick={handleAttendeeBack} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', padding: '14px 18px', borderRadius: 12, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} /> Back</button><button onClick={handleAttendeeConfirm} disabled={buying || paymentProcessing} style={{ flex: 1, background: 'var(--purple)', border: 'none', color: 'white', fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{paymentProcessing ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing Payment...</> : buying ? 'Processing...' : <><ShoppingCart size={18} /> Confirm & Pay - N{cartTotal.toLocaleString()}</>}</button></div></div></div>)}
+            {showAttendeeForm && (<div ref={attendeeFormRef} style={{ background: 'rgba(255,255,255,0.03)', border: '1.5px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 24, marginBottom: 16 }}><div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}><Users size={20} style={{ color: 'var(--purple-light)' }} /><h3 style={{ fontWeight: 800, color: 'white', fontSize: '1.05rem' }}>Who's Coming?</h3></div><p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 20 }}>Enter a name and email for each ticket. Each person gets their own QR code sent directly to them.</p><div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{attendeeSlots.map((slot, i) => (<div key={i}>{(i === 0 || slot.tierName !== attendeeSlots[i - 1].tierName) && <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)', letterSpacing: '0.06em', marginBottom: 8, marginTop: i > 0 ? 12 : 0 }}>{slot.tierName.toUpperCase()} - N{Number(slot.price).toLocaleString()}</p>}<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><div style={{ position: 'relative' }}><input type="text" placeholder={i === 0 ? 'Your name' : `Attendee ${i + 1} name`} value={slot.name} onChange={e => { const updated = [...attendeeSlots]; updated[i] = { ...updated[i], name: e.target.value }; setAttendeeSlots(updated) }} style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.3)', border: `1px solid ${i === 0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 10, padding: '14px 16px', paddingRight: i === 0 ? 60 : 16, color: 'white', fontSize: '0.9rem', outline: 'none' }} />{i === 0 && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', fontWeight: 700, color: 'var(--purple-light)', background: 'rgba(255,255,255,0.06)', padding: '3px 8px', borderRadius: 6 }}>You</span>}</div><input type="email" placeholder={i === 0 ? 'Your email' : `Attendee ${i + 1} email (they'll get their ticket)`} value={slot.email || ''} onChange={e => { const updated = [...attendeeSlots]; updated[i] = { ...updated[i], email: e.target.value }; setAttendeeSlots(updated) }} style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px 16px', color: 'white', fontSize: '0.85rem', outline: 'none' }} /></div></div>))}</div><div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 20, paddingTop: 16 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}><span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>Total</span><div style={{ textAlign: 'right' }}><span style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--purple-light)' }}>N{cartTotal.toLocaleString()}</span><p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginTop: 2 }}>{attendeeSlots.length} ticket{attendeeSlots.length > 1 ? 's' : ''} - {attendeeSlots.filter(s => s.name.trim()).length} named</p></div></div>
+              {canPayWithTxp && (
+                <PaymentMethodSelector
+                  cartTotal={cartTotal}
+                  txpAvailable={txpAvailable}
+                  txpCalc={txpCalc}
+                  paymentMethod={paymentMethod}
+                  setPaymentMethod={setPaymentMethod}
+                />
+              )}
+              <div style={{ display: 'flex', gap: 10 }}><button type="button" onClick={handleAttendeeBack} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', padding: '14px 18px', borderRadius: 12, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} /> Back</button><button onClick={handleAttendeeConfirm} disabled={buying || paymentProcessing} style={{ flex: 1, background: (paymentMethod === 'txp' && txpCalc) ? 'linear-gradient(135deg, #ec4899, #a855f7, #06b6d4)' : 'var(--purple)', border: 'none', color: 'white', fontWeight: 800, padding: '14px', borderRadius: 12, cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{paymentProcessing ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing Payment...</> : buying ? 'Processing...' : (paymentMethod === 'txp' && txpCalc) ? (txpCalc.coversFull ? <><Sparkles size={18} /> Confirm Purchase with TXP</> : <><Coins size={18} /> Pay remaining N{Math.round(txpCalc.remainingToPay).toLocaleString()} with Paystack</>) : <><ShoppingCart size={18} /> Confirm & Pay - N{cartTotal.toLocaleString()}</>}</button></div></div></div>)}
 
             {cartCount > 0 && !showGuestForm && !showAttendeeForm && (<div ref={cartSummaryRef} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}><h3 style={{ fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: 8 }}><ShoppingCart size={18} style={{ color: 'var(--purple-light)' }} /> Your Cart</h3><button onClick={clearCart} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}><X size={12} /> Clear</button></div>{cartItems.map(item => (<div key={item.tierName} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', padding: '6px 0' }}><span style={{ color: 'rgba(255,255,255,0.5)' }}>{item.tierName} x {item.quantity}</span><span style={{ color: 'white', fontWeight: 600 }}>N{item.totalPrice.toLocaleString()}</span></div>))}<div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 12, paddingTop: 16 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>Total</span><span style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--purple-light)' }}>N{cartTotal.toLocaleString()}</span></div><p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginTop: 2 }}>{cartCount} ticket{cartCount > 1 ? 's' : ''}</p></div><button onClick={() => handleCheckout()} disabled={buying || paymentProcessing} style={{ width: '100%', marginTop: 12, background: 'var(--purple)', border: 'none', color: 'white', fontWeight: 800, padding: '16px', borderRadius: 12, cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{paymentProcessing ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" style={{ display: 'inline-block' }} /> Processing Payment...</> : buying ? 'Processing...' : <><ShoppingCart size={18} /> Checkout - N{cartTotal.toLocaleString()}</>}</button></div>)}</>)}
 
