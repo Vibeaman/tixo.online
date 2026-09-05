@@ -771,13 +771,38 @@ const TxpService = {
   },
 
   async getUserReferrals(userId) {
+    // NOTE: txp_referrals.referee_id references auth.users(id), not
+    // public.profiles, so PostgREST cannot auto-embed profiles via a
+    // `profiles!referee_id` foreign-key join (it errors: "could not find
+    // a relationship"). Fetch referrals and profiles separately and merge.
     const { data, error } = await supabase
       .from('txp_referrals')
-      .select('*, referee:profiles!referee_id(full_name, email)')
+      .select('*')
       .eq('referrer_id', userId)
       .order('created_at', { ascending: false })
     if (error) throw error
-    return data || []
+
+    const referrals = data || []
+    if (referrals.length === 0) return referrals
+
+    const refereeIds = [...new Set(referrals.map(r => r.referee_id).filter(Boolean))]
+    let profilesById = {}
+    if (refereeIds.length > 0) {
+      const { data: profiles, error: profilesErr } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', refereeIds)
+      if (!profilesErr) {
+        profilesById = Object.fromEntries((profiles || []).map(p => [p.id, p]))
+      }
+    }
+
+    return referrals.map(r => ({
+      ...r,
+      referee: profilesById[r.referee_id]
+        ? { full_name: profilesById[r.referee_id].full_name, email: profilesById[r.referee_id].email }
+        : null,
+    }))
   },
 
   // ── Admin: Rules ──────────────────────────────────────────

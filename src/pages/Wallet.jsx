@@ -201,7 +201,7 @@ export default function Wallet() {
                 to="/earn"
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 hover:opacity-80 transition-opacity"
               >
-                <Gift className="w-4 h-4 text-pink-400" /> Ways to Earn →
+                <Gift className="w-4 h-4 text-pink-400" /> Earn More TXP →
               </Link>
               <Link
                 to="/leaderboard"

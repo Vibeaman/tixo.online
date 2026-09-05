@@ -244,7 +244,7 @@ export default function WaysToEarn() {
   return (
     <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
       <Helmet>
-        <title>Ways to Earn TXP | Tixo</title>
+        <title>Earn More TXP | Tixo</title>
       </Helmet>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
@@ -253,7 +253,7 @@ export default function WaysToEarn() {
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-6 h-6 text-pink-400" />
               <h1 className="text-2xl md:text-4xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                Ways to Earn TXP
+                Earn More TXP
               </h1>
             </div>
             <p className="text-gray-400 text-sm md:text-base">
