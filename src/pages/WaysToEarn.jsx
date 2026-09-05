@@ -14,6 +14,10 @@ import {
   Gift,
   Sparkles,
   Handshake,
+  Share2,
+  History,
+  Loader2 as LoaderIcon,
+  ExternalLink,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import TxpService from '../services/TxpService'
@@ -149,6 +153,67 @@ function PartnerCampaignCard({ campaign }) {
   )
 }
 
+const PLATFORM_LABEL = {
+  instagram: 'Instagram',
+  x: 'X (Twitter)',
+  tiktok: 'TikTok',
+  youtube: 'YouTube',
+  whatsapp: 'WhatsApp',
+  other: 'Task',
+}
+
+// Phase 14: Reshare / social task card -- self-reported completion.
+// Clicking the platform link opens it in a new tab; the user then
+// confirms with "I've Done This" to claim the TXP. Once claimed, the
+// task disappears from the available list and moves into history.
+function SocialTaskCard({ task, onComplete, completing }) {
+  const [opened, setOpened] = useState(false)
+
+  return (
+    <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+        <Share2 className="w-6 h-6 text-white" />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <h3 className="text-white font-bold text-base">{task.title}</h3>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-purple-500/20 text-purple-300">
+            {PLATFORM_LABEL[task.platform] || 'Task'}
+          </span>
+          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 text-white">
+            {task.reward_amount} TXP
+          </span>
+        </div>
+        {task.description && <p className="text-gray-400 text-sm">{task.description}</p>}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+        <a
+          href={task.link_url}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => setOpened(true)}
+          className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-gray-800 border border-gray-700 rounded-full px-4 py-2 hover:bg-gray-700 transition-colors"
+        >
+          Open <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+        <button
+          onClick={() => onComplete(task)}
+          disabled={completing}
+          className={`inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-white rounded-full px-4 py-2 transition-transform disabled:opacity-60 disabled:cursor-not-allowed ${
+            opened
+              ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 hover:-translate-y-0.5'
+              : 'bg-gray-800 border border-gray-700 hover:bg-gray-700'
+          }`}
+        >
+          {completing ? <LoaderIcon className="w-4 h-4 animate-spin" /> : "I've Done This"}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function WaysToEarn() {
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
@@ -159,6 +224,9 @@ export default function WaysToEarn() {
   const [referralCode, setReferralCode] = useState('')
   const [referralCount, setReferralCount] = useState(0)
   const [partnerCampaigns, setPartnerCampaigns] = useState([])
+  const [socialTasks, setSocialTasks] = useState([])
+  const [completedSocialTasks, setCompletedSocialTasks] = useState([])
+  const [completingTaskId, setCompletingTaskId] = useState(null)
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login')
@@ -171,12 +239,14 @@ export default function WaysToEarn() {
     async function load() {
       setLoading(true)
       try {
-        const [walletData, rulesData, referrals, code, campaigns] = await Promise.all([
+        const [walletData, rulesData, referrals, code, campaigns, availableTasks, doneTasks] = await Promise.all([
           TxpService.getWallet(user.id),
           TxpService.getRules(),
           TxpService.getUserReferrals(user.id),
           TxpService.getOrCreateReferralCode(user.id).catch(() => ''),
           TxpService.getActivePartnerCampaigns().catch(() => []),
+          TxpService.getAvailableSocialTasks(user.id).catch(() => []),
+          TxpService.getCompletedSocialTasks(user.id).catch(() => []),
         ])
 
         const [ticketDone, attendedDone, referralPurchaseDone] = await Promise.all([
@@ -195,6 +265,8 @@ export default function WaysToEarn() {
         setReferralCode(code || '')
         setReferralCount((referrals || []).length)
         setPartnerCampaigns(campaigns || [])
+        setSocialTasks(availableTasks || [])
+        setCompletedSocialTasks(doneTasks || [])
         setCompletion({
           ticket_purchase: ticketDone,
           event_attended: attendedDone,
@@ -231,6 +303,30 @@ export default function WaysToEarn() {
     if (!referralLink) return
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(referralLink)}`
     window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  async function handleCompleteSocialTask(task) {
+    if (!user) return
+    setCompletingTaskId(task.id)
+    try {
+      const result = await TxpService.completeSocialTask(user.id, task.id)
+      if (result.success) {
+        toast.success(`+${task.reward_amount} TXP earned!`)
+        setSocialTasks(prev => prev.filter(t => t.id !== task.id))
+        setCompletedSocialTasks(prev => [{ task_id: task.id, awarded_txp: task.reward_amount, completed_at: new Date().toISOString(), task: { title: task.title, platform: task.platform, reward_amount: task.reward_amount } }, ...prev])
+        setWallet(w => w ? { ...w, available: (w.available || 0) + task.reward_amount } : w)
+      } else if (result.alreadyCompleted) {
+        toast.error('You already completed this task')
+        setSocialTasks(prev => prev.filter(t => t.id !== task.id))
+      } else {
+        toast.error(result.error || 'Failed to complete task')
+      }
+    } catch (err) {
+      console.error('Failed to complete social task:', err)
+      toast.error('Failed to complete task')
+    } finally {
+      setCompletingTaskId(null)
+    }
   }
 
   if (authLoading || loading) {
@@ -316,6 +412,53 @@ export default function WaysToEarn() {
                 <PartnerCampaignCard key={campaign.id} campaign={campaign} />
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Reshare / Social Tasks (Phase 14) */}
+        {(socialTasks.length > 0 || completedSocialTasks.length > 0) && (
+          <div className="mb-12">
+            <div className="flex items-center gap-2 mb-4">
+              <Share2 className="w-5 h-5 text-pink-400" />
+              <h2 className="text-white font-bold text-lg">Reshare & Earn</h2>
+            </div>
+
+            {socialTasks.length > 0 ? (
+              <div className="space-y-4">
+                {socialTasks.map(task => (
+                  <SocialTaskCard
+                    key={task.id}
+                    task={task}
+                    completing={completingTaskId === task.id}
+                    onComplete={handleCompleteSocialTask}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm bg-gray-900/30 border border-gray-800 rounded-2xl px-5 py-6 text-center">
+                You've completed every available task. Check back soon for more!
+              </p>
+            )}
+
+            {completedSocialTasks.length > 0 && (
+              <details className="mt-4 group">
+                <summary className="flex items-center gap-2 text-sm text-gray-400 hover:text-white cursor-pointer select-none">
+                  <History className="w-4 h-4" />
+                  Task history ({completedSocialTasks.length})
+                </summary>
+                <div className="mt-3 space-y-2">
+                  {completedSocialTasks.map(c => (
+                    <div key={c.task_id + c.completed_at} className="flex items-center justify-between gap-3 bg-gray-900/30 border border-gray-800 rounded-xl px-4 py-2.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                        <span className="text-gray-300 text-sm truncate">{c.task?.title || 'Task'}</span>
+                      </div>
+                      <span className="text-gray-500 text-xs flex-shrink-0">+{c.awarded_txp} TXP · {new Date(c.completed_at).toLocaleDateString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         )}
 

@@ -4,7 +4,7 @@ import {
   Shield, ArrowLeft, Settings, Sliders, Users, Gift, Search, Loader2,
   Plus, Trash2, Edit3, X, Check, Coins, Minus, ChevronDown, ChevronUp,
   Lock, Save, AlertTriangle, Flag, Snowflake, Unlock, History,
-  Webhook, Copy, Eye, EyeOff,
+  Webhook, Copy, Eye, EyeOff, Share2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import TxpService from '../services/TxpService'
@@ -65,7 +65,17 @@ const TABS = [
   { id: 'wallets', label: 'User Wallets', icon: Users },
   { id: 'campaigns', label: 'Campaigns', icon: Gift },
   { id: 'partner-campaigns', label: 'Partner Campaigns', icon: Webhook },
+  { id: 'social-tasks', label: 'Social Tasks', icon: Share2 },
   { id: 'fraud', label: 'Fraud & Audit', icon: AlertTriangle },
+]
+
+const SOCIAL_PLATFORMS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'x', label: 'X (Twitter)' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'other', label: 'Other' },
 ]
 
 function GradientButton({ children, onClick, disabled, type = 'button', className = '' }) {
@@ -1070,6 +1080,307 @@ function PartnerCampaignsTab() {
   )
 }
 
+// ── Tab: Social / Reshare Tasks (Phase 14) ──────────────────
+
+function SocialTaskForm({ initial, onCancel, onSave }) {
+  const [title, setTitle] = useState(initial?.title || '')
+  const [description, setDescription] = useState(initial?.description || '')
+  const [platform, setPlatform] = useState(initial?.platform || 'instagram')
+  const [linkUrl, setLinkUrl] = useState(initial?.link_url || '')
+  const [rewardAmount, setRewardAmount] = useState(initial?.reward_amount ?? 5)
+  const [sortOrder, setSortOrder] = useState(initial?.sort_order ?? 0)
+  const [isActive, setIsActive] = useState(initial ? !!initial.is_active : true)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!title.trim() || !linkUrl.trim()) {
+      toast.error('Title and link are required')
+      return
+    }
+    setSaving(true)
+    try {
+      await onSave({
+        title: title.trim(),
+        description: description.trim(),
+        platform,
+        link_url: linkUrl.trim(),
+        reward_amount: Number(rewardAmount) || 1,
+        sort_order: Number(sortOrder) || 0,
+        is_active: isActive,
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 space-y-3">
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Title</label>
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="e.g. Follow us on Instagram"
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Platform</label>
+          <select
+            value={platform}
+            onChange={e => setPlatform(e.target.value)}
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          >
+            {SOCIAL_PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Description (shown to users)</label>
+          <input
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="e.g. Follow @tixo on Instagram and stay updated"
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Link URL</label>
+          <input
+            value={linkUrl}
+            onChange={e => setLinkUrl(e.target.value)}
+            placeholder="https://instagram.com/tixo"
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Reward (TXP)</label>
+          <input
+            type="number"
+            min={1}
+            value={rewardAmount}
+            onChange={e => setRewardAmount(e.target.value)}
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Sort Order</label>
+          <input
+            type="number"
+            value={sortOrder}
+            onChange={e => setSortOrder(e.target.value)}
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+      </div>
+
+      <label className="flex items-center gap-2 cursor-pointer w-fit">
+        <button
+          type="button"
+          onClick={() => setIsActive(v => !v)}
+          className={`w-10 h-5 rounded-full transition-colors relative ${isActive ? 'bg-gradient-to-r from-pink-500 to-cyan-500' : 'bg-gray-700'}`}
+        >
+          <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
+        </button>
+        <span className="text-sm text-gray-300">{isActive ? 'Active' : 'Inactive'}</span>
+      </label>
+
+      <div className="flex gap-2 justify-end pt-1">
+        <SecondaryButton onClick={onCancel} disabled={saving}>Cancel</SecondaryButton>
+        <GradientButton type="submit" disabled={saving}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Save
+        </GradientButton>
+      </div>
+    </form>
+  )
+}
+
+function SocialTaskCompletionsPanel({ task }) {
+  const [completions, setCompletions] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    TxpService.getSocialTaskCompletions(task.id)
+      .then(data => { if (!cancelled) setCompletions(data) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [task.id])
+
+  if (loading) return <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 text-pink-500 animate-spin" /></div>
+
+  if (!completions.length) {
+    return <p className="text-gray-500 text-xs text-center py-4">No one has completed this task yet</p>
+  }
+
+  return (
+    <div className="mt-2 space-y-1.5 max-h-64 overflow-y-auto">
+      {completions.map(c => (
+        <div key={c.id} className="flex items-center justify-between gap-3 bg-black/20 rounded-lg px-3 py-2">
+          <span className="text-gray-300 text-xs truncate">{c.profile?.full_name || c.profile?.email || c.user_id}</span>
+          <span className="text-gray-500 text-[11px] flex-shrink-0">+{c.awarded_txp} TXP · {new Date(c.completed_at).toLocaleDateString()}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SocialTasksTab() {
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [busyId, setBusyId] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await TxpService.getAllSocialTasks()
+      setTasks(data)
+    } catch (err) {
+      toast.error(err.message || 'Failed to load social tasks')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function handleCreate(data) {
+    try {
+      await TxpService.createSocialTask(data)
+      toast.success('Task created')
+      setCreating(false)
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to create task')
+    }
+  }
+
+  async function handleUpdate(id, data) {
+    try {
+      await TxpService.updateSocialTask(id, data)
+      toast.success('Task updated')
+      setEditingId(null)
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to update task')
+    }
+  }
+
+  async function handleToggleActive(t) {
+    setBusyId(t.id)
+    try {
+      await TxpService.updateSocialTask(t.id, { is_active: !t.is_active })
+      toast.success(t.is_active ? 'Task deactivated' : 'Task activated')
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to update task')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function handleDelete(t) {
+    if (!window.confirm(`Delete "${t.title}"? This cannot be undone.`)) return
+    setBusyId(t.id)
+    try {
+      await TxpService.deleteSocialTask(t.id)
+      toast.success('Task deleted')
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete task')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  if (loading) {
+    return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-pink-500 animate-spin" /></div>
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-gray-400 text-sm max-w-2xl">
+        Simple reshare tasks like "Follow on Instagram" or "Follow on X". Users self-report completion by clicking
+        "I've Done This" on the Earn More TXP page -- once claimed, a task disappears from their list and moves into
+        their history. Each task can only be claimed once per user.
+      </p>
+
+      <div className="flex justify-end">
+        {!creating && (
+          <GradientButton onClick={() => setCreating(true)}>
+            <Plus className="w-4 h-4" /> New Task
+          </GradientButton>
+        )}
+      </div>
+
+      {creating && (
+        <SocialTaskForm onCancel={() => setCreating(false)} onSave={handleCreate} />
+      )}
+
+      <div className="space-y-3">
+        {tasks.map(t => (
+          editingId === t.id ? (
+            <SocialTaskForm
+              key={t.id}
+              initial={t}
+              onCancel={() => setEditingId(null)}
+              onSave={(data) => handleUpdate(t.id, data)}
+            />
+          ) : (
+            <div key={t.id} className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-white font-semibold text-sm">{t.title}</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-purple-500/20 text-purple-300">
+                      {SOCIAL_PLATFORMS.find(p => p.value === t.platform)?.label || t.platform}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${t.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-700/40 text-gray-400'}`}>
+                      {t.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  {t.description && <p className="text-gray-500 text-xs mt-1">{t.description}</p>}
+                  <p className="text-gray-400 text-xs mt-2 truncate">
+                    <span className="text-gray-300 font-mono">{t.link_url}</span> → <span className="text-pink-400 font-bold">{t.reward_amount} TXP</span>
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <SecondaryButton onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}>
+                    <Users className="w-3.5 h-3.5" />
+                  </SecondaryButton>
+                  <SecondaryButton onClick={() => setEditingId(t.id)}><Edit3 className="w-3.5 h-3.5" /></SecondaryButton>
+                  <SecondaryButton onClick={() => handleToggleActive(t)} disabled={busyId === t.id}>
+                    {busyId === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (t.is_active ? 'Deactivate' : 'Activate')}
+                  </SecondaryButton>
+                  <SecondaryButton onClick={() => handleDelete(t)} disabled={busyId === t.id} className="text-red-400 hover:text-red-300">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </SecondaryButton>
+                </div>
+              </div>
+
+              {expandedId === t.id && (
+                <div className="mt-3 pt-3 border-t border-gray-800">
+                  <p className="text-gray-500 text-[11px] uppercase tracking-wide mb-1">Completed by</p>
+                  <SocialTaskCompletionsPanel task={t} />
+                </div>
+              )}
+            </div>
+          )
+        ))}
+        {tasks.length === 0 && !creating && (
+          <p className="text-gray-500 text-sm text-center py-12">No reshare tasks yet — create one above</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Tab 5: Fraud & Audit (Phase 10) ─────────────────────────
 
 function SeverityBadge({ severity }) {
@@ -1520,6 +1831,7 @@ export function AdminTxpPanel() {
         {tab === 'wallets' && <WalletsTab />}
         {tab === 'campaigns' && <CampaignsTab />}
         {tab === 'partner-campaigns' && <PartnerCampaignsTab />}
+        {tab === 'social-tasks' && <SocialTasksTab />}
         {tab === 'fraud' && <FraudAuditTab />}
       </div>
     </div>

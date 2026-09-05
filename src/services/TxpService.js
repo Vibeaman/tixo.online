@@ -1146,6 +1146,136 @@ const TxpService = {
     return { alreadyClaimed: false, claim }
   },
 
+  // ── Phase 14: Reshare / Social Tasks ──────────────────────
+  // Simple admin-managed tasks (Follow on IG, Follow on X, etc).
+  // Self-reported completion, once per user per task. Awarded through
+  // the same _award() ledger primitive so it shows up in wallet history
+  // like every other earning action.
+
+  /** Public: active tasks the given user has NOT yet completed */
+  async getAvailableSocialTasks(userId) {
+    const { data: tasks, error } = await supabase
+      .from('txp_social_tasks')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    if (!tasks?.length) return []
+
+    if (!userId) return tasks
+
+    const { data: completions } = await supabase
+      .from('txp_social_task_completions')
+      .select('task_id')
+      .eq('user_id', userId)
+
+    const doneIds = new Set((completions || []).map(c => c.task_id))
+    return tasks.filter(t => !doneIds.has(t.id))
+  },
+
+  /** Public: tasks this user has already completed (for a "history" list) */
+  async getCompletedSocialTasks(userId) {
+    if (!userId) return []
+    const { data, error } = await supabase
+      .from('txp_social_task_completions')
+      .select('*, task:txp_social_tasks(title, platform, reward_amount)')
+      .eq('user_id', userId)
+      .order('completed_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  /**
+   * Mark a social task as done for a user: records the completion row and
+   * awards TXP. Idempotent -- a unique (task_id, user_id) constraint means
+   * a duplicate click is treated as already-claimed rather than erroring.
+   */
+  async completeSocialTask(userId, taskId) {
+    if (!userId || !taskId) return { success: false, error: 'Missing user or task' }
+    if (await this._isWalletFrozen(userId)) return { success: false, error: 'Wallet is frozen' }
+
+    const { data: task, error: taskErr } = await supabase
+      .from('txp_social_tasks')
+      .select('*')
+      .eq('id', taskId)
+      .eq('is_active', true)
+      .single()
+    if (taskErr || !task) return { success: false, error: 'Task not found or no longer active' }
+
+    const { data: completion, error: completionErr } = await supabase
+      .from('txp_social_task_completions')
+      .insert([{ task_id: taskId, user_id: userId, awarded_txp: task.reward_amount }])
+      .select()
+      .single()
+
+    if (completionErr) {
+      if (completionErr.code === '23505') {
+        return { success: false, alreadyCompleted: true, error: 'Already completed' }
+      }
+      throw completionErr
+    }
+
+    await this._award(userId, task.reward_amount, 'social_task', {
+      task_id: task.id,
+      task_title: task.title,
+      platform: task.platform,
+    }, 'available')
+
+    return { success: true, completion, task }
+  },
+
+  /** Admin: fetch every social task (active + inactive) */
+  async getAllSocialTasks() {
+    const { data, error } = await supabase
+      .from('txp_social_tasks')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  /** Admin: create a new social task */
+  async createSocialTask(data) {
+    const { data: created, error } = await supabase
+      .from('txp_social_tasks')
+      .insert([data])
+      .select()
+      .single()
+    if (error) throw error
+    return created
+  },
+
+  /** Admin: update a social task's fields */
+  async updateSocialTask(id, data) {
+    const { data: updated, error } = await supabase
+      .from('txp_social_tasks')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return updated
+  },
+
+  /** Admin: delete a social task (completions cascade-delete with it) */
+  async deleteSocialTask(id) {
+    const { error } = await supabase.from('txp_social_tasks').delete().eq('id', id)
+    if (error) throw error
+  },
+
+  /** Admin: how many users completed a given task, and who */
+  async getSocialTaskCompletions(taskId) {
+    const { data, error } = await supabase
+      .from('txp_social_task_completions')
+      .select('*, profile:profiles(full_name, email)')
+      .eq('task_id', taskId)
+      .order('completed_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
   // ── Phase 9: Tiers & Leaderboard ──────────────────────────
 
   /**
@@ -1622,6 +1752,7 @@ const TxpService = {
       referral_first_purchase: 'Referral first purchase',
       referral_campaign_bonus: 'Referral campaign bonus',
       partner_campaign: 'Partner campaign reward',
+      social_task: 'Reshare / social task',
       redemption: 'Points redeemed',
       ticket_redemption: 'Paid with Tixo Points',
       redemption_reversed: 'Points refunded',
