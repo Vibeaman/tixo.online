@@ -167,10 +167,20 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile toggle */}
-        <button className="md:hidden text-white" onClick={() => setOpen(!open)}>
-          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {/* Mobile: TXP balance + menu toggle */}
+        <div className="md:hidden flex items-center gap-3">
+          {user && (
+            <Link to="/wallet" className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+              style={{ background: 'rgba(233,30,140,0.1)', border: '1px solid rgba(233,30,140,0.25)', color: 'rgba(255,255,255,0.85)' }}
+            >
+              <Wallet className="w-3 h-3" />
+              <span className="text-xs font-semibold">{txpBalance === null ? '···' : txpBalance.toLocaleString()} TXP</span>
+            </Link>
+          )}
+          <button className="text-white" onClick={() => setOpen(!open)}>
+            {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
