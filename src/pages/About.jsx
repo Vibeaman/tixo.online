@@ -48,7 +48,7 @@ export default function About() {
   return (
     <>
       <Helmet>
-        <title>About Tixo — The Event Ticketing Platform</title>
+        <title>About Tixo, The Event Ticketing Platform</title>
         <meta name="description" content="Learn about Tixo, the modern event ticketing platform built for creators and attendees." />
       </Helmet>
     <div className="min-h-screen bg-[#050510] pt-24 pb-16 px-4">
@@ -68,10 +68,10 @@ export default function About() {
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              Tixo was built on a simple belief: buying a ticket should feel as good as the event itself. We're a ticketing marketplace where organizers craft experiences with ease, and attendees discover them without friction — every detail considered, nothing left clunky.
+              Tixo was built on a simple belief: buying a ticket should feel as good as the event itself. We're a ticketing marketplace where organizers craft experiences with ease, and attendees discover them without friction, every detail considered, nothing left clunky.
             </p>
             <p>
-              A concert, a comedy night, a conference, a quiet campus gathering, a Sunday church program, a room full of strangers becoming a network — whatever the occasion, Tixo carries it from first idea to final applause.
+              A concert, a comedy night, a conference, a quiet campus gathering, a Sunday church program, a room full of strangers becoming a network, whatever the occasion, Tixo carries it from first idea to final applause.
             </p>
             <p>
               We're here to make ticketing feel effortless, so organizers can pour their energy into the moment, and attendees can simply show up and belong.
@@ -87,7 +87,7 @@ export default function About() {
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              The best events are often the ones you almost missed. Tixo exists to close that gap — a quiet, well-lit space where attendees can wander through what's happening nearby, find what speaks to them, and secure a seat in a few unhurried clicks.
+              The best events are often the ones you almost missed. Tixo exists to close that gap, a quiet, well-lit space where attendees can wander through what's happening nearby, find what speaks to them, and secure a seat in a few unhurried clicks.
             </p>
             <p>
               By holding organizers and attendees in the same place, Tixo lets great events be seen, and gives audiences somewhere trustworthy to return to, again and again.
@@ -102,14 +102,14 @@ export default function About() {
             <h2 className="text-2xl font-bold text-white">Thoughtful Tools for Event Management</h2>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
-            <p>Ticket sales are only the beginning. Behind every well-run event is a quieter kind of work — and that's where Tixo steadies the hand of every organizer.</p>
+            <p>Ticket sales are only the beginning. Behind every well-run event is a quieter kind of work, and that's where Tixo steadies the hand of every organizer.</p>
             <p className="text-white font-semibold">With Tixo, you can:</p>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
               {managementTools.map(item => (
                 <li key={item}><span className="text-gray-300">{item}</span></li>
               ))}
             </ul>
-            <p>We handle the details so organizers can stay focused on what truly matters — the experience itself.</p>
+            <p>We handle the details so organizers can stay focused on what truly matters: the experience itself.</p>
           </div>
         </section>
 
@@ -121,7 +121,7 @@ export default function About() {
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              Every ticket carries its own unique QR code — a small detail with a quiet purpose: swift, secure entry, no duplicates slipping through, no fraud finding a way in. Just a smooth walk through the door.
+              Every ticket carries its own unique QR code, a small detail with a quiet purpose: swift, secure entry, no duplicates slipping through, no fraud finding a way in. Just a smooth walk through the door.
             </p>
             <p>
               Trust isn't an afterthought here. It's woven into every transaction, so organizers and attendees alike can move forward with confidence.
@@ -137,7 +137,7 @@ export default function About() {
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              Every great event leaves a trail worth reading. Tixo turns ticket sales, attendee behavior, and turnout into insight organizers can actually use — a clearer picture of what resonated, and what to carry into the next one.
+              Every great event leaves a trail worth reading. Tixo turns ticket sales, attendee behavior, and turnout into insight organizers can actually use, a clearer picture of what resonated, and what to carry into the next one.
             </p>
             <p>
               From an intimate gathering of friends to a stage full of strangers, Tixo gives organizers the visibility to grow an audience, one event at a time.
@@ -170,7 +170,7 @@ export default function About() {
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              We imagine a future where technology quietly does its job — simple enough to trust, powerful enough to help organizers reach further, sell with ease, and hand every attendee a night to remember.
+              We imagine a future where technology quietly does its job, simple enough to trust, powerful enough to help organizers reach further, sell with ease, and hand every attendee a night to remember.
             </p>
             <p>
               Tixo exists in the space between organizers and attendees, holding a trusted marketplace where great events are given room to thrive, and memorable moments are given room to begin.
