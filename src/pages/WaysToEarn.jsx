@@ -199,15 +199,15 @@ function SocialTaskCard({ task, onComplete, completing }) {
           Open <ExternalLink className="w-3.5 h-3.5" />
         </a>
         <button
-          onClick={() => onComplete(task)}
+          onClick={() => opened ? onComplete(task) : toast.error('Complete the task first — tap "Open" to start')}
           disabled={completing}
           className={`inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-white rounded-full px-4 py-2 transition-transform disabled:opacity-60 disabled:cursor-not-allowed ${
             opened
               ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 hover:-translate-y-0.5'
-              : 'bg-gray-800 border border-gray-700 hover:bg-gray-700'
+              : 'bg-gray-800/50 border border-gray-700/50 opacity-50 cursor-not-allowed'
           }`}
         >
-          {completing ? <LoaderIcon className="w-4 h-4 animate-spin" /> : "I've Done This"}
+          {completing ? <LoaderIcon className="w-4 h-4 animate-spin" /> : opened ? "I've Done This" : '🔒 Do Task First'}
         </button>
       </div>
     </div>
