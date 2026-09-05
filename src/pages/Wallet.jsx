@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import {
   Wallet as WalletIcon,
@@ -12,6 +12,7 @@ import {
   Diamond,
   Globe,
   Info,
+  Gift,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -193,6 +194,12 @@ export default function Wallet() {
               <h1 className="text-2xl md:text-3xl font-bold text-white">My Wallet</h1>
             </div>
             <p className="text-gray-500 text-sm">Manage your Tixo Points (TXP)</p>
+            <Link
+              to="/earn"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 mt-2 hover:opacity-80 transition-opacity"
+            >
+              <Gift className="w-4 h-4 text-pink-400" /> Ways to Earn →
+            </Link>
           </div>
 
           {/* Tier badge */}

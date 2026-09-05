@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter, Shield, EyeOff, Lock, Trophy, Target, Gift } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+import { showTxpToast } from '../components/TxpToast'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import AuthService from '../services/AuthService'
@@ -512,7 +513,7 @@ export default function Dashboard() {
     try {
       const result = await TxpService.claimCampaignBonus(user.id, campaignId)
       if (result.success) {
-        toast.success(`Claimed +${result.pointsAwarded.toLocaleString()} TXP!`)
+        showTxpToast(result.pointsAwarded, 'referral_campaign_bonus')
         const rows = await TxpService.getUserCampaignProgress(user.id)
         setCampaignProgress(rows || [])
       } else {

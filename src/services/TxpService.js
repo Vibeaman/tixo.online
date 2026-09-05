@@ -31,6 +31,11 @@ const TxpService = {
    * Check if a user already earned points for a specific reason + scope.
    * Scope is built from metadata keys so "event_shared" + event_id = once per event.
    */
+  /** Public wrapper: has this user ever earned TXP for a given reason? */
+  async hasEarnedReason(userId, reason) {
+    return this._alreadyAwarded(userId, reason)
+  },
+
   async _alreadyAwarded(userId, reason, scopeKey) {
     const query = supabase
       .from('txp_transactions')
