@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext'
 
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import AnnouncementBanner from './components/AnnouncementBanner'
 
 import Hero from './components/Hero'
 import HomeEvents from './components/HomeEvents'
@@ -66,6 +67,7 @@ function Layout() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#050510' }}>
+      {!hideNavFooter && <AnnouncementBanner />}
       {!hideNavFooter && <Navbar />}
       <Routes>
         <Route path="/" element={<Landing />} />

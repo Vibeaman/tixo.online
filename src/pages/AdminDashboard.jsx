@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Shield, BarChart3, Calendar, Ticket, Users, DollarSign, Search,
-  Menu, X, ArrowLeft, CheckCircle2, Clock, Loader2, Lock, RotateCcw, Coins,
+  Menu, X, ArrowLeft, CheckCircle2, Clock, Loader2, Lock, RotateCcw, Coins, Megaphone,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AdminService from '../services/AdminService'
 import TicketService from '../services/TicketService'
 import TxpService from '../services/TxpService'
 import { AdminTxpPanel } from './AdminTxp'
+import { AdminAnnouncementsPanel } from './AdminAnnouncements'
 
 const ADMIN_PASSCODE = 'peak'
 const ADMIN_SESSION_KEY = 'tixo_admin_unlocked'
@@ -65,6 +66,7 @@ const TABS = [
   { id: 'users', label: 'Users', icon: Users },
   { id: 'revenue', label: 'Revenue', icon: DollarSign },
   { id: 'txp', label: 'TXP', icon: Coins },
+  { id: 'announcements', label: 'Announcements', icon: Megaphone },
 ]
 
 function naira(n) {
@@ -306,6 +308,8 @@ export default function AdminDashboard() {
         <div className="p-4 sm:p-6">
           {activeTab === 'txp' ? (
             <AdminTxpPanel />
+          ) : activeTab === 'announcements' ? (
+            <AdminAnnouncementsPanel />
           ) : loading || !stats ? (
             <div className="flex items-center justify-center py-24">
               <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
