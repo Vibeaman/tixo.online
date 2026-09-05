@@ -11,6 +11,7 @@ import ReferralService from '../services/ReferralService'
 import PaystackService from '../services/PaystackService'
 import PayoutService from '../services/PayoutService'
 import TxpService from '../services/TxpService'
+import { showTxpToast } from '../components/TxpToast'
 import { useAuth } from '../context/AuthContext'
 import ShareButton from '../components/ShareButton'
 
@@ -592,6 +593,24 @@ export default function EventDetail() {
       if (txpRedemption?.id) { TxpService.attachRedemptionTickets(txpRedemption.id, tickets.map(t => t.id)).catch(err => console.error('Failed to attach ticket ids to redemption:', err)) }
       // Refresh wallet balance display after redeeming
       if (txpRedemption && user?.id) { TxpService.getWallet(user.id).then(setTxpWallet).catch(() => {}) }
+      // Award TXP for the ticket purchase itself (based on each ticket's face value,
+      // regardless of whether it was paid for with cash or Tixo Points). Fire-and-forget
+      // so it can never block or break the purchase flow.
+      if (user?.id && tickets?.length) {
+        (async () => {
+          try {
+            let totalPointsEarned = 0
+            for (const ticket of tickets) {
+              const perTicketAmount = ticket.total_price || 0
+              const txn = await TxpService.onTicketPurchased(user.id, ticket.id, perTicketAmount)
+              if (txn?.amount) totalPointsEarned += txn.amount
+            }
+            if (totalPointsEarned > 0) showTxpToast(totalPointsEarned, 'ticket_purchase')
+          } catch (err) {
+            console.error('TXP ticket purchase award error:', err)
+          }
+        })()
+      }
       setPaymentMethod('cash')
       // Ticket purchase confirmed (paid via Paystack, or free) — release any pending TXP referral bonus for this buyer
       if (user?.id) { TxpService.completeReferralOnFirstPurchase(user.id).catch(err => console.error('Referral TXP completion error:', err)) }

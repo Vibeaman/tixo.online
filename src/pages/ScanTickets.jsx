@@ -9,6 +9,7 @@ import { Html5Qrcode } from 'html5-qrcode'
 import { useAuth } from '../context/AuthContext'
 import EventService from '../services/EventService'
 import TicketService from '../services/TicketService'
+import TxpService from '../services/TxpService'
 
 // ─── Scan Result Card ────────────────────────────────────────────────────────
 
@@ -174,8 +175,14 @@ function AttendeeList({ eventId, userId, onBack }) {
   const handleCheckIn = async (ticket) => {
     try {
       setCheckingId(ticket.id)
-      await TicketService.checkIn(ticket.id, userId)
+      const checkedInTicket = await TicketService.checkIn(ticket.id, userId)
       toast.success(`${ticket.attendee_name || ticket.profile?.full_name || 'Guest'} checked in`)
+      // Award TXP to the attendee for showing up (fire-and-forget; never blocks check-in)
+      const attendeeUserId = checkedInTicket?.user_id
+      const attendeeEventId = checkedInTicket?.event_id || eventId
+      if (attendeeUserId) {
+        TxpService.onEventAttended(attendeeUserId, attendeeEventId).catch(err => console.error('TXP event attendance award error:', err))
+      }
       fetchAttendees()
     } catch (err) {
       toast.error('Check-in failed')
@@ -470,11 +477,17 @@ export default function ScanTickets() {
     if (!scannedTicket || !user) return
     try {
       setCheckingIn(true)
-      await TicketService.checkIn(scannedTicket.id, user.id)
+      const checkedInTicket = await TicketService.checkIn(scannedTicket.id, user.id)
       confirmedTicketRef.current = scannedTicket
       setScannedTicket(null)
       setShowConfirmed(true)
       toast.success('Checked in successfully!')
+      // Award TXP to the attendee for showing up (fire-and-forget; never blocks check-in)
+      const attendeeUserId = checkedInTicket?.user_id || scannedTicket?.user_id
+      const attendeeEventId = checkedInTicket?.event_id || scannedTicket?.event_id
+      if (attendeeUserId && attendeeEventId) {
+        TxpService.onEventAttended(attendeeUserId, attendeeEventId).catch(err => console.error('TXP event attendance award error:', err))
+      }
     } catch (err) {
       toast.error('Check-in failed')
     } finally {
