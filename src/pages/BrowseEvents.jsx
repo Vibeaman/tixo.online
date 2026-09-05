@@ -1,8 +1,9 @@
 import { Helmet } from 'react-helmet-async'
 import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, SlidersHorizontal, MapPin, Calendar, Ticket, ArrowRight, Filter, X } from 'lucide-react'
+import { Search, SlidersHorizontal, MapPin, Calendar, Ticket, ArrowRight, Filter, X, Clock } from 'lucide-react'
 import EventService from '../services/EventService'
+import { isEventEnded, sortByEventTier } from '../utils/eventStatus'
 
 const CATEGORIES = ['All','Music','Tech','Art','Food','Sports','Comedy','Festivals','Community','Party']
 const EVENT_TYPES = ['All', 'In Person', 'Virtual', 'Hybrid']
@@ -98,6 +99,10 @@ export default function BrowseEvents() {
       const pb = b.ticket_tiers?.[0]?.price || 0
       return pa - pb
     })
+
+    // Group: upcoming/live events first, ended events below them (recent
+    // memories still worth browsing), placeholder (no image) events last.
+    list = sortByEventTier(list)
 
     return list
   }, [events, search, category, sort, location, dateFrom, dateTo, eventType])
@@ -258,12 +263,19 @@ export default function BrowseEvents() {
               )}
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map(event => (
+              {filtered.map(event => {
+                const ended = isEventEnded(event)
+                return (
                 <div key={event.id} onClick={() => navigate(`/events/${event.id}`)}
-                  className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all cursor-pointer group">
+                  className={`bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all cursor-pointer group ${ended ? 'opacity-80' : ''}`}>
                   <div className="relative h-48 overflow-hidden">
                     <img src={event.image} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <span className="absolute top-3 left-3 bg-gradient-to-r from-pink-500 to-purple-500/90 text-white text-xs font-bold px-3 py-1 rounded-full">{event.category}</span>
+                    {ended && (
+                      <span className="absolute top-3 right-3 flex items-center gap-1 bg-red-500/25 border border-red-500/30 text-red-300 text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm">
+                        <Clock className="w-3 h-3" /> ENDED
+                      </span>
+                    )}
                   </div>
                   <div className="p-5">
                     <h3 className="text-white font-bold text-lg mb-2 group-hover:text-pink-400 transition-colors">{event.title}</h3>
@@ -276,11 +288,14 @@ export default function BrowseEvents() {
                         ? <span className="text-green-400 font-bold">Free</span>
                         : <span className="text-pink-400 font-bold">₦{(event.ticket_tiers?.[0]?.price || 0).toLocaleString()}</span>
                       }
-                      <span className="flex items-center gap-1 text-sm text-gray-400"><Ticket className="w-4 h-4" />Get Tickets <ArrowRight className="w-4 h-4" /></span>
+                      {ended
+                        ? <span className="flex items-center gap-1 text-sm text-gray-400">View Memories <ArrowRight className="w-4 h-4" /></span>
+                        : <span className="flex items-center gap-1 text-sm text-gray-400"><Ticket className="w-4 h-4" />Get Tickets <ArrowRight className="w-4 h-4" /></span>
+                      }
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </>
         )}

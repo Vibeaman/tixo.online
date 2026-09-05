@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Calendar, MapPin, ArrowRight } from 'lucide-react'
 import EventService from '../services/EventService'
 import { fadeUp, staggerParent, viewportOnce } from '../utils/animations'
+import { isEventEnded, sortByEventTier } from '../utils/eventStatus'
 
 function formatEventDate(date, time) {
   if (!date) return ''
@@ -35,11 +36,12 @@ function eventLink(event) {
 
 function EventCardSmall({ event }) {
   const price = getPriceLabel(event)
+  const ended = isEventEnded(event)
   return (
     <motion.div variants={fadeUp}>
       <Link
         to={eventLink(event)}
-        className="group block bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-purple-400/40 transition-all h-full"
+        className={`group block bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-purple-400/40 transition-all h-full ${ended ? 'opacity-80' : ''}`}
       >
         <div className="relative h-44 overflow-hidden">
           {event.image ? (
@@ -60,6 +62,11 @@ function EventCardSmall({ event }) {
           >
             {price.label}
           </span>
+          {ended && (
+            <span className="absolute top-3 left-3 bg-red-500/25 border border-red-500/30 text-red-300 text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm">
+              ENDED
+            </span>
+          )}
         </div>
         <div className="p-4">
           <h3 className="text-white font-bold text-base mb-2 line-clamp-1 group-hover:text-purple-300 transition-colors">
@@ -142,12 +149,12 @@ export default function HomeEvents() {
     let mounted = true
 
     EventService.getNewest(6)
-      .then(data => { if (mounted) setNewest(data || []) })
+      .then(data => { if (mounted) setNewest(sortByEventTier(data || [])) })
       .catch(e => console.error('getNewest failed', e))
       .finally(() => { if (mounted) setLoadingNewest(false) })
 
     EventService.getFeatured()
-      .then(data => { if (mounted) setFeatured(data || []) })
+      .then(data => { if (mounted) setFeatured(sortByEventTier(data || [])) })
       .catch(e => console.error('getFeatured failed', e))
       .finally(() => { if (mounted) setLoadingFeatured(false) })
 

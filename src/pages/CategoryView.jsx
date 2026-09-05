@@ -1,8 +1,9 @@
 import { Helmet } from 'react-helmet-async'
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Calendar, MapPin, Ticket, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Ticket, ArrowRight, Clock } from 'lucide-react'
 import EventService from '../services/EventService'
+import { isEventEnded, sortByEventTier } from '../utils/eventStatus'
 
 export default function CategoryView() {
   const { name } = useParams()
@@ -14,7 +15,7 @@ export default function CategoryView() {
     async function load() {
       try {
         const data = await EventService.getByCategory(name)
-        setEvents(data)
+        setEvents(sortByEventTier(data || []))
       } catch (e) { console.error(e) }
       finally { setLoading(false) }
     }
@@ -44,11 +45,18 @@ export default function CategoryView() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map(event => (
+            {events.map(event => {
+              const ended = isEventEnded(event)
+              return (
               <div key={event.id} onClick={() => navigate(`/events/${event.id}`)}
-                className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all cursor-pointer group">
+                className={`bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all cursor-pointer group ${ended ? 'opacity-80' : ''}`}>
                 <div className="relative h-48 overflow-hidden">
                   <img src={event.image} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  {ended && (
+                    <span className="absolute top-3 right-3 flex items-center gap-1 bg-red-500/25 border border-red-500/30 text-red-300 text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm">
+                      <Clock className="w-3 h-3" /> ENDED
+                    </span>
+                  )}
                 </div>
                 <div className="p-5">
                   <h3 className="text-white font-bold text-lg mb-2 group-hover:text-pink-400 transition-colors">{event.title}</h3>
@@ -61,11 +69,14 @@ export default function CategoryView() {
                       ? <span className="text-green-400 font-bold">Free</span>
                       : <span className="text-pink-400 font-bold">₦{(event.ticket_tiers?.[0]?.price || 0).toLocaleString()}</span>
                     }
-                    <span className="flex items-center gap-1 text-sm text-gray-400"><Ticket className="w-4 h-4" />Get Tickets <ArrowRight className="w-4 h-4" /></span>
+                    {ended
+                      ? <span className="flex items-center gap-1 text-sm text-gray-400">View Memories <ArrowRight className="w-4 h-4" /></span>
+                      : <span className="flex items-center gap-1 text-sm text-gray-400"><Ticket className="w-4 h-4" />Get Tickets <ArrowRight className="w-4 h-4" /></span>
+                    }
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>
