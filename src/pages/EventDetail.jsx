@@ -10,6 +10,7 @@ import PhotoGallery from '../components/PhotoGallery'
 import ReferralService from '../services/ReferralService'
 import PaystackService from '../services/PaystackService'
 import PayoutService from '../services/PayoutService'
+import TxpService from '../services/TxpService'
 import { useAuth } from '../context/AuthContext'
 import ShareButton from '../components/ShareButton'
 
@@ -432,6 +433,8 @@ export default function EventDetail() {
       }
 
       const tickets = await TicketService.purchaseMultiple({ eventId: event.id, eventTitle: event.title, items: purchaseItems, userId: user?.id || null, guestName: effectiveGuestInfo?.name || null, guestEmail: effectiveGuestInfo?.email || null, referralCode: refCode || null, attendanceMode: mode, isRsvp: false, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData: effectiveGuestInfo?.registrationData || registrationData })
+      // Ticket purchase confirmed (paid via Paystack, or free) — release any pending TXP referral bonus for this buyer
+      if (user?.id) { TxpService.completeReferralOnFirstPurchase(user.id).catch(err => console.error('Referral TXP completion error:', err)) }
       if (refCode && event.reshare_enabled) { try { const refLink = await ReferralService.getByCode(refCode); if (refLink && refLink.user_id !== user?.id) { await ReferralService.recordCommission({ referralLinkId: refLink.id, ticketId: tickets[0]?.id, eventId: event.id, referrerId: refLink.user_id, buyerId: user?.id || null, ticketAmount: cartTotal }) } } catch (e) { console.error('Commission tracking error:', e) } }
       sessionStorage.removeItem(`ref_${id}`)
       setPurchaseSuccess(true); setCart({}); setFloaterExpanded(false)

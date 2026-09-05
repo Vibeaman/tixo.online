@@ -227,6 +227,27 @@ const TxpService = {
     return updated || ref
   },
 
+  /**
+   * Called after a ticket purchase is confirmed (e.g. Paystack payment verified).
+   * If this buyer was referred and hasn't triggered the first-purchase bonus yet,
+   * releases the referrer's pending 100 TXP and awards the 250 TXP bonus.
+   */
+  async completeReferralOnFirstPurchase(refereeId) {
+    if (!refereeId) return null
+
+    const { data: pending } = await supabase
+      .from('txp_referrals')
+      .select('*')
+      .eq('referee_id', refereeId)
+      .eq('status', 'pending')
+      .limit(1)
+      .maybeSingle()
+
+    if (!pending) return null
+
+    return this.onReferralFirstPurchase(pending.referrer_id, refereeId)
+  },
+
   // ── Pending → Available Promotion ────────────────────────
 
   async releasePending(userId, amount) {
