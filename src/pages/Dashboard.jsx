@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async'
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter, Shield, EyeOff, Lock } from 'lucide-react'
+import { Ticket, Calendar, User, LogOut, MapPin, Plus, Trash2, Edit3, Video, Globe, Camera, Share2, TrendingUp, DollarSign, Eye, MousePointer, Users, ExternalLink, BarChart3, PieChart, Activity, ArrowUpRight, CheckCircle2, ScanLine, X, Clock, Download, Bell, Settings, Mail, Megaphone, ChevronDown, Info, Check, Send, Search, Phone, Copy, Filter, Shield, EyeOff, Lock, Trophy, Target, Gift } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -418,6 +418,9 @@ export default function Dashboard() {
   const [loadingReferrals, setLoadingReferrals] = useState(false)
   const [txpReferrals, setTxpReferrals] = useState([])
   const [loadingTxpReferrals, setLoadingTxpReferrals] = useState(false)
+  const [campaignProgress, setCampaignProgress] = useState([])
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false)
+  const [claimingCampaignId, setClaimingCampaignId] = useState(null)
   const [selectedEventStats, setSelectedEventStats] = useState(null)
   const [loadingEventStats, setLoadingEventStats] = useState(false)
 
@@ -494,8 +497,34 @@ export default function Dashboard() {
         .then(rows => setTxpReferrals(rows || []))
         .catch(err => console.error('Failed to load TXP referrals:', err))
         .finally(() => setLoadingTxpReferrals(false))
+
+      setLoadingCampaigns(true)
+      TxpService.getUserCampaignProgress(user.id)
+        .then(rows => setCampaignProgress(rows || []))
+        .catch(err => console.error('Failed to load referral campaigns:', err))
+        .finally(() => setLoadingCampaigns(false))
     }
   }, [tab, user])
+
+  async function handleClaimCampaignBonus(campaignId) {
+    if (!user) return
+    setClaimingCampaignId(campaignId)
+    try {
+      const result = await TxpService.claimCampaignBonus(user.id, campaignId)
+      if (result.success) {
+        toast.success(`Claimed +${result.pointsAwarded.toLocaleString()} TXP!`)
+        const rows = await TxpService.getUserCampaignProgress(user.id)
+        setCampaignProgress(rows || [])
+      } else {
+        toast.error(result.error || 'Unable to claim bonus')
+      }
+    } catch (err) {
+      console.error('Failed to claim campaign bonus:', err)
+      toast.error('Unable to claim bonus')
+    } finally {
+      setClaimingCampaignId(null)
+    }
+  }
 
   // Load analytics data
   useEffect(() => {
@@ -2137,6 +2166,81 @@ export default function Dashboard() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Referral Campaigns */}
+                <div className="mb-8">
+                  <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-pink-400" /> Referral Campaigns
+                  </h3>
+                  {loadingCampaigns ? (
+                    <div className="space-y-3">
+                      {[1].map(i => <div key={i} className="h-32 bg-gray-900/50 border border-gray-800 rounded-2xl animate-pulse" />)}
+                    </div>
+                  ) : campaignProgress.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-900/50 border border-gray-800 rounded-2xl">
+                      <Target className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-400">No active campaigns right now. Check back soon!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {campaignProgress.map(({ campaign, completedReferrals, alreadyClaimed }) => {
+                        const milestone = campaign.milestone_count || 1
+                        const pct = Math.min(100, Math.round((completedReferrals / milestone) * 100))
+                        const reached = completedReferrals >= milestone
+                        const remaining = Math.max(0, milestone - completedReferrals)
+
+                        return (
+                          <div key={campaign.id} className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5">
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 via-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                                  <Trophy className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                  <h4 className="text-white font-semibold text-sm">{campaign.name}</h4>
+                                  {campaign.description && (
+                                    <p className="text-gray-500 text-xs mt-1">{campaign.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                              {alreadyClaimed ? (
+                                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 flex items-center gap-1 flex-shrink-0 whitespace-nowrap">
+                                  <Gift className="w-3 h-3" /> Claimed! +{campaign.bonus_points.toLocaleString()} TXP
+                                </span>
+                              ) : reached ? (
+                                <button
+                                  onClick={() => handleClaimCampaignBonus(campaign.id)}
+                                  disabled={claimingCampaignId === campaign.id}
+                                  className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 text-white flex items-center gap-1 flex-shrink-0 whitespace-nowrap disabled:opacity-50"
+                                >
+                                  <Gift className="w-3 h-3" /> {claimingCampaignId === campaign.id ? 'Claiming...' : 'Claim Bonus'}
+                                </button>
+                              ) : null}
+                            </div>
+
+                            <div className="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden mb-2">
+                              <div
+                                className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-full transition-all"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <p className="text-gray-400 text-xs">
+                                {completedReferrals} of {milestone} referrals completed
+                              </p>
+                              {!alreadyClaimed && !reached && (
+                                <p className="text-cyan-400 text-xs font-medium">
+                                  Refer {remaining} more to unlock {campaign.bonus_points.toLocaleString()} TXP bonus!
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

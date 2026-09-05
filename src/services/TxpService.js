@@ -224,7 +224,147 @@ const TxpService = {
       .select()
       .single()
 
+    // Phase 3D: check if this completion pushed the referrer past any campaign milestones
+    try {
+      await this.checkAndAutoClaimCampaigns(referrerId)
+    } catch (err) {
+      console.error('checkAndAutoClaimCampaigns failed:', err)
+    }
+
     return updated || ref
+  },
+
+  // ── Referral Campaigns (Phase 3D) ─────────────────────────
+
+  /** Fetch all currently active referral campaigns */
+  async getActiveCampaigns() {
+    const { data, error } = await supabase
+      .from('referral_campaigns')
+      .select('*')
+      .eq('is_active', true)
+      .order('milestone_count')
+    if (error) throw error
+    return data || []
+  },
+
+  /** Count a user's completed referrals */
+  async _countCompletedReferrals(userId) {
+    const { count, error } = await supabase
+      .from('txp_referrals')
+      .select('id', { count: 'exact', head: true })
+      .eq('referrer_id', userId)
+      .eq('status', 'completed')
+    if (error) throw error
+    return count || 0
+  },
+
+  /** Check if a user has already claimed a given campaign's bonus */
+  async _hasClaimedCampaign(userId, campaignId) {
+    const { data, error } = await supabase
+      .from('referral_campaign_claims')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('campaign_id', campaignId)
+      .maybeSingle()
+    if (error) return false
+    return !!data
+  },
+
+  /**
+   * For each active campaign, return the user's progress:
+   * campaign info + completedReferrals count + alreadyClaimed boolean
+   */
+  async getUserCampaignProgress(userId) {
+    if (!userId) return []
+
+    const campaigns = await this.getActiveCampaigns()
+    if (!campaigns.length) return []
+
+    const completedReferrals = await this._countCompletedReferrals(userId)
+
+    const { data: claims } = await supabase
+      .from('referral_campaign_claims')
+      .select('campaign_id')
+      .eq('user_id', userId)
+
+    const claimedIds = new Set((claims || []).map(c => c.campaign_id))
+
+    return campaigns.map(campaign => ({
+      campaign,
+      completedReferrals,
+      alreadyClaimed: claimedIds.has(campaign.id)
+    }))
+  },
+
+  /**
+   * Claim a campaign's bonus for a user.
+   * Verifies eligibility (active campaign, enough completed referrals, not already claimed),
+   * then inserts the claim record and awards the bonus points.
+   */
+  async claimCampaignBonus(userId, campaignId) {
+    if (!userId || !campaignId) return { success: false, error: 'Missing user or campaign' }
+
+    const { data: campaign, error: campaignErr } = await supabase
+      .from('referral_campaigns')
+      .select('*')
+      .eq('id', campaignId)
+      .eq('is_active', true)
+      .single()
+
+    if (campaignErr || !campaign) {
+      return { success: false, error: 'Campaign not found or inactive' }
+    }
+
+    const completedReferrals = await this._countCompletedReferrals(userId)
+    if (completedReferrals < campaign.milestone_count) {
+      return { success: false, error: 'Milestone not yet reached' }
+    }
+
+    const alreadyClaimed = await this._hasClaimedCampaign(userId, campaignId)
+    if (alreadyClaimed) {
+      return { success: false, error: 'Bonus already claimed' }
+    }
+
+    const { error: claimErr } = await supabase
+      .from('referral_campaign_claims')
+      .insert([{ user_id: userId, campaign_id: campaignId, points_awarded: campaign.bonus_points }])
+
+    if (claimErr) {
+      if (claimErr.code === '23505') {
+        return { success: false, error: 'Bonus already claimed' }
+      }
+      throw claimErr
+    }
+
+    await this._award(userId, campaign.bonus_points, 'referral_campaign_bonus', { campaign_id: campaignId, campaign_name: campaign.name })
+
+    return { success: true, campaign, pointsAwarded: campaign.bonus_points }
+  },
+
+  /**
+   * Called after onReferralFirstPurchase completes.
+   * Checks all active campaigns and auto-claims any the user has newly become eligible for.
+   */
+  async checkAndAutoClaimCampaigns(userId) {
+    if (!userId) return []
+
+    const campaigns = await this.getActiveCampaigns()
+    if (!campaigns.length) return []
+
+    const completedReferrals = await this._countCompletedReferrals(userId)
+    const claimedResults = []
+
+    for (const campaign of campaigns) {
+      if (completedReferrals < campaign.milestone_count) continue
+
+      const alreadyClaimed = await this._hasClaimedCampaign(userId, campaign.id)
+      if (alreadyClaimed) continue
+
+      const result = await this.claimCampaignBonus(userId, campaign.id)
+      if (result.success) claimedResults.push(result)
+    }
+
+    return claimedResults
   },
 
   /**
@@ -436,6 +576,7 @@ const TxpService = {
       review_submitted: 'Review submitted',
       referral_registered: 'Referral signed up',
       referral_first_purchase: 'Referral first purchase',
+      referral_campaign_bonus: 'Referral campaign bonus',
       redemption: 'Points redeemed'
     }
     return labels[reason] || reason.replace(/_/g, ' ')
