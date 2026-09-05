@@ -7,27 +7,28 @@ import {
   ArrowDownRight,
   Clock,
   Trophy,
-  Star,
-  Crown,
-  Diamond,
-  Globe,
   Info,
   Gift,
+  CheckCircle2,
+  Lock,
+  ChevronRight,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import TxpService from '../services/TxpService'
 
-// ── Tier config ──────────────────────────────────────────────
-const TIERS = [
-  { id: 'explorer', label: 'Explorer', icon: Globe, min: 0, max: 499, color: 'text-gray-300', badgeBg: 'bg-gray-700/40 border-gray-600/60' },
-  { id: 'insider', label: 'Insider', icon: Star, min: 500, max: 1999, color: 'text-blue-300', badgeBg: 'bg-blue-500/15 border-blue-500/40' },
-  { id: 'vip', label: 'VIP', icon: Diamond, min: 2000, max: 4999, color: 'text-purple-300', badgeBg: 'bg-gradient-to-r from-purple-600/20 to-fuchsia-600/20 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.35)]' },
-  { id: 'elite', label: 'Elite', icon: Crown, min: 5000, max: Infinity, color: 'text-yellow-300', badgeBg: 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.35)]' },
-]
-
-function getTier(lifetimeEarned) {
-  return TIERS.find(t => lifetimeEarned >= t.min && lifetimeEarned <= t.max) || TIERS[0]
+// Badge background per tier name (visual accent, keeps existing dark theme)
+const TIER_BADGE_BG = {
+  Explorer: 'bg-gray-700/40 border-gray-600/60',
+  Insider: 'bg-blue-500/15 border-blue-500/40',
+  VIP: 'bg-gradient-to-r from-purple-600/20 to-fuchsia-600/20 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.35)]',
+  Elite: 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.35)]',
+}
+const TIER_PROGRESS_BAR = {
+  Explorer: 'bg-gray-400',
+  Insider: 'bg-blue-400',
+  VIP: 'bg-purple-400',
+  Elite: 'bg-yellow-400',
 }
 
 function formatRelativeTime(dateStr) {
@@ -170,12 +171,13 @@ export default function Wallet() {
   }
 
   const lifetimeEarned = wallet.lifetime_earned || 0
-  const tier = getTier(lifetimeEarned)
-  const TierIcon = tier.icon
-  const tierIndex = TIERS.findIndex(t => t.id === tier.id)
-  const nextTier = TIERS[tierIndex + 1]
-  const progressText = nextTier
-    ? `${(nextTier.min - lifetimeEarned).toLocaleString()} TXP to next tier`
+  const tierInfo = TxpService.getTierInfo(lifetimeEarned)
+  const badgeBg = TIER_BADGE_BG[tierInfo.name] || TIER_BADGE_BG.Explorer
+  const progressBarColor = TIER_PROGRESS_BAR[tierInfo.name] || TIER_PROGRESS_BAR.Explorer
+  const currentPerks = TxpService.getTierPerks(tierInfo.name)
+  const nextPerks = tierInfo.nextTierName ? TxpService.getTierPerks(tierInfo.nextTierName) : []
+  const progressText = tierInfo.nextTierName
+    ? `${tierInfo.pointsToNext.toLocaleString()} TXP to ${tierInfo.nextTierName}`
     : 'Max tier reached!'
 
   const visibleHistory = history.slice(0, visibleCount)
@@ -194,22 +196,90 @@ export default function Wallet() {
               <h1 className="text-2xl md:text-3xl font-bold text-white">My Wallet</h1>
             </div>
             <p className="text-gray-500 text-sm">Manage your Tixo Points (TXP)</p>
-            <Link
-              to="/earn"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 mt-2 hover:opacity-80 transition-opacity"
-            >
-              <Gift className="w-4 h-4 text-pink-400" /> Ways to Earn →
-            </Link>
-          </div>
-
-          {/* Tier badge */}
-          <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl border ${tier.badgeBg}`}>
-            <TierIcon className={`w-6 h-6 ${tier.color}`} />
-            <div>
-              <p className={`text-sm font-bold ${tier.color}`}>{tier.label} Tier</p>
-              <p className="text-gray-400 text-xs">{progressText}</p>
+            <div className="flex items-center gap-4 mt-2 flex-wrap">
+              <Link
+                to="/earn"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 hover:opacity-80 transition-opacity"
+              >
+                <Gift className="w-4 h-4 text-pink-400" /> Ways to Earn →
+              </Link>
+              <Link
+                to="/leaderboard"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 hover:opacity-80 transition-opacity"
+              >
+                <Trophy className="w-4 h-4 text-pink-400" /> View Leaderboard →
+              </Link>
             </div>
           </div>
+        </div>
+
+        {/* Tier card */}
+        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+            <div className={`flex items-center gap-4 px-5 py-4 rounded-2xl border ${badgeBg}`}>
+              <span className="text-4xl leading-none">{tierInfo.emoji}</span>
+              <div>
+                <p className={`text-lg font-bold ${tierInfo.color}`}>{tierInfo.name} Tier</p>
+                <p className="text-gray-400 text-xs">{progressText}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-gray-500 text-xs">Lifetime Earned</p>
+              <p className="text-white text-2xl font-bold">{lifetimeEarned.toLocaleString()} TXP</p>
+            </div>
+          </div>
+
+          {/* Progress bar to next tier */}
+          {tierInfo.nextTierName && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+                <span>{tierInfo.name}</span>
+                <span>{tierInfo.nextTierName}</span>
+              </div>
+              <div className="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${progressBarColor} transition-all duration-500`}
+                  style={{ width: `${tierInfo.progressPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <p className="text-sm font-semibold text-white mb-2">Your {tierInfo.name} perks</p>
+              <ul className="space-y-2">
+                {currentPerks.map((perk, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                    <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    <span>{perk}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {tierInfo.nextTierName && (
+              <div>
+                <p className="text-sm font-semibold text-gray-400 mb-2">
+                  Unlock at {tierInfo.nextTierName} tier:
+                </p>
+                <ul className="space-y-2">
+                  {nextPerks.map((perk, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-500">
+                      <Lock className="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5" />
+                      <span>{perk}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <Link
+            to="/leaderboard"
+            className="inline-flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-white transition-colors mt-6"
+          >
+            See where you rank <ChevronRight className="w-4 h-4" />
+          </Link>
         </div>
 
         {/* Balance cards */}

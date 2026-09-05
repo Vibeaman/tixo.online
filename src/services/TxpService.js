@@ -1,5 +1,22 @@
 import { supabase } from '../lib/supabase'
 
+// ── Phase 9: Tier definitions ──────────────────────────────
+// Lifetime-earned thresholds that determine a user's TXP tier.
+const TXP_TIERS = [
+  { name: 'Explorer', emoji: '🌍', color: 'text-gray-300', min: 0, max: 999 },
+  { name: 'Insider', emoji: '⭐', color: 'text-blue-300', min: 1000, max: 4999 },
+  { name: 'VIP', emoji: '💎', color: 'text-purple-300', min: 5000, max: 9999 },
+  { name: 'Elite', emoji: '👑', color: 'text-yellow-300', min: 10000, max: Infinity },
+]
+
+// Perks unlocked at each tier
+const TXP_TIER_PERKS = {
+  Explorer: ['Access to basic events'],
+  Insider: ['5% bonus TXP on purchases', 'Early access to event announcements'],
+  VIP: ['10% bonus TXP on purchases', 'Priority event access', 'Exclusive VIP events'],
+  Elite: ['15% bonus TXP on purchases', 'Priority access to all events', 'Exclusive Elite events', 'Personal event recommendations'],
+}
+
 const TxpService = {
   // ── Wallet ────────────────────────────────────────────────
 
@@ -869,6 +886,152 @@ const TxpService = {
       .eq('id', id)
     if (error) throw error
     return true
+  },
+
+  // ── Phase 9: Tiers & Leaderboard ──────────────────────────
+
+  /**
+   * Given a user's lifetime_earned TXP, return their current tier info
+   * plus progress toward the next tier.
+   */
+  getTierInfo(lifetimeEarned) {
+    const earned = Number(lifetimeEarned) || 0
+    const tierIndex = TXP_TIERS.findIndex(t => earned >= t.min && earned <= t.max)
+    const tier = TXP_TIERS[tierIndex === -1 ? 0 : tierIndex]
+    const nextTier = TXP_TIERS[(tierIndex === -1 ? 0 : tierIndex) + 1] || null
+
+    return {
+      name: tier.name,
+      emoji: tier.emoji,
+      color: tier.color,
+      minPoints: tier.min,
+      maxPoints: tier.max,
+      nextTierName: nextTier ? nextTier.name : null,
+      nextTierMin: nextTier ? nextTier.min : null,
+      pointsToNext: nextTier ? Math.max(0, nextTier.min - earned) : 0,
+      progressPercent: nextTier
+        ? Math.min(100, Math.max(0, ((earned - tier.min) / (nextTier.min - tier.min)) * 100))
+        : 100,
+    }
+  },
+
+  /** All tiers in ascending order (for rendering tier ladders) */
+  getAllTiers() {
+    return TXP_TIERS.map(t => ({ ...t, perks: TXP_TIER_PERKS[t.name] || [] }))
+  },
+
+  /** Perks unlocked for a given tier name */
+  getTierPerks(tierName) {
+    return TXP_TIER_PERKS[tierName] || []
+  },
+
+  /** Start-of-month ISO timestamp (UTC) used to scope the monthly leaderboard */
+  _startOfMonthISO() {
+    const now = new Date()
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+  },
+
+  /** Next month's 1st, used for the "leaderboard resets on" note */
+  getLeaderboardResetDate() {
+    const now = new Date()
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
+  },
+
+  /**
+   * Build the ranked leaderboard for a period.
+   * period: 'monthly' (current calendar month, credit txns) | 'all_time' (lifetime_earned)
+   */
+  async getLeaderboard(period = 'monthly', limit = 50) {
+    let ranked = []
+
+    if (period === 'all_time') {
+      const { data: wallets, error } = await supabase
+        .from('txp_wallets')
+        .select('user_id, lifetime_earned')
+        .gt('lifetime_earned', 0)
+        .order('lifetime_earned', { ascending: false })
+        .limit(limit)
+      if (error) throw error
+
+      ranked = (wallets || []).map(w => ({ userId: w.user_id, points: w.lifetime_earned || 0 }))
+    } else {
+      const { data: txns, error } = await supabase
+        .from('txp_transactions')
+        .select('user_id, amount')
+        .eq('type', 'credit')
+        .gte('created_at', this._startOfMonthISO())
+        .limit(10000)
+      if (error) throw error
+
+      const totals = new Map()
+      for (const t of txns || []) {
+        totals.set(t.user_id, (totals.get(t.user_id) || 0) + (t.amount || 0))
+      }
+      ranked = Array.from(totals.entries())
+        .map(([userId, points]) => ({ userId, points }))
+        .filter(r => r.points > 0)
+        .sort((a, b) => b.points - a.points)
+        .slice(0, limit)
+    }
+
+    if (!ranked.length) return []
+
+    const ids = ranked.map(r => r.userId)
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .in('id', ids)
+
+    const profileById = {}
+    ;(profiles || []).forEach(p => { profileById[p.id] = p })
+
+    // Need lifetime_earned per user for tier badges (monthly points != lifetime)
+    const { data: wallets } = await supabase
+      .from('txp_wallets')
+      .select('user_id, lifetime_earned')
+      .in('user_id', ids)
+    const lifetimeByUser = {}
+    ;(wallets || []).forEach(w => { lifetimeByUser[w.user_id] = w.lifetime_earned || 0 })
+
+    return ranked.map((r, idx) => {
+      const profile = profileById[r.userId] || {}
+      const lifetimeEarned = period === 'all_time' ? r.points : (lifetimeByUser[r.userId] || 0)
+      return {
+        rank: idx + 1,
+        userId: r.userId,
+        points: r.points,
+        fullName: profile.full_name || 'Anonymous',
+        avatarUrl: profile.avatar_url || null,
+        tier: this.getTierInfo(lifetimeEarned),
+      }
+    })
+  },
+
+  /**
+   * Get a user's rank + gap to the next position for a given period.
+   * Computes the full ranked set (uncapped) so the rank is accurate even
+   * if the user falls outside the top `limit` shown on the leaderboard.
+   */
+  async getUserRank(userId, period = 'monthly') {
+    if (!userId) return null
+
+    const fullBoard = await this.getLeaderboard(period, 10000)
+    const idx = fullBoard.findIndex(r => r.userId === userId)
+
+    if (idx === -1) {
+      return { rank: null, points: 0, totalRanked: fullBoard.length, gapToNext: null, nextRankUser: null }
+    }
+
+    const entry = fullBoard[idx]
+    const above = idx > 0 ? fullBoard[idx - 1] : null
+
+    return {
+      rank: entry.rank,
+      points: entry.points,
+      totalRanked: fullBoard.length,
+      gapToNext: above ? above.points - entry.points : 0,
+      nextRankUser: above ? { fullName: above.fullName, rank: above.rank } : null,
+    }
   },
 
   // ── Helpers ───────────────────────────────────────────────
