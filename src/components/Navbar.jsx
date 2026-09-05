@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X, User, LogOut, Ticket, Info } from 'lucide-react'
+import { Menu, X, User, LogOut, Ticket, Info, Wallet } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import AuthService from '../services/AuthService'
 import toast from 'react-hot-toast'
@@ -82,6 +82,11 @@ export default function Navbar() {
                 )}
                 {profile?.full_name?.split(' ')[0] || 'Dashboard'}
               </Link>
+              <Link to="/wallet" className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'white'}
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+                title="Wallet"
+              ><Wallet className="w-4 h-4" /></Link>
               <Link to="/about" className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'white'}
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
@@ -132,6 +137,8 @@ export default function Navbar() {
             <>
               <Link to="/dashboard" onClick={() => setOpen(false)} className="block font-medium"
                 style={{ color: 'rgba(255,255,255,0.6)' }}>Dashboard</Link>
+              <Link to="/wallet" onClick={() => setOpen(false)} className="block font-medium"
+                style={{ color: 'rgba(255,255,255,0.6)' }}>Wallet</Link>
               <Link to="/about" onClick={() => setOpen(false)} className="block font-medium"
                 style={{ color: 'rgba(255,255,255,0.6)' }}>About</Link>
               <button onClick={() => { handleLogout(); setOpen(false) }} className="block font-medium"
