@@ -1175,37 +1175,16 @@ const TxpService = {
    * period: 'monthly' (current calendar month, credit txns) | 'all_time' (lifetime_earned)
    */
   async getLeaderboard(period = 'monthly', limit = 50) {
-    let ranked = []
+    // Per-row RLS only lets a user read their own wallet/transaction rows,
+    // so ranking must go through a security-definer function that safely
+    // aggregates totals across all users server-side.
+    const { data: rows, error } = await supabase
+      .rpc('get_txp_leaderboard', { p_period: period === 'all_time' ? 'all_time' : 'monthly' })
+    if (error) throw error
 
-    if (period === 'all_time') {
-      const { data: wallets, error } = await supabase
-        .from('txp_wallets')
-        .select('user_id, lifetime_earned')
-        .gt('lifetime_earned', 0)
-        .order('lifetime_earned', { ascending: false })
-        .limit(limit)
-      if (error) throw error
-
-      ranked = (wallets || []).map(w => ({ userId: w.user_id, points: w.lifetime_earned || 0 }))
-    } else {
-      const { data: txns, error } = await supabase
-        .from('txp_transactions')
-        .select('user_id, amount')
-        .eq('type', 'credit')
-        .gte('created_at', this._startOfMonthISO())
-        .limit(10000)
-      if (error) throw error
-
-      const totals = new Map()
-      for (const t of txns || []) {
-        totals.set(t.user_id, (totals.get(t.user_id) || 0) + (t.amount || 0))
-      }
-      ranked = Array.from(totals.entries())
-        .map(([userId, points]) => ({ userId, points }))
-        .filter(r => r.points > 0)
-        .sort((a, b) => b.points - a.points)
-        .slice(0, limit)
-    }
+    const ranked = (rows || [])
+      .map(r => ({ userId: r.user_id, points: Number(r.points) || 0, lifetimeEarned: Number(r.lifetime_earned) || 0 }))
+      .slice(0, limit)
 
     if (!ranked.length) return []
 
@@ -1218,24 +1197,15 @@ const TxpService = {
     const profileById = {}
     ;(profiles || []).forEach(p => { profileById[p.id] = p })
 
-    // Need lifetime_earned per user for tier badges (monthly points != lifetime)
-    const { data: wallets } = await supabase
-      .from('txp_wallets')
-      .select('user_id, lifetime_earned')
-      .in('user_id', ids)
-    const lifetimeByUser = {}
-    ;(wallets || []).forEach(w => { lifetimeByUser[w.user_id] = w.lifetime_earned || 0 })
-
     return ranked.map((r, idx) => {
       const profile = profileById[r.userId] || {}
-      const lifetimeEarned = period === 'all_time' ? r.points : (lifetimeByUser[r.userId] || 0)
       return {
         rank: idx + 1,
         userId: r.userId,
         points: r.points,
         fullName: profile.full_name || 'Anonymous',
         avatarUrl: profile.avatar_url || null,
-        tier: this.getTierInfo(lifetimeEarned),
+        tier: this.getTierInfo(r.lifetimeEarned),
       }
     })
   },
