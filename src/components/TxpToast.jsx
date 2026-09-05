@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Coins, Sparkles } from 'lucide-react'
 import TxpService from '../services/TxpService'
+import { triggerTxpCelebration } from './TxpCelebration'
 
 /**
  * Custom toast body shown via toast.custom() whenever the current user
@@ -65,6 +66,7 @@ export function TxpToast({ visible, amount, reason, toastId }) {
  */
 export function showTxpToast(amount, reason) {
   if (!amount || amount <= 0) return null
+  triggerTxpCelebration(amount, reason)
   return toast.custom(
     (t) => <TxpToast visible={t.visible} amount={amount} reason={reason} toastId={t.id} />,
     { duration: 5000, position: 'top-right' }
