@@ -25,6 +25,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Wallet from './pages/Wallet'
+import WalletReferrals from './pages/WalletReferrals'
 import Leaderboard from './pages/Leaderboard'
 import WaysToEarn from './pages/WaysToEarn'
 import ScanTickets from './pages/ScanTickets'
@@ -78,6 +79,7 @@ function Layout() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/wallet" element={<Wallet />} />
+        <Route path="/wallet/referrals" element={<WalletReferrals />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/earn" element={<WaysToEarn />} />
         <Route path="/scan" element={<ScanTickets />} />

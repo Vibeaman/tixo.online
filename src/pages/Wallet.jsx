@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Lock,
   ChevronRight,
+  Users,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -208,6 +209,12 @@ export default function Wallet() {
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 hover:opacity-80 transition-opacity"
               >
                 <Trophy className="w-4 h-4 text-pink-400" /> View Leaderboard →
+              </Link>
+              <Link
+                to="/wallet/referrals"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 hover:opacity-80 transition-opacity"
+              >
+                <Users className="w-4 h-4 text-pink-400" /> Refer & Earn TXP →
               </Link>
             </div>
           </div>
