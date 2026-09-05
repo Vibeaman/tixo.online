@@ -168,7 +168,7 @@ const TxpService = {
 
     const { data: ref, error } = await supabase
       .from('txp_referrals')
-      .insert([{ referrer_id: referrerId, referee_id: refereeId, status: 'pending' }])
+      .insert([{ referrer_id: referrerId, referee_id: refereeId, status: 'pending', points_awarded: 0 }])
       .select()
       .single()
     if (error) {
@@ -179,7 +179,15 @@ const TxpService = {
     const rule = await this.getRule('referral_registered')
     if (!rule?.enabled) return ref
     await this._award(referrerId, rule.points, 'referral_registered', { referee_id: refereeId }, 'pending')
-    return ref
+
+    const { data: updated } = await supabase
+      .from('txp_referrals')
+      .update({ points_awarded: rule.points })
+      .eq('id', ref.id)
+      .select()
+      .single()
+
+    return updated || ref
   },
 
   /** Referral first purchase: 250 TXP (available) to referrer, releases pending 100 */
@@ -193,20 +201,30 @@ const TxpService = {
 
     if (!ref || ref.reward_claimed) return null
 
-    await supabase
-      .from('txp_referrals')
-      .update({ status: 'completed', reward_claimed: true })
-      .eq('id', ref.id)
-
     const regRule = await this.getRule('referral_registered')
     if (regRule) {
       await this.releasePending(referrerId, regRule.points)
     }
 
     const rule = await this.getRule('referral_first_purchase')
-    if (!rule?.enabled) return ref
-    await this._award(referrerId, rule.points, 'referral_first_purchase', { referee_id: refereeId })
-    return ref
+    const bonusPoints = rule?.enabled ? rule.points : 0
+    if (bonusPoints > 0) {
+      await this._award(referrerId, bonusPoints, 'referral_first_purchase', { referee_id: refereeId })
+    }
+
+    const { data: updated } = await supabase
+      .from('txp_referrals')
+      .update({
+        status: 'completed',
+        reward_claimed: true,
+        points_awarded: (ref.points_awarded || 0) + bonusPoints,
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', ref.id)
+      .select()
+      .single()
+
+    return updated || ref
   },
 
   // ── Pending → Available Promotion ────────────────────────
@@ -375,7 +393,7 @@ const TxpService = {
   async getUserReferrals(userId) {
     const { data, error } = await supabase
       .from('txp_referrals')
-      .select('*')
+      .select('*, referee:profiles!referee_id(full_name, email)')
       .eq('referrer_id', userId)
       .order('created_at', { ascending: false })
     if (error) throw error

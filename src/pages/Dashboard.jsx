@@ -416,6 +416,8 @@ export default function Dashboard() {
   const [loadingReferralCode, setLoadingReferralCode] = useState(false)
   const [commissions, setCommissions] = useState([])
   const [loadingReferrals, setLoadingReferrals] = useState(false)
+  const [txpReferrals, setTxpReferrals] = useState([])
+  const [loadingTxpReferrals, setLoadingTxpReferrals] = useState(false)
   const [selectedEventStats, setSelectedEventStats] = useState(null)
   const [loadingEventStats, setLoadingEventStats] = useState(false)
 
@@ -482,6 +484,16 @@ export default function Dashboard() {
         .then(code => setMyReferralCode(code))
         .catch(err => console.error('Failed to load referral code:', err))
         .finally(() => setLoadingReferralCode(false))
+    }
+  }, [tab, user])
+
+  useEffect(() => {
+    if (tab === 'referrals' && user) {
+      setLoadingTxpReferrals(true)
+      TxpService.getUserReferrals(user.id)
+        .then(rows => setTxpReferrals(rows || []))
+        .catch(err => console.error('Failed to load TXP referrals:', err))
+        .finally(() => setLoadingTxpReferrals(false))
     }
   }, [tab, user])
 
@@ -2085,6 +2097,47 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <p className="text-gray-500 text-sm">Unable to load your referral link. Please try again.</p>
+                  )}
+                </div>
+
+                {/* TXP Referrals List */}
+                <div className="mb-8">
+                  <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-pink-400" /> Your Referrals
+                  </h3>
+                  {loadingTxpReferrals ? (
+                    <div className="space-y-3">
+                      {[1, 2].map(i => <div key={i} className="h-16 bg-gray-900/50 border border-gray-800 rounded-2xl animate-pulse" />)}
+                    </div>
+                  ) : txpReferrals.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-900/50 border border-gray-800 rounded-2xl">
+                      <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-400">No referrals yet. Share your link to start earning TXP!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {txpReferrals.map(r => (
+                        <div key={r.id} className="bg-gray-900/50 border border-gray-800 rounded-2xl p-4 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="text-white font-semibold text-sm truncate">
+                              {r.referee?.full_name || r.referee?.email || 'A new user'}
+                            </h4>
+                            <p className="text-gray-500 text-xs flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" />
+                              {r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <span className="text-pink-400 font-bold text-sm">+{r.points_awarded || 0} TXP</span>
+                            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                              r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                            }`}>
+                              {r.status === 'completed' ? 'Completed' : 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
 
