@@ -3,11 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Menu, X, User, LogOut, Ticket, Info, Wallet } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import AuthService from '../services/AuthService'
+import TxpService from '../services/TxpService'
+import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [txpBalance, setTxpBalance] = useState(null)
   const navigate = useNavigate()
   const { user, profile } = useAuth()
 
@@ -16,6 +19,47 @@ export default function Navbar() {
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // Keep the header TXP balance fresh: load on login, refresh on focus,
+  // and live-update instantly whenever the wallet row changes anywhere in the app.
+  useEffect(() => {
+    if (!user?.id) {
+      setTxpBalance(null)
+      return
+    }
+
+    let cancelled = false
+    async function loadBalance() {
+      try {
+        const wallet = await TxpService.getWallet(user.id)
+        if (!cancelled) setTxpBalance(wallet?.available ?? 0)
+      } catch {
+        // Fail silently -- don't break the header over a wallet hiccup
+      }
+    }
+    loadBalance()
+
+    const onFocus = () => loadBalance()
+    window.addEventListener('focus', onFocus)
+
+    const channel = supabase
+      .channel(`navbar-txp-${user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'txp_wallets',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        if (!cancelled && payload.new) setTxpBalance(payload.new.available ?? 0)
+      })
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', onFocus)
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id])
 
   async function handleLogout() {
     await AuthService.logout()
@@ -82,11 +126,19 @@ export default function Navbar() {
                 )}
                 {profile?.full_name?.split(' ')[0] || 'Dashboard'}
               </Link>
-              <Link to="/wallet" className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'white'}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+              <Link to="/wallet" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300"
+                style={{
+                  background: 'rgba(233,30,140,0.1)',
+                  border: '1px solid rgba(233,30,140,0.25)',
+                  color: 'rgba(255,255,255,0.85)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(233,30,140,0.18)'; e.currentTarget.style.borderColor = 'rgba(233,30,140,0.4)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(233,30,140,0.1)'; e.currentTarget.style.borderColor = 'rgba(233,30,140,0.25)' }}
                 title="Wallet"
-              ><Wallet className="w-4 h-4" /></Link>
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                <span className="text-xs font-semibold">{txpBalance === null ? '···' : txpBalance.toLocaleString()} TXP</span>
+              </Link>
               <Link to="/about" className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'white'}
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
@@ -137,8 +189,13 @@ export default function Navbar() {
             <>
               <Link to="/dashboard" onClick={() => setOpen(false)} className="block font-medium"
                 style={{ color: 'rgba(255,255,255,0.6)' }}>Dashboard</Link>
-              <Link to="/wallet" onClick={() => setOpen(false)} className="block font-medium"
-                style={{ color: 'rgba(255,255,255,0.6)' }}>Wallet</Link>
+              <Link to="/wallet" onClick={() => setOpen(false)} className="flex items-center gap-2 font-medium"
+                style={{ color: 'rgba(255,255,255,0.6)' }}>
+                Wallet
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(233,30,140,0.15)', color: '#E91E8C' }}>
+                  {txpBalance === null ? '···' : txpBalance.toLocaleString()} TXP
+                </span>
+              </Link>
               <Link to="/about" onClick={() => setOpen(false)} className="block font-medium"
                 style={{ color: 'rgba(255,255,255,0.6)' }}>About</Link>
               <button onClick={() => { handleLogout(); setOpen(false) }} className="block font-medium"
