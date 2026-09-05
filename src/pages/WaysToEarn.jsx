@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Gift,
   Sparkles,
+  Handshake,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import TxpService from '../services/TxpService'
@@ -125,6 +126,29 @@ function ActionCard({ action, rule, completed, children }) {
   )
 }
 
+// Phase 11: Partner campaign card -- same visual language as ActionCard above,
+// but sourced from txp_campaigns (admin-managed, per-partner) instead of txp_rules.
+function PartnerCampaignCard({ campaign }) {
+  return (
+    <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+        <Handshake className="w-6 h-6 text-white" />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <h3 className="text-white font-bold text-base">{campaign.name}</h3>
+          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 text-white">
+            {Number(campaign.reward_amount || 0).toLocaleString()} TXP
+          </span>
+        </div>
+        {campaign.description && <p className="text-gray-400 text-sm">{campaign.description}</p>}
+        <p className="text-gray-500 text-xs mt-1">With {campaign.partner_name}</p>
+      </div>
+    </div>
+  )
+}
+
 export default function WaysToEarn() {
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
@@ -134,6 +158,7 @@ export default function WaysToEarn() {
   const [completion, setCompletion] = useState({})
   const [referralCode, setReferralCode] = useState('')
   const [referralCount, setReferralCount] = useState(0)
+  const [partnerCampaigns, setPartnerCampaigns] = useState([])
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login')
@@ -146,11 +171,12 @@ export default function WaysToEarn() {
     async function load() {
       setLoading(true)
       try {
-        const [walletData, rulesData, referrals, code] = await Promise.all([
+        const [walletData, rulesData, referrals, code, campaigns] = await Promise.all([
           TxpService.getWallet(user.id),
           TxpService.getRules(),
           TxpService.getUserReferrals(user.id),
           TxpService.getOrCreateReferralCode(user.id).catch(() => ''),
+          TxpService.getActivePartnerCampaigns().catch(() => []),
         ])
 
         const [ticketDone, attendedDone, referralPurchaseDone] = await Promise.all([
@@ -168,6 +194,7 @@ export default function WaysToEarn() {
         setRules(ruleMap)
         setReferralCode(code || '')
         setReferralCount((referrals || []).length)
+        setPartnerCampaigns(campaigns || [])
         setCompletion({
           ticket_purchase: ticketDone,
           event_attended: attendedDone,
@@ -276,6 +303,21 @@ export default function WaysToEarn() {
             )
           })}
         </div>
+
+        {/* Partner Campaigns (Phase 11) */}
+        {partnerCampaigns.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center gap-2 mb-4">
+              <Handshake className="w-5 h-5 text-pink-400" />
+              <h2 className="text-white font-bold text-lg">Partner Offers</h2>
+            </div>
+            <div className="space-y-4">
+              {partnerCampaigns.map(campaign => (
+                <PartnerCampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Referral Widget */}
         <div id="referral-widget" className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 sm:p-8 scroll-mt-24">

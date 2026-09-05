@@ -4,6 +4,7 @@ import {
   Shield, ArrowLeft, Settings, Sliders, Users, Gift, Search, Loader2,
   Plus, Trash2, Edit3, X, Check, Coins, Minus, ChevronDown, ChevronUp,
   Lock, Save, AlertTriangle, Flag, Snowflake, Unlock, History,
+  Webhook, Copy, Eye, EyeOff,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import TxpService from '../services/TxpService'
@@ -63,6 +64,7 @@ const TABS = [
   { id: 'settings', label: 'Settings', icon: Settings },
   { id: 'wallets', label: 'User Wallets', icon: Users },
   { id: 'campaigns', label: 'Campaigns', icon: Gift },
+  { id: 'partner-campaigns', label: 'Partner Campaigns', icon: Webhook },
   { id: 'fraud', label: 'Fraud & Audit', icon: AlertTriangle },
 ]
 
@@ -756,6 +758,318 @@ function CampaignsTab() {
   )
 }
 
+// ── Tab: Partner Campaigns (Phase 11) ───────────────────────
+
+function PartnerCampaignForm({ initial, onCancel, onSave }) {
+  const [name, setName] = useState(initial?.name || '')
+  const [description, setDescription] = useState(initial?.description || '')
+  const [partnerName, setPartnerName] = useState(initial?.partner_name || '')
+  const [rewardAmount, setRewardAmount] = useState(initial?.reward_amount ?? 100)
+  const [triggerAction, setTriggerAction] = useState(initial?.trigger_action || '')
+  const [startDate, setStartDate] = useState(initial?.start_date ? initial.start_date.slice(0, 10) : '')
+  const [endDate, setEndDate] = useState(initial?.end_date ? initial.end_date.slice(0, 10) : '')
+  const [isActive, setIsActive] = useState(initial ? !!initial.is_active : true)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!name.trim() || !partnerName.trim() || !triggerAction.trim()) {
+      toast.error('Name, partner name, and trigger action are required')
+      return
+    }
+    setSaving(true)
+    try {
+      await onSave({
+        name: name.trim(),
+        description: description.trim(),
+        partner_name: partnerName.trim(),
+        reward_amount: Number(rewardAmount) || 0,
+        trigger_action: triggerAction.trim(),
+        start_date: startDate ? new Date(startDate).toISOString() : null,
+        end_date: endDate ? new Date(endDate).toISOString() : null,
+        is_active: isActive,
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 space-y-3">
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Campaign Name</label>
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Partner Name</label>
+          <input
+            value={partnerName}
+            onChange={e => setPartnerName(e.target.value)}
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Description</label>
+          <input
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Shown to users on the Ways to Earn page"
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Trigger Action Code</label>
+          <input
+            value={triggerAction}
+            onChange={e => setTriggerAction(e.target.value)}
+            placeholder="e.g. partner_signup"
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Reward (TXP)</label>
+          <input
+            type="number"
+            min={1}
+            value={rewardAmount}
+            onChange={e => setRewardAmount(e.target.value)}
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">Start Date</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={e => setStartDate(e.target.value)}
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-gray-500 uppercase tracking-wide">End Date</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={e => setEndDate(e.target.value)}
+            className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+        </div>
+      </div>
+
+      <label className="flex items-center gap-2 cursor-pointer w-fit">
+        <button
+          type="button"
+          onClick={() => setIsActive(v => !v)}
+          className={`w-10 h-5 rounded-full transition-colors relative ${isActive ? 'bg-gradient-to-r from-pink-500 to-cyan-500' : 'bg-gray-700'}`}
+        >
+          <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
+        </button>
+        <span className="text-sm text-gray-300">{isActive ? 'Active' : 'Inactive'}</span>
+      </label>
+
+      <div className="flex gap-2 justify-end pt-1">
+        <SecondaryButton onClick={onCancel} disabled={saving}>Cancel</SecondaryButton>
+        <GradientButton type="submit" disabled={saving}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Save
+        </GradientButton>
+      </div>
+    </form>
+  )
+}
+
+function WebhookSecretPanel({ campaign }) {
+  const [visible, setVisible] = useState(false)
+  const webhookUrl = `${window.location.origin}/api/webhook/partner-campaign`
+
+  function copy(text, label) {
+    navigator.clipboard.writeText(text)
+    toast.success(`${label} copied`)
+  }
+
+  return (
+    <div className="mt-3 bg-black/30 border border-white/10 rounded-xl p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-gray-500 text-[11px] uppercase tracking-wide">Webhook URL (POST)</span>
+        <button onClick={() => copy(webhookUrl, 'Webhook URL')} className="text-gray-400 hover:text-white flex-shrink-0">
+          <Copy className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <p className="text-white text-xs font-mono break-all">{webhookUrl}</p>
+
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <span className="text-gray-500 text-[11px] uppercase tracking-wide">x-webhook-secret header</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={() => setVisible(v => !v)} className="text-gray-400 hover:text-white">
+            {visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+          <button onClick={() => copy(campaign.webhook_secret, 'Webhook secret')} className="text-gray-400 hover:text-white">
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+      <p className="text-white text-xs font-mono break-all">{visible ? campaign.webhook_secret : '•'.repeat(32)}</p>
+    </div>
+  )
+}
+
+function PartnerCampaignsTab() {
+  const [campaigns, setCampaigns] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [busyId, setBusyId] = useState(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await TxpService.getAllPartnerCampaigns()
+      setCampaigns(data)
+    } catch (err) {
+      toast.error(err.message || 'Failed to load partner campaigns')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function handleCreate(data) {
+    try {
+      await TxpService.createPartnerCampaign(data)
+      toast.success('Partner campaign created')
+      setCreating(false)
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to create campaign')
+    }
+  }
+
+  async function handleUpdate(id, data) {
+    try {
+      await TxpService.updatePartnerCampaign(id, data)
+      toast.success('Campaign updated')
+      setEditingId(null)
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to update campaign')
+    }
+  }
+
+  async function handleToggleActive(c) {
+    setBusyId(c.id)
+    try {
+      await TxpService.updatePartnerCampaign(c.id, { is_active: !c.is_active })
+      toast.success(c.is_active ? 'Campaign deactivated' : 'Campaign activated')
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to update campaign')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function handleRegenerateSecret(id) {
+    setBusyId(id)
+    try {
+      await TxpService.regeneratePartnerCampaignSecret(id)
+      toast.success('Webhook secret regenerated')
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to regenerate secret')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  if (loading) {
+    return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-pink-500 animate-spin" /></div>
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-gray-400 text-sm max-w-2xl">
+        Create a campaign for a partner platform, then share the webhook URL and secret below with them.
+        When their system posts to that URL for a qualifying user action, that user is instantly awarded the campaign's TXP reward.
+      </p>
+
+      <div className="flex justify-end">
+        {!creating && (
+          <GradientButton onClick={() => setCreating(true)}>
+            <Plus className="w-4 h-4" /> New Partner Campaign
+          </GradientButton>
+        )}
+      </div>
+
+      {creating && (
+        <PartnerCampaignForm onCancel={() => setCreating(false)} onSave={handleCreate} />
+      )}
+
+      <div className="space-y-3">
+        {campaigns.map(c => (
+          editingId === c.id ? (
+            <PartnerCampaignForm
+              key={c.id}
+              initial={c}
+              onCancel={() => setEditingId(null)}
+              onSave={(data) => handleUpdate(c.id, data)}
+            />
+          ) : (
+            <div key={c.id} className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-white font-semibold text-sm">{c.name}</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-purple-500/20 text-purple-300">{c.partner_name}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${c.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-700/40 text-gray-400'}`}>
+                      {c.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  {c.description && <p className="text-gray-500 text-xs mt-1">{c.description}</p>}
+                  <p className="text-gray-400 text-xs mt-2">
+                    Trigger: <span className="text-gray-300 font-mono">{c.trigger_action}</span> → <span className="text-pink-400 font-bold">{Number(c.reward_amount).toLocaleString()} TXP</span>
+                  </p>
+                  {(c.start_date || c.end_date) && (
+                    <p className="text-gray-600 text-[11px] mt-1">
+                      {c.start_date ? new Date(c.start_date).toLocaleDateString() : 'No start'} — {c.end_date ? new Date(c.end_date).toLocaleDateString() : 'No end'}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <SecondaryButton onClick={() => setEditingId(c.id)}><Edit3 className="w-3.5 h-3.5" /></SecondaryButton>
+                  <SecondaryButton onClick={() => handleToggleActive(c)} disabled={busyId === c.id}>
+                    {busyId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (c.is_active ? 'Deactivate' : 'Activate')}
+                  </SecondaryButton>
+                </div>
+              </div>
+
+              <WebhookSecretPanel campaign={c} />
+
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={() => handleRegenerateSecret(c.id)}
+                  disabled={busyId === c.id}
+                  className="text-[11px] text-gray-500 hover:text-pink-400 transition-colors disabled:opacity-50"
+                >
+                  Regenerate secret
+                </button>
+              </div>
+            </div>
+          )
+        ))}
+        {campaigns.length === 0 && !creating && (
+          <p className="text-gray-500 text-sm text-center py-12">No partner campaigns yet — create one above</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Tab 5: Fraud & Audit (Phase 10) ─────────────────────────
 
 function SeverityBadge({ severity }) {
@@ -1219,6 +1533,7 @@ export default function AdminTxp() {
         {tab === 'settings' && <SettingsTab />}
         {tab === 'wallets' && <WalletsTab />}
         {tab === 'campaigns' && <CampaignsTab />}
+        {tab === 'partner-campaigns' && <PartnerCampaignsTab />}
         {tab === 'fraud' && <FraudAuditTab />}
       </div>
     </div>

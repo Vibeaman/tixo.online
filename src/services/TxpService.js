@@ -959,6 +959,168 @@ const TxpService = {
     return true
   },
 
+  // ── Phase 11: Partner Campaigns ───────────────────────────
+
+  /** Generate a random webhook secret token for a new partner campaign */
+  _generateWebhookSecret() {
+    const bytes = new Uint8Array(24)
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(bytes)
+    } else {
+      for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256)
+    }
+    return 'whsec_' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+  },
+
+  /**
+   * Fetch active partner campaigns currently within their start/end window,
+   * for public display (e.g. Ways to Earn). Never selects webhook_secret.
+   */
+  async getActivePartnerCampaigns() {
+    const { data, error } = await supabase
+      .from('txp_campaigns')
+      .select('id, name, description, reward_amount, trigger_action, partner_name, start_date, end_date, is_active, created_at')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+
+    const now = new Date()
+    return (data || []).filter(c => {
+      const startOk = !c.start_date || new Date(c.start_date) <= now
+      const endOk = !c.end_date || new Date(c.end_date) >= now
+      return startOk && endOk
+    })
+  },
+
+  /** Admin: fetch every partner campaign (active + inactive, includes webhook_secret) */
+  async getAllPartnerCampaigns() {
+    const { data, error } = await supabase
+      .from('txp_campaigns')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  /** Admin: create a partner campaign, auto-generating a webhook_secret if one isn't supplied */
+  async createPartnerCampaign(data) {
+    const payload = { ...data }
+    if (!payload.webhook_secret) payload.webhook_secret = this._generateWebhookSecret()
+
+    const { data: created, error } = await supabase
+      .from('txp_campaigns')
+      .insert([payload])
+      .select()
+      .single()
+    if (error) throw error
+    return created
+  },
+
+  /** Admin: update a partner campaign's fields (name, dates, reward, is_active, etc.) */
+  async updatePartnerCampaign(id, data) {
+    const { data: updated, error } = await supabase
+      .from('txp_campaigns')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return updated
+  },
+
+  /** Admin: rotate a campaign's webhook_secret (e.g. if it leaked) */
+  async regeneratePartnerCampaignSecret(id) {
+    return this.updatePartnerCampaign(id, { webhook_secret: this._generateWebhookSecret() })
+  },
+
+  /** Webhook: look up a campaign by its webhook_secret (used to authenticate partner calls) */
+  async getCampaignByWebhookSecret(secret) {
+    if (!secret) return null
+    const { data, error } = await supabase
+      .from('txp_campaigns')
+      .select('*')
+      .eq('webhook_secret', secret)
+      .maybeSingle()
+    if (error) return null
+    return data
+  },
+
+  /**
+   * Webhook: resolve a partner's user_identifier (email or Tixo user UUID) to a profile.
+   * Mirrors the lookup style of getUserByReferralCode -- a simple profiles query,
+   * no separate auth.users access needed since profiles carries id + email.
+   */
+  async findUserByIdentifier(identifier) {
+    if (!identifier) return null
+    const value = String(identifier).trim()
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+
+    const query = supabase.from('profiles').select('id, full_name, email')
+    const { data, error } = isUuid
+      ? await query.eq('id', value).maybeSingle()
+      : await query.ilike('email', value).maybeSingle()
+
+    if (error) return null
+    return data
+  },
+
+  /**
+   * Webhook: award a campaign's reward_amount TXP to a user, recording a
+   * txp_campaign_claims row for idempotency. If a claim already exists for
+   * this (campaign_id, external_reference) pair, returns alreadyClaimed:true
+   * without awarding again. Reuses the same _award() ledger primitive every
+   * other earning method in this file uses, so this stays consistent with
+   * the rest of the wallet/ledger system rather than mutating balances directly.
+   */
+  async awardPartnerCampaignClaim(campaign, userId, externalReference = null) {
+    if (!campaign?.id || !userId) throw new Error('Missing campaign or user')
+
+    if (externalReference) {
+      const { data: existing } = await supabase
+        .from('txp_campaign_claims')
+        .select('*')
+        .eq('campaign_id', campaign.id)
+        .eq('external_reference', externalReference)
+        .maybeSingle()
+      if (existing) return { alreadyClaimed: true, claim: existing }
+    }
+
+    const { data: claim, error: claimErr } = await supabase
+      .from('txp_campaign_claims')
+      .insert([{
+        campaign_id: campaign.id,
+        user_id: userId,
+        external_reference: externalReference || null,
+        awarded_txp: campaign.reward_amount,
+      }])
+      .select()
+      .single()
+
+    if (claimErr) {
+      if (claimErr.code === '23505') {
+        // Unique violation on (campaign_id, user_id) or (campaign_id, external_reference) --
+        // someone already claimed this; treat as an idempotent success.
+        const { data: existing } = await supabase
+          .from('txp_campaign_claims')
+          .select('*')
+          .eq('campaign_id', campaign.id)
+          .eq('user_id', userId)
+          .maybeSingle()
+        return { alreadyClaimed: true, claim: existing || null }
+      }
+      throw claimErr
+    }
+
+    await this._award(userId, campaign.reward_amount, 'partner_campaign', {
+      campaign_id: campaign.id,
+      campaign_name: campaign.name,
+      partner_name: campaign.partner_name,
+      external_reference: externalReference || null,
+    }, 'available')
+
+    return { alreadyClaimed: false, claim }
+  },
+
   // ── Phase 9: Tiers & Leaderboard ──────────────────────────
 
   /**
@@ -1464,6 +1626,7 @@ const TxpService = {
       referral_registered: 'Referral signed up',
       referral_first_purchase: 'Referral first purchase',
       referral_campaign_bonus: 'Referral campaign bonus',
+      partner_campaign: 'Partner campaign reward',
       redemption: 'Points redeemed',
       ticket_redemption: 'Paid with Tixo Points',
       redemption_reversed: 'Points refunded',
