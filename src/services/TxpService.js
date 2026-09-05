@@ -1631,7 +1631,8 @@ const TxpService = {
       ticket_redemption: 'Paid with Tixo Points',
       redemption_reversed: 'Points refunded',
       admin_award: 'Awarded by admin',
-      admin_deduct: 'Deducted by admin'
+      admin_deduct: 'Deducted by admin',
+      legacy_appreciation_bonus: 'Thank-you bonus 🎉'
     }
     return labels[reason] || reason.replace(/_/g, ' ')
   }
