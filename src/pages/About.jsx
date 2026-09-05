@@ -22,26 +22,26 @@ function IconBadge({ Icon }) {
 }
 
 const whyChoose = [
-  'Event ticketing marketplace for event discovery',
-  'Easy event creation and management',
-  'Secure online ticket sales',
-  'QR code ticket verification',
-  'Real-time sales monitoring',
-  'Team access for event operations',
-  'Attendee analytics and reporting',
-  'Fast and reliable ticket delivery',
-  'Built for events of all sizes',
+  'A marketplace made for discovery, not just listings',
+  'Effortless event creation, launched in minutes',
+  'Secure, encrypted ticket sales you can trust',
+  'QR verification for smooth, fraud-free entry',
+  'Live sales insight, the moment it happens',
+  'Shared team access for seamless event-day operations',
+  'Attendee analytics that tell a real story',
+  'Swift, dependable ticket delivery, every time',
+  'Thoughtfully built for events of every size',
 ]
 
 const managementTools = [
-  'Create and publish events quickly',
-  'Sell tickets online with secure payment processing',
-  'Monitor ticket sales in real time',
-  'Manage attendee registrations',
-  'Access event performance analytics',
-  'Download attendee data for future engagement and marketing',
-  'Verify tickets using unique QR codes',
-  'Assign team members to manage event access and check-ins',
+  'Bring an event to life and publish it in minutes',
+  'Accept payments securely, with nothing left to chance',
+  'Watch sales unfold in real time, as they happen',
+  'Keep attendee registrations organized and within reach',
+  'Understand performance through clear, honest analytics',
+  'Hold on to attendee data for the relationships that follow',
+  'Verify every ticket with a unique, secure QR code',
+  'Bring your team in, with access shaped around each role',
 ]
 
 export default function About() {
@@ -63,18 +63,18 @@ export default function About() {
             <IconBadge Icon={Sparkles} />
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-white">About Tixo</h1>
-              <p className="text-gray-500 text-sm">Connecting event organizers and attendees through seamless ticketing</p>
+              <p className="text-gray-500 text-sm">Where events find their people, and people find their moments</p>
             </div>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              Tixo is an event ticketing marketplace and management platform designed to help event organizers create, manage, promote, and sell tickets for events while making it easy for attendees to discover and purchase tickets online.
+              Tixo was built on a simple belief: buying a ticket should feel as good as the event itself. We're a ticketing marketplace where organizers craft experiences with ease, and attendees discover them without friction — every detail considered, nothing left clunky.
             </p>
             <p>
-              Whether you're organizing a concert, comedy show, conference, workshop, festival, campus event, church program, networking event, or private gathering, Tixo provides the tools needed to manage your event from start to finish.
+              A concert, a comedy night, a conference, a quiet campus gathering, a Sunday church program, a room full of strangers becoming a network — whatever the occasion, Tixo carries it from first idea to final applause.
             </p>
             <p>
-              Our goal is to simplify event ticketing, streamline event operations, and help organizers reach more people while delivering a smooth experience for attendees.
+              We're here to make ticketing feel effortless, so organizers can pour their energy into the moment, and attendees can simply show up and belong.
             </p>
           </div>
         </div>
@@ -83,14 +83,14 @@ export default function About() {
         <section className="mb-12">
           <div className="flex items-center gap-3 mb-4">
             <IconBadge Icon={Search} />
-            <h2 className="text-2xl font-bold text-white">An Event Marketplace Built for Discovery</h2>
+            <h2 className="text-2xl font-bold text-white">A Marketplace Built for Discovery</h2>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              Finding great events shouldn't be difficult. Tixo serves as a marketplace where attendees can discover upcoming events, explore experiences that match their interests, and purchase tickets securely in just a few clicks.
+              The best events are often the ones you almost missed. Tixo exists to close that gap — a quiet, well-lit space where attendees can wander through what's happening nearby, find what speaks to them, and secure a seat in a few unhurried clicks.
             </p>
             <p>
-              By bringing organizers and attendees together on one platform, Tixo helps events gain visibility while giving audiences a trusted place to find and book tickets.
+              By holding organizers and attendees in the same place, Tixo lets great events be seen, and gives audiences somewhere trustworthy to return to, again and again.
             </p>
           </div>
         </section>
@@ -99,17 +99,17 @@ export default function About() {
         <section className="mb-12">
           <div className="flex items-center gap-3 mb-4">
             <IconBadge Icon={LayoutDashboard} />
-            <h2 className="text-2xl font-bold text-white">Powerful Event Management Tools</h2>
+            <h2 className="text-2xl font-bold text-white">Thoughtful Tools for Event Management</h2>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
-            <p>Beyond ticket sales, Tixo equips organizers with the tools needed to run successful events efficiently.</p>
-            <p className="text-white font-semibold">With Tixo, event organizers can:</p>
+            <p>Ticket sales are only the beginning. Behind every well-run event is a quieter kind of work — and that's where Tixo steadies the hand of every organizer.</p>
+            <p className="text-white font-semibold">With Tixo, you can:</p>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
               {managementTools.map(item => (
                 <li key={item}><span className="text-gray-300">{item}</span></li>
               ))}
             </ul>
-            <p>Our platform is built to reduce administrative workload and help organizers focus on creating exceptional event experiences.</p>
+            <p>We handle the details so organizers can stay focused on what truly matters — the experience itself.</p>
           </div>
         </section>
 
@@ -117,14 +117,14 @@ export default function About() {
         <section className="mb-12">
           <div className="flex items-center gap-3 mb-4">
             <IconBadge Icon={ShieldCheck} />
-            <h2 className="text-2xl font-bold text-white">Secure and Reliable Ticketing</h2>
+            <h2 className="text-2xl font-bold text-white">Ticketing You Can Trust</h2>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              Every ticket generated on Tixo includes a unique QR code that enables fast and secure event entry. This helps reduce ticket fraud, prevents duplicate usage, and ensures a smoother check-in process for attendees.
+              Every ticket carries its own unique QR code — a small detail with a quiet purpose: swift, secure entry, no duplicates slipping through, no fraud finding a way in. Just a smooth walk through the door.
             </p>
             <p>
-              We prioritize reliability, security, and transparency to give both organizers and attendees confidence in every transaction.
+              Trust isn't an afterthought here. It's woven into every transaction, so organizers and attendees alike can move forward with confidence.
             </p>
           </div>
         </section>
@@ -133,14 +133,14 @@ export default function About() {
         <section className="mb-12">
           <div className="flex items-center gap-3 mb-4">
             <IconBadge Icon={TrendingUp} />
-            <h2 className="text-2xl font-bold text-white">Helping Events Grow</h2>
+            <h2 className="text-2xl font-bold text-white">Growing With Every Event</h2>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              Successful events are driven by data and audience engagement. Tixo provides organizers with insights into ticket sales, attendee behavior, and event performance, making it easier to understand what works and improve future events.
+              Every great event leaves a trail worth reading. Tixo turns ticket sales, attendee behavior, and turnout into insight organizers can actually use — a clearer picture of what resonated, and what to carry into the next one.
             </p>
             <p>
-              Whether you're hosting a small community gathering or a large-scale event, Tixo provides the tools and visibility needed to grow your audience and maximize attendance.
+              From an intimate gathering of friends to a stage full of strangers, Tixo gives organizers the visibility to grow an audience, one event at a time.
             </p>
           </div>
         </section>
@@ -170,13 +170,13 @@ export default function About() {
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-gray-300 leading-relaxed space-y-4">
             <p>
-              We envision a future where event organizers have access to powerful yet simple technology that helps them reach larger audiences, sell more tickets, and deliver outstanding event experiences.
+              We imagine a future where technology quietly does its job — simple enough to trust, powerful enough to help organizers reach further, sell with ease, and hand every attendee a night to remember.
             </p>
             <p>
-              Tixo exists to bridge the gap between event organizers and attendees by creating a trusted marketplace where great events can thrive and memorable experiences can begin.
+              Tixo exists in the space between organizers and attendees, holding a trusted marketplace where great events are given room to thrive, and memorable moments are given room to begin.
             </p>
             <p className="text-lg font-semibold" style={gradientText}>
-              At Tixo, we do more than sell tickets — we help people discover experiences, connect with communities, and create moments worth remembering.
+              At Tixo, we do more than sell tickets — we help people discover experiences, find their communities, and hold onto moments worth remembering.
             </p>
           </div>
         </section>
