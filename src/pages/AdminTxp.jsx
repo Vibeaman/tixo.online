@@ -1486,9 +1486,48 @@ function FraudAuditTab() {
 
 // ── Main Page ─────────────────────────────────────────────────
 
+// Embeddable panel: renders the TXP sub-tabs + content only, assuming the
+// caller (e.g. the main /admin dashboard) already handles passcode gating.
+export function AdminTxpPanel() {
+  const [tab, setTab] = useState('rules')
+
+  return (
+    <div>
+      <div className="flex gap-1 overflow-x-auto mb-6">
+        {TABS.map(t => {
+          const Icon = t.icon
+          const active = tab === t.id
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
+                active
+                  ? 'bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-cyan-500/20 text-white border border-pink-500/40'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-900/50'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div>
+        {tab === 'rules' && <RulesTab />}
+        {tab === 'settings' && <SettingsTab />}
+        {tab === 'wallets' && <WalletsTab />}
+        {tab === 'campaigns' && <CampaignsTab />}
+        {tab === 'partner-campaigns' && <PartnerCampaignsTab />}
+        {tab === 'fraud' && <FraudAuditTab />}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminTxp() {
   const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem(ADMIN_SESSION_KEY) === '1')
-  const [tab, setTab] = useState('rules')
 
   if (!isAdmin) {
     return <PasscodeGate onUnlock={() => setIsAdmin(true)} />
@@ -1505,36 +1544,10 @@ export default function AdminTxp() {
           </div>
           <Link to="/" className="text-gray-500 hover:text-white text-sm">Back to site</Link>
         </div>
-
-        <div className="max-w-6xl mx-auto mt-4 flex gap-1 overflow-x-auto">
-          {TABS.map(t => {
-            const Icon = t.icon
-            const active = tab === t.id
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
-                  active
-                    ? 'bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-cyan-500/20 text-white border border-pink-500/40'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-900/50'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {t.label}
-              </button>
-            )
-          })}
-        </div>
       </div>
 
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        {tab === 'rules' && <RulesTab />}
-        {tab === 'settings' && <SettingsTab />}
-        {tab === 'wallets' && <WalletsTab />}
-        {tab === 'campaigns' && <CampaignsTab />}
-        {tab === 'partner-campaigns' && <PartnerCampaignsTab />}
-        {tab === 'fraud' && <FraudAuditTab />}
+        <AdminTxpPanel />
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { Helmet, HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
@@ -33,7 +33,6 @@ import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import About from './pages/About'
 import AdminDashboard from './pages/AdminDashboard'
-import AdminTxp from './pages/AdminTxp'
 import ReferralRedirect from './pages/ReferralRedirect'
 
 function Landing() {
@@ -88,7 +87,7 @@ function Layout() {
         <Route path="/about" element={<About />} />
         <Route path="/ref/:code" element={<ReferralRedirect />} />
         <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/txp" element={<AdminTxp />} />
+        <Route path="/admin/txp" element={<Navigate to="/admin" replace />} />
       </Routes>
       {!hideNavFooter && <Footer />}
     </div>

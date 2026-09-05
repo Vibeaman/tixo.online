@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X, User, LogOut, Ticket, Info, Wallet, Gift, Shield, Trophy } from 'lucide-react'
+import { Menu, X, User, LogOut, Ticket, Info, Wallet } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import AuthService from '../services/AuthService'
 import toast from 'react-hot-toast'
@@ -87,25 +87,10 @@ export default function Navbar() {
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
                 title="Wallet"
               ><Wallet className="w-4 h-4" /></Link>
-              <Link to="/leaderboard" className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'white'}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
-                title="Leaderboard"
-              ><Trophy className="w-4 h-4" /></Link>
-              <Link to="/earn" className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'white'}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
-                title="Ways to Earn"
-              ><Gift className="w-4 h-4" /></Link>
               <Link to="/about" className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'white'}
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
               ><Info className="w-4 h-4" /></Link>
-              <Link to="/admin/txp" className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'white'}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
-                title="Admin: TXP"
-              ><Shield className="w-4 h-4" /></Link>
               <button onClick={handleLogout} className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'white'}
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
@@ -154,14 +139,8 @@ export default function Navbar() {
                 style={{ color: 'rgba(255,255,255,0.6)' }}>Dashboard</Link>
               <Link to="/wallet" onClick={() => setOpen(false)} className="block font-medium"
                 style={{ color: 'rgba(255,255,255,0.6)' }}>Wallet</Link>
-              <Link to="/leaderboard" onClick={() => setOpen(false)} className="block font-medium"
-                style={{ color: 'rgba(255,255,255,0.6)' }}>Leaderboard</Link>
-              <Link to="/earn" onClick={() => setOpen(false)} className="block font-medium"
-                style={{ color: 'rgba(255,255,255,0.6)' }}>Ways to Earn</Link>
               <Link to="/about" onClick={() => setOpen(false)} className="block font-medium"
                 style={{ color: 'rgba(255,255,255,0.6)' }}>About</Link>
-              <Link to="/admin/txp" onClick={() => setOpen(false)} className="block font-medium"
-                style={{ color: 'rgba(255,255,255,0.4)' }}>Admin: TXP</Link>
               <button onClick={() => { handleLogout(); setOpen(false) }} className="block font-medium"
                 style={{ color: 'rgba(255,255,255,0.4)' }}>Log Out</button>
             </>

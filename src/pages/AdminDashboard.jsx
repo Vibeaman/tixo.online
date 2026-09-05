@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Shield, BarChart3, Calendar, Ticket, Users, DollarSign, Search,
-  Menu, X, ArrowLeft, CheckCircle2, Clock, Loader2, Lock, RotateCcw,
+  Menu, X, ArrowLeft, CheckCircle2, Clock, Loader2, Lock, RotateCcw, Coins,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AdminService from '../services/AdminService'
 import TicketService from '../services/TicketService'
 import TxpService from '../services/TxpService'
+import { AdminTxpPanel } from './AdminTxp'
 
 const ADMIN_PASSCODE = 'peak'
 const ADMIN_SESSION_KEY = 'tixo_admin_unlocked'
@@ -63,6 +64,7 @@ const TABS = [
   { id: 'tickets', label: 'Tickets', icon: Ticket },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'revenue', label: 'Revenue', icon: DollarSign },
+  { id: 'txp', label: 'TXP', icon: Coins },
 ]
 
 function naira(n) {
@@ -302,7 +304,9 @@ export default function AdminDashboard() {
         </div>
 
         <div className="p-4 sm:p-6">
-          {loading || !stats ? (
+          {activeTab === 'txp' ? (
+            <AdminTxpPanel />
+          ) : loading || !stats ? (
             <div className="flex items-center justify-center py-24">
               <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
             </div>
