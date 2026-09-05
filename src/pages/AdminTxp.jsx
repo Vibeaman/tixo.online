@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Shield, ArrowLeft, Settings, Sliders, Users, Gift, Search, Loader2,
   Plus, Trash2, Edit3, X, Check, Coins, Minus, ChevronDown, ChevronUp,
-  Lock, Save,
+  Lock, Save, AlertTriangle, Flag, Snowflake, Unlock, History,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import TxpService from '../services/TxpService'
@@ -56,11 +56,14 @@ function PasscodeGate({ onUnlock }) {
   )
 }
 
+const ADMIN_ACTOR_KEY = 'tixo_admin_actor_name'
+
 const TABS = [
   { id: 'rules', label: 'Point Rules', icon: Sliders },
   { id: 'settings', label: 'Settings', icon: Settings },
   { id: 'wallets', label: 'User Wallets', icon: Users },
   { id: 'campaigns', label: 'Campaigns', icon: Gift },
+  { id: 'fraud', label: 'Fraud & Audit', icon: AlertTriangle },
 ]
 
 function GradientButton({ children, onClick, disabled, type = 'button', className = '' }) {
@@ -753,6 +756,420 @@ function CampaignsTab() {
   )
 }
 
+// ── Tab 5: Fraud & Audit (Phase 10) ─────────────────────────
+
+function SeverityBadge({ severity }) {
+  const cls = {
+    low: 'bg-gray-700/40 text-gray-300',
+    medium: 'bg-yellow-500/20 text-yellow-400',
+    high: 'bg-red-500/20 text-red-400',
+  }[severity] || 'bg-gray-700/40 text-gray-300'
+  return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${cls}`}>{severity}</span>
+}
+
+function useActorName() {
+  const [actorName, setActorName] = useState(() => localStorage.getItem(ADMIN_ACTOR_KEY) || 'admin')
+  function update(name) {
+    setActorName(name)
+    localStorage.setItem(ADMIN_ACTOR_KEY, name || 'admin')
+  }
+  return [actorName, update]
+}
+
+function FraudFlagRow({ flag, actorName, onResolved }) {
+  const [noteMode, setNoteMode] = useState(null) // 'resolved' | 'dismissed' | null
+  const [note, setNote] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(status) {
+    setSubmitting(true)
+    try {
+      await TxpService.resolveFraudFlag(flag.id, status, note, actorName || 'admin')
+      toast.success(`Flag ${status}`)
+      onResolved()
+    } catch (err) {
+      toast.error(err.message || 'Failed to update flag')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-white font-semibold text-sm">{flag.profile?.full_name || 'Unnamed'}</p>
+            <span className="text-gray-500 text-xs">{flag.profile?.email}</span>
+            <SeverityBadge severity={flag.severity} />
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-purple-500/20 text-purple-300">
+              {flag.flag_type.replace(/_/g, ' ')}
+            </span>
+          </div>
+          <p className="text-gray-400 text-xs mt-1.5">{flag.reason}</p>
+          <p className="text-gray-600 text-[11px] mt-1">{new Date(flag.created_at).toLocaleString()}</p>
+        </div>
+
+        {!noteMode && (
+          <div className="flex gap-2 flex-shrink-0">
+            <SecondaryButton onClick={() => setNoteMode('resolved')}><Check className="w-3.5 h-3.5" /> Resolve</SecondaryButton>
+            <SecondaryButton onClick={() => setNoteMode('dismissed')}><X className="w-3.5 h-3.5" /> Dismiss</SecondaryButton>
+          </div>
+        )}
+      </div>
+
+      {noteMode && (
+        <div className="mt-3 border-t border-gray-800 pt-3 flex flex-col sm:flex-row gap-2">
+          <input
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            placeholder="Optional note..."
+            autoFocus
+            className="flex-1 bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+          />
+          <div className="flex gap-2 flex-shrink-0">
+            <SecondaryButton onClick={() => { setNoteMode(null); setNote('') }} disabled={submitting}>Cancel</SecondaryButton>
+            <GradientButton onClick={() => handleSubmit(noteMode)} disabled={submitting}>
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Confirm {noteMode === 'resolved' ? 'Resolve' : 'Dismiss'}
+            </GradientButton>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FraudFlagsPanel({ actorName }) {
+  const [flags, setFlags] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await TxpService.getFraudFlags('open')
+      setFlags(data)
+    } catch (err) {
+      toast.error(err.message || 'Failed to load fraud flags')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  if (loading) {
+    return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-pink-500 animate-spin" /></div>
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Flag className="w-4 h-4 text-pink-400" />
+        <h2 className="text-white font-bold text-sm">Open Fraud Flags</h2>
+      </div>
+      {flags.map(flag => (
+        <FraudFlagRow key={flag.id} flag={flag} actorName={actorName} onResolved={load} />
+      ))}
+      {flags.length === 0 && (
+        <p className="text-gray-500 text-sm text-center py-8">No open fraud flags 🎉</p>
+      )}
+    </div>
+  )
+}
+
+function FreezeModal({ user, onClose, onDone, actorName }) {
+  const [reason, setReason] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleConfirm() {
+    setSubmitting(true)
+    try {
+      await TxpService.adminFreezeWallet(user.id, reason, actorName || 'admin')
+      toast.success(`Froze ${user.full_name || user.email}'s wallet`)
+      onDone()
+    } catch (err) {
+      toast.error(err.message || 'Failed to freeze wallet')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-gray-900/95 border border-gray-800 rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-bold text-lg flex items-center gap-2">
+            <Snowflake className="w-4 h-4 text-cyan-400" /> Freeze Wallet
+          </h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+        <p className="text-gray-400 text-sm mb-4">{user.full_name || 'Unnamed'} — {user.email}</p>
+
+        <label className="text-[11px] text-gray-500 uppercase tracking-wide">Reason</label>
+        <textarea
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="e.g. Suspected mass-referral abuse"
+          rows={2}
+          autoFocus
+          className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50 mb-4 resize-none"
+        />
+
+        <div className="flex gap-2 justify-end">
+          <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
+          <GradientButton onClick={handleConfirm} disabled={submitting}>
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Confirm Freeze
+          </GradientButton>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AuditTrailPanel({ userId }) {
+  const [trail, setTrail] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    TxpService.getFullUserAuditTrail(userId, 50)
+      .then(data => { if (active) setTrail(data) })
+      .catch(err => toast.error(err.message || 'Failed to load audit trail'))
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [userId])
+
+  if (loading) {
+    return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-pink-500 animate-spin" /></div>
+  }
+  if (!trail) return null
+
+  return (
+    <div className="grid md:grid-cols-3 gap-4">
+      <div>
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-wide mb-2">Transactions</p>
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {trail.transactions.map(t => (
+            <div key={t.id} className="text-xs border-b border-gray-800 pb-2">
+              <p className="text-white font-semibold">{TxpService.reasonLabel(t.reason)}</p>
+              <p className="text-gray-500">{new Date(t.created_at).toLocaleString()} · {t.status}</p>
+              <p className={`font-bold ${t.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>{t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString()}</p>
+            </div>
+          ))}
+          {trail.transactions.length === 0 && <p className="text-gray-600 text-xs">No transactions</p>}
+        </div>
+      </div>
+      <div>
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-wide mb-2">Audit Log</p>
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {trail.auditLog.map(a => (
+            <div key={a.id} className="text-xs border-b border-gray-800 pb-2">
+              <p className="text-white font-semibold">{a.action.replace(/_/g, ' ')}</p>
+              <p className="text-gray-500">{new Date(a.created_at).toLocaleString()} · by {a.actor || 'unknown'}</p>
+            </div>
+          ))}
+          {trail.auditLog.length === 0 && <p className="text-gray-600 text-xs">No audit entries</p>}
+        </div>
+      </div>
+      <div>
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-wide mb-2">Fraud Flags</p>
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {trail.fraudFlags.map(f => (
+            <div key={f.id} className="text-xs border-b border-gray-800 pb-2">
+              <div className="flex items-center gap-2">
+                <p className="text-white font-semibold">{f.flag_type.replace(/_/g, ' ')}</p>
+                <SeverityBadge severity={f.severity} />
+              </div>
+              <p className="text-gray-500">{f.reason}</p>
+              <p className="text-gray-600">{new Date(f.created_at).toLocaleString()} · {f.status}</p>
+            </div>
+          ))}
+          {trail.fraudFlags.length === 0 && <p className="text-gray-600 text-xs">No fraud flags</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function UserInvestigationPanel({ actorName }) {
+  const [query, setQuery] = useState('')
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [selected, setSelected] = useState(null)
+  const [freezeModalUser, setFreezeModalUser] = useState(null)
+  const [busyId, setBusyId] = useState(null)
+
+  const load = useCallback(async (q) => {
+    if (!q.trim()) { setUsers([]); return }
+    setLoading(true)
+    try {
+      const data = await TxpService.searchUsers(q)
+      setUsers(data)
+    } catch (err) {
+      toast.error(err.message || 'Failed to search users')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => load(query), 300)
+    return () => clearTimeout(timeout)
+  }, [query, load])
+
+  async function refreshSelected() {
+    if (!selected) return
+    const data = await TxpService.searchUsers(selected.full_name || selected.email || '')
+    const match = data.find(u => u.id === selected.id)
+    if (match) setSelected(match)
+  }
+
+  async function handleUnfreeze(user) {
+    setBusyId(user.id)
+    try {
+      await TxpService.adminUnfreezeWallet(user.id, actorName || 'admin')
+      toast.success(`Unfroze ${user.full_name || user.email}'s wallet`)
+      await refreshSelected()
+    } catch (err) {
+      toast.error(err.message || 'Failed to unfreeze wallet')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <History className="w-4 h-4 text-pink-400" />
+        <h2 className="text-white font-bold text-sm">User Investigation</h2>
+      </div>
+
+      <div className="relative max-w-md">
+        <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search by name or email..."
+          className="w-full bg-gray-800/50 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-pink-500/50"
+        />
+      </div>
+
+      {loading && <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 text-pink-500 animate-spin" /></div>}
+
+      {!selected && users.length > 0 && (
+        <div className="space-y-2">
+          {users.map(u => (
+            <button
+              key={u.id}
+              onClick={() => setSelected(u)}
+              className="w-full text-left bg-gray-900/50 border border-gray-800 rounded-xl p-3 hover:border-pink-500/40 transition-colors flex items-center justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <p className="text-white font-semibold text-sm truncate">{u.full_name || 'Unnamed'}</p>
+                <p className="text-gray-500 text-xs truncate">{u.email}</p>
+              </div>
+              {u.wallet?.is_frozen && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-cyan-500/20 text-cyan-300 flex items-center gap-1 flex-shrink-0">
+                  <Snowflake className="w-3 h-3" /> Frozen
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {selected && (
+        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-white font-bold text-sm">{selected.full_name || 'Unnamed'}</p>
+              <p className="text-gray-500 text-xs">{selected.email}</p>
+            </div>
+            <SecondaryButton onClick={() => setSelected(null)}>Back to search</SecondaryButton>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-gray-800/40 rounded-xl p-3 text-center">
+              <p className="text-gray-500 text-[11px] uppercase">Available</p>
+              <p className="text-white font-bold">{(selected.wallet?.available || 0).toLocaleString()}</p>
+            </div>
+            <div className="bg-gray-800/40 rounded-xl p-3 text-center">
+              <p className="text-gray-500 text-[11px] uppercase">Pending</p>
+              <p className="text-white font-bold">{(selected.wallet?.pending || 0).toLocaleString()}</p>
+            </div>
+            <div className="bg-gray-800/40 rounded-xl p-3 text-center">
+              <p className="text-gray-500 text-[11px] uppercase">Lifetime</p>
+              <p className="text-white font-bold">{(selected.wallet?.lifetime_earned || 0).toLocaleString()}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 border-t border-gray-800 pt-4">
+            <div>
+              {selected.wallet?.is_frozen ? (
+                <p className="text-cyan-300 text-xs flex items-center gap-1.5">
+                  <Snowflake className="w-3.5 h-3.5" /> Frozen{selected.wallet.frozen_reason ? `: ${selected.wallet.frozen_reason}` : ''}
+                </p>
+              ) : (
+                <p className="text-gray-500 text-xs">Wallet is active</p>
+              )}
+            </div>
+            {selected.wallet?.is_frozen ? (
+              <SecondaryButton onClick={() => handleUnfreeze(selected)} disabled={busyId === selected.id}>
+                {busyId === selected.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlock className="w-3.5 h-3.5" />}
+                Unfreeze
+              </SecondaryButton>
+            ) : (
+              <SecondaryButton onClick={() => setFreezeModalUser(selected)}>
+                <Snowflake className="w-3.5 h-3.5" /> Freeze
+              </SecondaryButton>
+            )}
+          </div>
+
+          <div className="border-t border-gray-800 pt-4">
+            <AuditTrailPanel userId={selected.id} />
+          </div>
+        </div>
+      )}
+
+      {freezeModalUser && (
+        <FreezeModal
+          user={freezeModalUser}
+          actorName={actorName}
+          onClose={() => setFreezeModalUser(null)}
+          onDone={async () => { setFreezeModalUser(null); await refreshSelected() }}
+        />
+      )}
+    </div>
+  )
+}
+
+function FraudAuditTab() {
+  const [actorName, setActorName] = useActorName()
+
+  return (
+    <div className="space-y-8">
+      <div className="max-w-sm">
+        <label className="text-[11px] text-gray-500 uppercase tracking-wide">Your name (for audit log)</label>
+        <input
+          value={actorName}
+          onChange={e => setActorName(e.target.value)}
+          placeholder="admin"
+          className="mt-1 w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/50"
+        />
+      </div>
+
+      <FraudFlagsPanel actorName={actorName} />
+
+      <div className="border-t border-gray-800 pt-6">
+        <UserInvestigationPanel actorName={actorName} />
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────
 
 export default function AdminTxp() {
@@ -802,6 +1219,7 @@ export default function AdminTxp() {
         {tab === 'settings' && <SettingsTab />}
         {tab === 'wallets' && <WalletsTab />}
         {tab === 'campaigns' && <CampaignsTab />}
+        {tab === 'fraud' && <FraudAuditTab />}
       </div>
     </div>
   )

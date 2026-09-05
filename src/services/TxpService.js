@@ -105,7 +105,12 @@ const TxpService = {
 
   /** Account created: 50 TXP (available, once) */
   async onAccountCreated(userId) {
+    if (await this._isWalletFrozen(userId)) return null
     if (await this._alreadyAwarded(userId, 'signup_bonus')) return null
+    if (await this._isRateLimited(userId, 'signup_bonus')) {
+      await this._flag(userId, 'rate_limit_hit', 'low', 'Daily earning cap reached for signup_bonus', { reason: 'signup_bonus' })
+      return null
+    }
     const rule = await this.getRule('signup_bonus')
     if (!rule?.enabled) return null
     return this._award(userId, rule.points, 'signup_bonus')
@@ -113,7 +118,12 @@ const TxpService = {
 
   /** KYC completed: 100 TXP (available, once) */
   async onKycCompleted(userId) {
+    if (await this._isWalletFrozen(userId)) return null
     if (await this._alreadyAwarded(userId, 'kyc_completed')) return null
+    if (await this._isRateLimited(userId, 'kyc_completed')) {
+      await this._flag(userId, 'rate_limit_hit', 'low', 'Daily earning cap reached for kyc_completed', { reason: 'kyc_completed' })
+      return null
+    }
     const rule = await this.getRule('kyc_completed')
     if (!rule?.enabled) return null
     return this._award(userId, rule.points, 'kyc_completed')
@@ -121,7 +131,12 @@ const TxpService = {
 
   /** Profile completed: 50 TXP (available, once) */
   async onProfileCompleted(userId) {
+    if (await this._isWalletFrozen(userId)) return null
     if (await this._alreadyAwarded(userId, 'profile_complete')) return null
+    if (await this._isRateLimited(userId, 'profile_complete')) {
+      await this._flag(userId, 'rate_limit_hit', 'low', 'Daily earning cap reached for profile_complete', { reason: 'profile_complete' })
+      return null
+    }
     const rule = await this.getRule('profile_complete')
     if (!rule?.enabled) return null
     return this._award(userId, rule.points, 'profile_complete')
@@ -129,8 +144,13 @@ const TxpService = {
 
   /** Event created (draft saved): 200 TXP (available, once per event) */
   async onEventCreated(userId, eventId) {
+    if (await this._isWalletFrozen(userId)) return null
     const scope = { event_id: eventId }
     if (await this._alreadyAwarded(userId, 'event_created', scope)) return null
+    if (await this._isRateLimited(userId, 'event_created')) {
+      await this._flag(userId, 'rate_limit_hit', 'low', 'Daily earning cap reached for event_created', { reason: 'event_created' })
+      return null
+    }
     const rule = await this.getRule('event_created')
     if (!rule?.enabled) return null
     return this._award(userId, rule.points, 'event_created', scope)
@@ -138,8 +158,13 @@ const TxpService = {
 
   /** Event published: 100 TXP (available, once per event) */
   async onEventPublished(userId, eventId) {
+    if (await this._isWalletFrozen(userId)) return null
     const scope = { event_id: eventId }
     if (await this._alreadyAwarded(userId, 'event_published', scope)) return null
+    if (await this._isRateLimited(userId, 'event_published')) {
+      await this._flag(userId, 'rate_limit_hit', 'low', 'Daily earning cap reached for event_published', { reason: 'event_published' })
+      return null
+    }
     const rule = await this.getRule('event_published')
     if (!rule?.enabled) return null
     return this._award(userId, rule.points, 'event_published', scope)
@@ -147,11 +172,28 @@ const TxpService = {
 
   /** Event shared (unique): 10 TXP (available, once per user per event) */
   async onEventShared(userId, eventId) {
+    if (await this._isWalletFrozen(userId)) return null
     const scope = { event_id: eventId }
     if (await this._alreadyAwarded(userId, 'event_shared', scope)) return null
+    if (await this._isRateLimited(userId, 'event_shared')) {
+      await this._flag(userId, 'rate_limit_hit', 'low', 'Daily earning cap reached for event_shared', { reason: 'event_shared' })
+      return null
+    }
     const rule = await this.getRule('event_shared')
     if (!rule?.enabled) return null
-    return this._award(userId, rule.points, 'event_shared', scope)
+    const txn = await this._award(userId, rule.points, 'event_shared', scope)
+
+    // Phase 10: flag rapid-share abuse (more than 8 shares registered in 1 hour)
+    try {
+      const count = await this._countSharesInWindow(userId, 1)
+      if (count > 8) {
+        await this._flag(userId, 'rapid_shares', 'medium', 'More than 8 event shares in 1 hour', { count })
+      }
+    } catch (err) {
+      console.error('rapid_shares flag check failed:', err)
+    }
+
+    return txn
   },
 
   /**
@@ -168,8 +210,13 @@ const TxpService = {
 
   /** Event attended (check-in): 50 TXP (available, once per event) */
   async onEventAttended(userId, eventId) {
+    if (await this._isWalletFrozen(userId)) return null
     const scope = { event_id: eventId }
     if (await this._alreadyAwarded(userId, 'event_attended', scope)) return null
+    if (await this._isRateLimited(userId, 'event_attended')) {
+      await this._flag(userId, 'rate_limit_hit', 'low', 'Daily earning cap reached for event_attended', { reason: 'event_attended' })
+      return null
+    }
     const rule = await this.getRule('event_attended')
     if (!rule?.enabled) return null
     return this._award(userId, rule.points, 'event_attended', scope)
@@ -177,8 +224,13 @@ const TxpService = {
 
   /** Review submitted: 25 TXP (available, once per event) */
   async onReviewSubmitted(userId, eventId) {
+    if (await this._isWalletFrozen(userId)) return null
     const scope = { event_id: eventId }
     if (await this._alreadyAwarded(userId, 'review_submitted', scope)) return null
+    if (await this._isRateLimited(userId, 'review_submitted')) {
+      await this._flag(userId, 'rate_limit_hit', 'low', 'Daily earning cap reached for review_submitted', { reason: 'review_submitted' })
+      return null
+    }
     const rule = await this.getRule('review_submitted')
     if (!rule?.enabled) return null
     return this._award(userId, rule.points, 'review_submitted', scope)
@@ -187,6 +239,7 @@ const TxpService = {
   /** Referral registered: 100 TXP (pending) to referrer */
   async onReferralRegistered(referrerId, refereeId) {
     if (referrerId === refereeId) return null
+    if (await this._isWalletFrozen(referrerId)) return null
 
     const { data: ref, error } = await supabase
       .from('txp_referrals')
@@ -200,6 +253,12 @@ const TxpService = {
 
     const rule = await this.getRule('referral_registered')
     if (!rule?.enabled) return ref
+
+    if (await this._isRateLimited(referrerId, 'referral_registered')) {
+      await this._flag(referrerId, 'rate_limit_hit', 'low', 'Daily earning cap reached for referral_registered', { reason: 'referral_registered' })
+      return null
+    }
+
     await this._award(referrerId, rule.points, 'referral_registered', { referee_id: refereeId }, 'pending')
 
     const { data: updated } = await supabase
@@ -209,11 +268,22 @@ const TxpService = {
       .select()
       .single()
 
+    // Phase 10: flag mass-referral abuse (more than 5 referrals registered in 24h)
+    try {
+      const count = await this._countReferralsInWindow(referrerId, 24)
+      if (count > 5) {
+        await this._flag(referrerId, 'mass_referrals', 'medium', 'More than 5 referrals registered in 24 hours', { count })
+      }
+    } catch (err) {
+      console.error('mass_referrals flag check failed:', err)
+    }
+
     return updated || ref
   },
 
   /** Referral first purchase: 250 TXP (available) to referrer, releases pending 100 */
   async onReferralFirstPurchase(referrerId, refereeId) {
+    if (await this._isWalletFrozen(referrerId)) return null
     const { data: ref } = await supabase
       .from('txp_referrals')
       .select('*')
@@ -325,6 +395,7 @@ const TxpService = {
    */
   async claimCampaignBonus(userId, campaignId) {
     if (!userId || !campaignId) return { success: false, error: 'Missing user or campaign' }
+    if (await this._isWalletFrozen(userId)) return { success: false, error: 'Wallet is frozen' }
 
     const { data: campaign, error: campaignErr } = await supabase
       .from('referral_campaigns')
@@ -1032,6 +1103,349 @@ const TxpService = {
       gapToNext: above ? above.points - entry.points : 0,
       nextRankUser: above ? { fullName: above.fullName, rank: above.rank } : null,
     }
+  },
+
+  // ── Phase 10: Anti-Fraud & Rate Limiting ──────────────────
+
+  /** Sum of TXP credited to a user for a given reason so far today (UTC calendar day) */
+  async _todaysEarnedForReason(userId, reason) {
+    const now = new Date()
+    const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString()
+
+    const { data, error } = await supabase
+      .from('txp_transactions')
+      .select('amount')
+      .eq('user_id', userId)
+      .eq('reason', reason)
+      .eq('type', 'credit')
+      .gte('created_at', startOfDay)
+    if (error) throw error
+
+    return (data || []).reduce((sum, t) => sum + (t.amount || 0), 0)
+  },
+
+  /**
+   * Check whether a user has already hit the daily_cap configured on a rule
+   * for a given reason. Rules with a null/0 daily_cap are treated as unlimited.
+   */
+  async _isRateLimited(userId, reason) {
+    const rule = await this.getRule(reason)
+    if (!rule?.daily_cap) return false
+
+    const todaysEarned = await this._todaysEarnedForReason(userId, reason)
+    return todaysEarned >= rule.daily_cap
+  },
+
+  /** Lightweight check used at the top of earning methods to skip frozen wallets */
+  async _isWalletFrozen(userId) {
+    const wallet = await this.getWallet(userId)
+    return !!wallet?.is_frozen
+  },
+
+  // ── Fraud Flag Detection & Management ─────────────────────
+
+  /**
+   * Insert a fraud flag row. Never throws -- a failure to record a flag
+   * should never block the underlying award/earning flow.
+   */
+  async _flag(userId, flagType, severity, reason, metadata = {}) {
+    try {
+      const { error } = await supabase
+        .from('txp_fraud_flags')
+        .insert([{ user_id: userId, flag_type: flagType, severity, reason, metadata }])
+      if (error) console.error('Failed to insert fraud flag:', error)
+    } catch (err) {
+      console.error('Failed to insert fraud flag:', err)
+    }
+  },
+
+  /** Count referrals a user has registered as referrer in the last N hours */
+  async _countReferralsInWindow(userId, hours) {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
+    const { count, error } = await supabase
+      .from('txp_referrals')
+      .select('id', { count: 'exact', head: true })
+      .eq('referrer_id', userId)
+      .gte('created_at', since)
+    if (error) throw error
+    return count || 0
+  },
+
+  /** Count 'event_shared' credit transactions for a user in the last N hours */
+  async _countSharesInWindow(userId, hours) {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
+    const { count, error } = await supabase
+      .from('txp_transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('reason', 'event_shared')
+      .eq('type', 'credit')
+      .gte('created_at', since)
+    if (error) throw error
+    return count || 0
+  },
+
+  /** Admin: fetch fraud flags (optionally filtered by status) enriched with profile info */
+  async getFraudFlags(status = 'open', limit = 100) {
+    let query = supabase
+      .from('txp_fraud_flags')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (status && status !== 'all') {
+      query = query.eq('status', status)
+    }
+
+    const { data: flags, error } = await query
+    if (error) throw error
+    if (!flags?.length) return []
+
+    const ids = [...new Set(flags.map(f => f.user_id))]
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', ids)
+
+    const profileById = {}
+    ;(profiles || []).forEach(p => { profileById[p.id] = p })
+
+    return flags.map(f => ({ ...f, profile: profileById[f.user_id] || null }))
+  },
+
+  /** Admin: resolve or dismiss a fraud flag, recording who did it and why */
+  async resolveFraudFlag(flagId, status, note, actor) {
+    const { data: flag, error: fetchErr } = await supabase
+      .from('txp_fraud_flags')
+      .select('*')
+      .eq('id', flagId)
+      .single()
+    if (fetchErr) throw fetchErr
+
+    const { data: updated, error } = await supabase
+      .from('txp_fraud_flags')
+      .update({
+        status,
+        resolved_at: new Date().toISOString(),
+        resolved_by: actor || 'admin',
+        resolution_note: note || null
+      })
+      .eq('id', flagId)
+      .select()
+      .single()
+    if (error) throw error
+
+    await this._logAudit('resolve_fraud_flag', flag?.user_id || null, { flag_id: flagId, status, note }, actor)
+
+    return updated
+  },
+
+  // ── Freeze / Unfreeze Accounts ────────────────────────────
+
+  /** Admin: freeze a user's wallet, blocking all further TXP earning */
+  async adminFreezeWallet(userId, reason, actor) {
+    const { error } = await supabase
+      .from('txp_wallets')
+      .update({
+        is_frozen: true,
+        frozen_reason: reason || null,
+        frozen_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+    if (error) throw error
+
+    await this._logAudit('freeze_wallet', userId, { reason, actor }, actor)
+
+    return true
+  },
+
+  /** Admin: unfreeze a user's wallet */
+  async adminUnfreezeWallet(userId, actor) {
+    const { error } = await supabase
+      .from('txp_wallets')
+      .update({
+        is_frozen: false,
+        frozen_reason: null,
+        frozen_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+    if (error) throw error
+
+    await this._logAudit('unfreeze_wallet', userId, { actor }, actor)
+
+    return true
+  },
+
+  // ── Audit Log ──────────────────────────────────────────────
+
+  /** Internal: insert a txp_audit_log row */
+  async _logAudit(action, targetUserId, metadata = {}, actor = 'admin') {
+    const { error } = await supabase
+      .from('txp_audit_log')
+      .insert([{ actor: actor || 'admin', action, target_user_id: targetUserId || null, metadata }])
+    if (error) throw error
+  },
+
+  /** Admin: fetch audit log entries, optionally scoped to one user */
+  async getAuditLog(targetUserId = null, limit = 100) {
+    let query = supabase
+      .from('txp_audit_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (targetUserId) {
+      query = query.eq('target_user_id', targetUserId)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return data || []
+  },
+
+  /**
+   * Admin: full investigation view for a single user -- combines their TXP
+   * ledger, every audit-log entry recorded against them, and any fraud flags
+   * raised on their account (any status).
+   */
+  async getFullUserAuditTrail(userId, limit = 100) {
+    const [transactions, auditLog, fraudFlagsResult] = await Promise.all([
+      this.getUserTransactions(userId, limit),
+      this.getAuditLog(userId, limit),
+      supabase
+        .from('txp_fraud_flags')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+    ])
+
+    if (fraudFlagsResult.error) throw fraudFlagsResult.error
+
+    return {
+      transactions: transactions || [],
+      auditLog: auditLog || [],
+      fraudFlags: fraudFlagsResult.data || []
+    }
+  },
+
+  // ── Refund Handling ────────────────────────────────────────
+
+  /**
+   * Reverse any pending/available TXP earned directly from a ticket purchase
+   * (reason = 'ticket_purchase') when that ticket is refunded.
+   */
+  async reverseTicketPurchasePoints(ticketId, actor = 'admin') {
+    const { data: txns, error } = await supabase
+      .from('txp_transactions')
+      .select('*')
+      .eq('reason', 'ticket_purchase')
+      .contains('metadata', { ticket_id: ticketId })
+    if (error) throw error
+
+    const toReverse = (txns || []).filter(t => t.status !== 'reversed')
+    if (!toReverse.length) return { reversed: 0 }
+
+    let reversedCount = 0
+
+    for (const txn of toReverse) {
+      const wallet = await this.getWallet(txn.user_id)
+      let shortfall = 0
+
+      if (txn.status === 'pending') {
+        const newPending = Math.max(0, (wallet.pending || 0) - txn.amount)
+        const actualDeduction = (wallet.pending || 0) - newPending
+        shortfall = txn.amount - actualDeduction
+
+        const { error: walletErr } = await supabase
+          .from('txp_wallets')
+          .update({ pending: newPending, updated_at: new Date().toISOString() })
+          .eq('user_id', txn.user_id)
+        if (walletErr) throw walletErr
+      } else {
+        const newAvailable = Math.max(0, (wallet.available || 0) - txn.amount)
+        const actualDeduction = (wallet.available || 0) - newAvailable
+        shortfall = txn.amount - actualDeduction
+
+        const { error: walletErr } = await supabase
+          .from('txp_wallets')
+          .update({ available: newAvailable, updated_at: new Date().toISOString() })
+          .eq('user_id', txn.user_id)
+        if (walletErr) throw walletErr
+      }
+
+      const { error: txnErr } = await supabase
+        .from('txp_transactions')
+        .update({ status: 'reversed' })
+        .eq('id', txn.id)
+      if (txnErr) throw txnErr
+
+      await this._logAudit('reverse_ticket_points', txn.user_id, {
+        ticket_id: ticketId,
+        amount_reversed: txn.amount,
+        ...(shortfall > 0 ? { shortfall } : {})
+      }, actor)
+
+      reversedCount++
+    }
+
+    return { reversed: reversedCount }
+  },
+
+  /**
+   * Reverse any completed TXP redemption that paid for a now-refunded ticket.
+   */
+  async reverseRedemptionByTicket(ticketId, actor = 'admin') {
+    const { data: redemptions, error } = await supabase
+      .from('txp_redemptions')
+      .select('*')
+      .eq('status', 'completed')
+      .contains('ticket_ids', [ticketId])
+    if (error) throw error
+
+    if (!redemptions?.length) return { reversed: 0 }
+
+    let reversedCount = 0
+    for (const redemption of redemptions) {
+      const result = await this.reverseRedemption(redemption.id)
+      if (result) {
+        await this._logAudit('reverse_redemption', redemption.user_id, {
+          ticket_id: ticketId,
+          redemption_id: redemption.id
+        }, actor)
+        reversedCount++
+      }
+    }
+
+    return { reversed: reversedCount }
+  },
+
+  /**
+   * Orchestrator called when an admin refunds a ticket: reverses both the
+   * direct ticket-purchase TXP earn and any TXP redemption used to pay for it.
+   * Each step is isolated so a failure in one doesn't block the other.
+   */
+  async refundTicketPoints(ticketId, actor = 'admin') {
+    let pointsReversed = false
+    let redemptionReversed = false
+
+    try {
+      const result = await this.reverseTicketPurchasePoints(ticketId, actor)
+      pointsReversed = (result?.reversed || 0) > 0
+    } catch (err) {
+      console.error('reverseTicketPurchasePoints failed:', err)
+    }
+
+    try {
+      const result = await this.reverseRedemptionByTicket(ticketId, actor)
+      redemptionReversed = (result?.reversed || 0) > 0
+    } catch (err) {
+      console.error('reverseRedemptionByTicket failed:', err)
+    }
+
+    return { pointsReversed, redemptionReversed }
   },
 
   // ── Helpers ───────────────────────────────────────────────

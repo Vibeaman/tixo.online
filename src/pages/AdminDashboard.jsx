@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Shield, BarChart3, Calendar, Ticket, Users, DollarSign, Search,
-  Menu, X, ArrowLeft, CheckCircle2, Clock, Loader2, Lock,
+  Menu, X, ArrowLeft, CheckCircle2, Clock, Loader2, Lock, RotateCcw,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AdminService from '../services/AdminService'
+import TicketService from '../services/TicketService'
+import TxpService from '../services/TxpService'
 
 const ADMIN_PASSCODE = 'peak'
 const ADMIN_SESSION_KEY = 'tixo_admin_unlocked'
@@ -175,14 +177,18 @@ export default function AdminDashboard() {
   const [ticketSearch, setTicketSearch] = useState('')
   const [userSearch, setUserSearch] = useState('')
 
-  useEffect(() => {
-    if (!isAdmin) return
+  const loadStats = useCallback(() => {
     setLoading(true)
-    AdminService.getStats()
+    return AdminService.getStats()
       .then(setStats)
       .catch(err => toast.error(err.message || 'Failed to load admin data'))
       .finally(() => setLoading(false))
-  }, [isAdmin])
+  }, [])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    loadStats()
+  }, [isAdmin, loadStats])
 
   const eventsWithStats = useMemo(() => {
     if (!stats) return []
@@ -309,7 +315,7 @@ export default function AdminDashboard() {
                 <EventsTab events={filteredEvents} search={eventSearch} setSearch={setEventSearch} />
               )}
               {activeTab === 'tickets' && (
-                <TicketsTab tickets={filteredTickets} search={ticketSearch} setSearch={setTicketSearch} />
+                <TicketsTab tickets={filteredTickets} search={ticketSearch} setSearch={setTicketSearch} onRefunded={loadStats} />
               )}
               {activeTab === 'users' && (
                 <UsersTab users={filteredUsers} search={userSearch} setSearch={setUserSearch} />
@@ -550,7 +556,26 @@ function EventsTab({ events, search, setSearch }) {
   )
 }
 
-function TicketsTab({ tickets, search, setSearch }) {
+function TicketsTab({ tickets, search, setSearch, onRefunded }) {
+  const [refundingId, setRefundingId] = useState(null)
+
+  async function handleRefund(ticket) {
+    if (!window.confirm(`Refund this ticket for ${ticket.attendee_name || ticket.guest_name || 'this buyer'}? This will reverse any Tixo Points earned or spent on it.`)) {
+      return
+    }
+    setRefundingId(ticket.id)
+    try {
+      await TicketService.refundTicket(ticket.id, 'admin')
+      await TxpService.refundTicketPoints(ticket.id, 'admin')
+      toast.success('Ticket refunded')
+      onRefunded?.()
+    } catch (err) {
+      toast.error(err.message || 'Failed to refund ticket')
+    } finally {
+      setRefundingId(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <SearchInput value={search} onChange={setSearch} placeholder="Search by ID, event or buyer..." />
@@ -567,6 +592,7 @@ function TicketsTab({ tickets, search, setSearch }) {
               <th className="px-4 py-3">Payment Status</th>
               <th className="px-4 py-3">Checked In</th>
               <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -596,10 +622,24 @@ function TicketsTab({ tickets, search, setSearch }) {
                 <td className="px-4 py-3 text-gray-500 text-xs">
                   {t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}
                 </td>
+                <td className="px-4 py-3">
+                  {t.refund_status === 'refunded' ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-gray-700/40 text-gray-400">Refunded</span>
+                  ) : (
+                    <button
+                      onClick={() => handleRefund(t)}
+                      disabled={refundingId === t.id}
+                      className="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {refundingId === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                      Refund
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
             {tickets.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-500">No tickets found</td></tr>
+              <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-500">No tickets found</td></tr>
             )}
           </tbody>
         </table>

@@ -66,6 +66,24 @@ const TicketService = {
     return data
   },
 
+  // Phase 10: mark a ticket as refunded. Does not touch TXP -- the caller is
+  // responsible for also invoking TxpService.refundTicketPoints(ticketId, actor)
+  // to reverse any points earned/spent on this ticket. Kept decoupled from TxpService.
+  async refundTicket(ticketId, refundedBy = 'admin') {
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({
+        refund_status: 'refunded',
+        refunded_at: new Date().toISOString(),
+        refunded_by: refundedBy
+      })
+      .eq('id', ticketId)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
   // Bulk approve tickets
   async bulkApprove(ticketIds) {
     const { data, error } = await supabase
