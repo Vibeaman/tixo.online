@@ -759,6 +759,24 @@ const TxpService = {
     throw new Error('Failed to generate unique referral code')
   },
 
+  /**
+   * Attribute the signed-in user's account to whoever owns `code`.
+   *
+   * This MUST go through the register_referral() SECURITY DEFINER function.
+   * The rows involved (txp_referrals, txp_transactions, txp_wallets) all belong
+   * to the *referrer*, and row-level security rightly stops the referee's
+   * browser from writing another user's rows -- which is exactly why the old
+   * client-side path failed silently on every referral.
+   *
+   * Returns { ok, reason? }. `ok: false` with a terminal reason means the code
+   * should be discarded; a thrown error means "try again later".
+   */
+  async registerReferralByCode(code) {
+    const { data, error } = await supabase.rpc('register_referral', { p_code: code })
+    if (error) throw error
+    return data || { ok: false, reason: 'unknown' }
+  },
+
   /** Look up a user by their referral code */
   async getUserByReferralCode(code) {
     const { data, error } = await supabase

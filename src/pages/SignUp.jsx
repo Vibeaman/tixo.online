@@ -4,7 +4,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, Ticket, Sparkles, Zap, Heart } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AuthService from '../services/AuthService'
-import TxpService from '../services/TxpService'
 
 function FloatingIcon({ icon: Icon, size, top, left, delay, color }) {
   return (
@@ -63,7 +62,6 @@ export default function SignUp() {
     try {
       const newUser = await AuthService.signUp({ fullName: form.fullName, email: form.email, password: form.password })
       setSuccess(true)
-      await processReferral(newUser)
     } catch (err) {
       toast.error(err.message || 'Sign up failed')
     } finally {
@@ -71,22 +69,10 @@ export default function SignUp() {
     }
   }
 
-  // After the profile row has been created (via the on_auth_user_created
-  // trigger), attribute this signup to whoever referred them, if any.
-  async function processReferral(newUser) {
-    const refCode = localStorage.getItem('tixo_referral_code')
-    if (!refCode || !newUser?.id) return
-    try {
-      const referrer = await TxpService.getUserByReferralCode(refCode)
-      if (referrer?.id && referrer.id !== newUser.id) {
-        await TxpService.onReferralRegistered(referrer.id, newUser.id)
-      }
-    } catch (err) {
-      console.error('Failed to process referral:', err)
-    } finally {
-      localStorage.removeItem('tixo_referral_code')
-    }
-  }
+  // NOTE: referral attribution deliberately does NOT happen here.
+  // With email confirmation on, signUp() returns no session, so the referrer's
+  // rows can't be written yet (row-level security blocks anonymous writes).
+  // AuthContext banks the stored code on the first authenticated session.
 
   async function handleGoogle() {
     setGoogleLoading(true)
