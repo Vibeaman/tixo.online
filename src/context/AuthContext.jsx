@@ -84,50 +84,43 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    // Check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user || null
-      setUser(u)
-      if (u) {
-        fetchProfile(u.id)
-        // Backfill: existing accounts that signed up before the welcome bonus
-        // was wired up still collect their 50 TXP on their next visit, without
-        // having to log out and back in first.
-        grantSignupBonus(u)
-        // Email-confirmation links land the user here already signed in, so
-        // this is often the first chance to bank a pending referral code.
-        processPendingReferral(u)
-      }
-      setLoading(false)
-    })
-
-    // Listen for auth changes
+    // IMPORTANT: don't ALSO call supabase.auth.getSession() here.
+    //
+    // supabase-js already fires onAuthStateChange with an 'INITIAL_SESSION'
+    // event as soon as it finishes checking localStorage / parsing an OAuth
+    // redirect in the URL -- that's the single source of truth for "is anyone
+    // logged in". Calling getSession() separately races that internal check:
+    // getSession() resolves fast and (finding nothing yet) briefly reports a
+    // null session right as the OAuth redirect is still being processed. Both
+    // calls also compete for the client's internal Web Locks mutex, which is
+    // exactly what caused the login-flash-then-logout bug on desktop --
+    // mobile browsers silently no-op that lock, so they never showed it.
+    //
+    // Relying only on onAuthStateChange removes the race entirely.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         const u = session?.user || null
         setUser(u)
         if (!u) {
           setProfile(null)
+          setLoading(false)
           return
         }
 
-        // IMPORTANT: never call supabase-js from inside this callback.
-        //
-        // The auth client invokes listeners while holding its internal Web Locks
-        // (navigator.locks) mutex. Any nested Supabase call re-enters that lock
-        // and deadlocks it, which stops the background token refresh from ever
-        // completing -- the session then dies when the access token expires and
-        // the user is thrown out mid-session. Browsers without Web Locks fall
-        // back to a no-op lock and never hit this, which is exactly why the bug
-        // showed up on desktop but not on mobile.
-        //
-        // Deferring to a fresh macrotask lets the lock release first.
+        // IMPORTANT: never call supabase-js synchronously from inside this
+        // callback -- it runs while the client holds its internal lock, and a
+        // nested call re-enters it. Defer to a fresh macrotask so the lock is
+        // released first.
         setTimeout(() => {
           fetchProfile(u.id)
-          if (_event === 'SIGNED_IN') {
-            processPendingReferral(u)
+          if (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION') {
+            // Backfill: existing accounts that signed up (or emailed a
+            // confirmation link) before the welcome bonus / referral hookup
+            // still get credited on their first visit here.
             grantSignupBonus(u)
+            processPendingReferral(u)
           }
+          setLoading(false)
         }, 0)
       }
     )
