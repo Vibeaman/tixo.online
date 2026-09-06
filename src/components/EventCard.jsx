@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapPin, Ticket, ArrowRight, Video, Globe, Calendar, Clock, Eye } from 'lucide-react'
 import { Tilt3D, GlowCard } from './Interactive3D'
+import EventPoster from './EventPoster'
 
 export default function EventCard({ event }) {
   const navigate = useNavigate()
@@ -69,13 +70,7 @@ export default function EventCard({ event }) {
 
         {/* Image */}
         <div style={{ position: 'relative', height: 180, overflow: 'hidden' }}>
-          <img src={event.image} alt={event.title}
-            style={{
-              width: '100%', height: '100%', objectFit: 'cover',
-              transition: 'transform 0.6s cubic-bezier(0.23,1,0.32,1)',
-              transform: hovered ? 'scale(1.12)' : 'scale(1)',
-            }}
-          />
+          <EventPoster event={event} hovered={hovered} />
           <div style={{
             position: 'absolute', inset: 0,
             background: hovered

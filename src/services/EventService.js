@@ -96,6 +96,25 @@ const EventService = {
     return data
   },
 
+  // Events that have already finished — most recently ended first. Used for
+  // the "Past Events" rail so the homepage still feels alive between seasons.
+  async getPast(limit = 6) {
+    const today = new Date().toISOString().split('T')[0]
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .or('status.eq.published,status.is.null')
+      .or('is_private.eq.false,is_private.is.null')
+      .lt('date', today)
+      .order('date', { ascending: false })
+      .limit(limit * 3)
+    if (error) throw error
+    // A multi-day event is only "past" once its end date has gone by.
+    return (data || [])
+      .filter(e => (e.end_date || e.date) < today)
+      .slice(0, limit)
+  },
+
   async getFeatured() {
     const today = new Date().toISOString().split('T')[0]
     const { data, error } = await supabase

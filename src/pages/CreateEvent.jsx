@@ -195,7 +195,9 @@ export default function CreateEvent() {
     if (status === 'published' && !form.date) { toast.error('Start date is required'); return }
     setSubmitting(true)
     try {
-      let finalImage = form.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800'
+      // No stock fallback: an empty image makes the app render a branded,
+      // per-event generated poster instead of a repeated Unsplash photo.
+      let finalImage = form.image || ''
       if (imageFile) {
         setUploading(true)
         try { finalImage = await uploadEventImage(imageFile) }

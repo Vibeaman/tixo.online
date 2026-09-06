@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Calendar, MapPin, ArrowRight } from 'lucide-react'
 import EventService from '../services/EventService'
+import EventPoster from './EventPoster'
 import { fadeUp, staggerParent, viewportOnce } from '../utils/animations'
 import { isEventEnded, sortByEventTier } from '../utils/eventStatus'
 
@@ -44,15 +45,7 @@ function EventCardSmall({ event }) {
         className={`group block bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-purple-400/40 transition-all h-full ${ended ? 'opacity-80' : ''}`}
       >
         <div className="relative h-44 overflow-hidden">
-          {event.image ? (
-            <img
-              src={event.image}
-              alt={event.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-purple-900/40 to-pink-900/30" />
-          )}
+          <EventPoster event={event} compact />
           <span
             className={`absolute top-3 right-3 text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm ${
               price.free
@@ -101,14 +94,17 @@ function CardSkeleton() {
   )
 }
 
-function EventSection({ emoji, title, events, loading, emptyMessage }) {
+function EventSection({ emoji, title, subtitle, events, loading, emptyMessage }) {
   return (
     <section className="px-4 py-14 md:py-16">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-white flex items-center gap-2">
-            <span>{emoji}</span> {title}
-          </h2>
+          <div>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-white flex items-center gap-2">
+              <span>{emoji}</span> {title}
+            </h2>
+            {subtitle && <p className="text-gray-500 text-sm mt-2">{subtitle}</p>}
+          </div>
           <Link
             to="/events"
             className="text-purple-300 hover:text-purple-200 text-sm font-semibold flex items-center gap-1 transition-colors"
@@ -144,6 +140,8 @@ export default function HomeEvents() {
   const [featured, setFeatured] = useState([])
   const [loadingNewest, setLoadingNewest] = useState(true)
   const [loadingFeatured, setLoadingFeatured] = useState(true)
+  const [past, setPast] = useState([])
+  const [loadingPast, setLoadingPast] = useState(true)
 
   useEffect(() => {
     let mounted = true
@@ -158,10 +156,16 @@ export default function HomeEvents() {
       .catch(e => console.error('getFeatured failed', e))
       .finally(() => { if (mounted) setLoadingFeatured(false) })
 
+    EventService.getPast(6)
+      .then(data => { if (mounted) setPast(data || []) })
+      .catch(e => console.error('getPast failed', e))
+      .finally(() => { if (mounted) setLoadingPast(false) })
+
     return () => { mounted = false }
   }, [])
 
   const showFeatured = loadingFeatured || featured.length > 0
+  const showPast = loadingPast || past.length > 0
 
   return (
     <div className="bg-[#050510]">
@@ -182,6 +186,19 @@ export default function HomeEvents() {
             title="Hot & Selling"
             events={featured}
             loading={loadingFeatured}
+            emptyMessage=""
+          />
+        </motion.div>
+      )}
+
+      {showPast && (
+        <motion.div initial="hidden" whileInView="visible" viewport={viewportOnce} variants={fadeUp}>
+          <EventSection
+            emoji="🎞️"
+            title="Past Events"
+            subtitle="Moments that already happened on Tixo."
+            events={past}
+            loading={loadingPast}
             emptyMessage=""
           />
         </motion.div>

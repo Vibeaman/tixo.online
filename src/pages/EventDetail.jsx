@@ -13,6 +13,8 @@ import PayoutService from '../services/PayoutService'
 import TxpService from '../services/TxpService'
 import { showTxpToast } from '../components/TxpToast'
 import { useAuth } from '../context/AuthContext'
+import EventPoster from '../components/EventPoster'
+import { isPlaceholderImage } from '../utils/eventPoster'
 import ShareButton from '../components/ShareButton'
 
 /* --- Helpers --- */
@@ -703,7 +705,7 @@ export default function EventDetail() {
       <div className="min-h-screen bg-[#050510]" style={{ paddingTop: 64 }}>
       {event.date && <Countdown date={event.date} time={event.time} />}
       <div style={{ position: 'relative', width: '100%', minHeight: 420, overflow: 'hidden' }}>
-        <img src={event.image} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+        <div style={{ position: 'absolute', inset: 0 }}><EventPoster event={event} /></div>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 20%, rgba(10,10,15,0.85) 75%, rgba(10,10,15,1) 100%)' }} />
         <div style={{ position: 'absolute', top: 16, left: 16, right: 16, display: 'flex', justifyContent: 'space-between', zIndex: 5 }}>
           <button onClick={() => navigate(-1)} style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', border: 'none', color: 'white', padding: '8px 14px', borderRadius: 999, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', fontWeight: 600 }}><ArrowLeft size={16} /> Back</button>
@@ -728,7 +730,7 @@ export default function EventDetail() {
             ) : (
               <button className="btn btn-purple" onClick={() => document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })}><span className="btn-label">GET TICKETS</span><span className="btn-arrow"><ArrowRight size={16} /></span></button>
             )}
-            <button onClick={() => setShowFlyer(true)} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '12px 20px', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: '0.82rem', backdropFilter: 'blur(8px)' }}><Eye size={15} /> VIEW FLYER</button>
+            {!isPlaceholderImage(event.image) && <button onClick={() => setShowFlyer(true)} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '12px 20px', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: '0.82rem', backdropFilter: 'blur(8px)' }}><Eye size={15} /> VIEW FLYER</button>}
             <ShareButton event={event} variant="button" />
           </div>
           {!isEventEnded && (<div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 16, fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
