@@ -79,7 +79,15 @@ const TxpService = {
       .insert([{ user_id: userId, amount, type: 'credit', status, reason, metadata }])
       .select()
       .single()
-    if (txnErr) throw txnErr
+    if (txnErr) {
+      // 23505 = unique constraint violation. A DB-level unique index guards
+      // one-time reasons (signup_bonus, kyc_completed, profile_complete,
+      // legacy_appreciation_bonus) so concurrent/duplicate calls can never
+      // double-credit a wallet, even if the earlier _alreadyAwarded check
+      // raced with another request.
+      if (txnErr.code === '23505') return null
+      throw txnErr
+    }
 
     const wallet = await this.getWallet(userId)
     const update = {
