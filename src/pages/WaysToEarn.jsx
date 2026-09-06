@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { hasOpenedTask, markTaskOpened } from '../utils/taskProgress'
 import toast from 'react-hot-toast'
 import {
   Ticket,
@@ -167,7 +168,7 @@ const PLATFORM_LABEL = {
 // confirms with "I've Done This" to claim the TXP. Once claimed, the
 // task disappears from the available list and moves into history.
 function SocialTaskCard({ task, onComplete, completing }) {
-  const [opened, setOpened] = useState(false)
+  const [opened, setOpened] = useState(() => hasOpenedTask(task.id))
 
   return (
     <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
@@ -193,7 +194,7 @@ function SocialTaskCard({ task, onComplete, completing }) {
           href={task.link_url}
           target="_blank"
           rel="noreferrer"
-          onClick={() => setOpened(true)}
+          onClick={() => { markTaskOpened(task.id); setOpened(true) }}
           className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-gray-800 border border-gray-700 rounded-full px-4 py-2 hover:bg-gray-700 transition-colors"
         >
           Open <ExternalLink className="w-3.5 h-3.5" />
