@@ -16,11 +16,17 @@ export function isPlaceholderEvent(event) {
   return !event.image
 }
 
-// 0 = upcoming/live, 1 = ended, 2 = placeholder (no image) — always last.
+// Whether an event has already finished is the PRIMARY ranking signal: every
+// ended event sinks below every upcoming one, no exceptions. Missing artwork is
+// only a tiebreak within each of those two groups.
+//
+// (Ranking them as one flat scale used to let an ended event with a nice photo
+// outrank an upcoming event that had no image yet — past events belong at the
+// very bottom regardless of how good they look.)
+//
+// 0 = upcoming w/ image, 1 = upcoming w/o image, 2 = ended w/ image, 3 = ended w/o image
 export function eventTier(event) {
-  if (isPlaceholderEvent(event)) return 2
-  if (isEventEnded(event)) return 1
-  return 0
+  return (isEventEnded(event) ? 2 : 0) + (isPlaceholderEvent(event) ? 1 : 0)
 }
 
 // Stable sort: preserves whatever order the list already had within a tier
