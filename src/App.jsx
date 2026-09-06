@@ -10,6 +10,7 @@ import AnnouncementBanner from './components/AnnouncementBanner'
 
 import Hero from './components/Hero'
 import HomeEvents from './components/HomeEvents'
+import SocialTasksStrip from './components/SocialTasksStrip'
 import RoleCards from './components/RoleCards'
 import HowItWorks from './components/HowItWorks'
 import Categories from './components/Categories'
@@ -46,6 +47,7 @@ function Landing() {
       </Helmet>
       <Hero />
       <HomeEvents />
+      <SocialTasksStrip />
       <RoleCards />
       <HowItWorks />
       <StatsBar />

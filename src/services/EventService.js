@@ -25,13 +25,11 @@ async function generateUniqueSlug(title) {
 
 const EventService = {
   async getAll() {
-    const today = new Date().toISOString().split('T')[0]
     const { data, error } = await supabase
       .from('events')
       .select('*')
       .or('status.eq.published,status.is.null')
       .or('is_private.eq.false,is_private.is.null')
-      .or(`end_date.gte.${today},date.gte.${today}`)
       .order('created_at', { ascending: false })
     if (error) throw error
     return data
@@ -61,13 +59,11 @@ const EventService = {
   },
 
   async search(query) {
-    const today = new Date().toISOString().split('T')[0]
     const { data, error } = await supabase
       .from('events')
       .select('*')
       .or('status.eq.published,status.is.null')
       .or('is_private.eq.false,is_private.is.null')
-      .or(`end_date.gte.${today},date.gte.${today}`)
       .or(`title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%,category.ilike.%${query}%`)
       .order('created_at', { ascending: false })
     if (error) throw error
@@ -75,13 +71,11 @@ const EventService = {
   },
 
   async getByCategory(category) {
-    const today = new Date().toISOString().split('T')[0]
     const { data, error } = await supabase
       .from('events')
       .select('*')
       .or('status.eq.published,status.is.null')
       .or('is_private.eq.false,is_private.is.null')
-      .or(`end_date.gte.${today},date.gte.${today}`)
       .ilike('category', category)
       .order('created_at', { ascending: false })
     if (error) throw error
