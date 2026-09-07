@@ -370,53 +370,7 @@ export default function WaysToEarn() {
           </Link>
         </div>
 
-        {/* Earning actions */}
-        <div className="space-y-4 mb-12">
-          {ACTION_ORDER.map(action => {
-            if (action === 'referral_registered') {
-              return (
-                <ActionCard key={action} action={action} rule={rules[action]} completed={false}>
-                  <a
-                    href="#referral-widget"
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-full px-4 py-2 transition-transform hover:-translate-y-0.5"
-                  >
-                    Get Your Link ↓
-                  </a>
-                </ActionCard>
-              )
-            }
-            if (action === 'referral_campaign_bonus') {
-              return (
-                <ActionCard key={action} action={action} rule={rules[action]} completed={false} />
-              )
-            }
-            return (
-              <ActionCard
-                key={action}
-                action={action}
-                rule={rules[action]}
-                completed={!!completion[action]}
-              />
-            )
-          })}
-        </div>
-
-        {/* Partner Campaigns (Phase 11) */}
-        {partnerCampaigns.length > 0 && (
-          <div className="mb-12">
-            <div className="flex items-center gap-2 mb-4">
-              <Handshake className="w-5 h-5 text-pink-400" />
-              <h2 className="text-white font-bold text-lg">Partner Offers</h2>
-            </div>
-            <div className="space-y-4">
-              {partnerCampaigns.map(campaign => (
-                <PartnerCampaignCard key={campaign.id} campaign={campaign} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reshare / Social Tasks (Phase 14) */}
+        {/* Reshare / Social Tasks (Phase 14) — shown first: quickest, most frequent way to earn */}
         {(socialTasks.length > 0 || completedSocialTasks.length > 0) && (
           <div className="mb-12">
             <div className="flex items-center gap-2 mb-4">
@@ -462,6 +416,52 @@ export default function WaysToEarn() {
             )}
           </div>
         )}
+
+        {/* Partner Campaigns (Phase 11) */}
+        {partnerCampaigns.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center gap-2 mb-4">
+              <Handshake className="w-5 h-5 text-pink-400" />
+              <h2 className="text-white font-bold text-lg">Partner Offers</h2>
+            </div>
+            <div className="space-y-4">
+              {partnerCampaigns.map(campaign => (
+                <PartnerCampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Earning actions */}
+        <div className="space-y-4 mb-12">
+          {ACTION_ORDER.map(action => {
+            if (action === 'referral_registered') {
+              return (
+                <ActionCard key={action} action={action} rule={rules[action]} completed={false}>
+                  <a
+                    href="#referral-widget"
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-full px-4 py-2 transition-transform hover:-translate-y-0.5"
+                  >
+                    Get Your Link ↓
+                  </a>
+                </ActionCard>
+              )
+            }
+            if (action === 'referral_campaign_bonus') {
+              return (
+                <ActionCard key={action} action={action} rule={rules[action]} completed={false} />
+              )
+            }
+            return (
+              <ActionCard
+                key={action}
+                action={action}
+                rule={rules[action]}
+                completed={!!completion[action]}
+              />
+            )
+          })}
+        </div>
 
         {/* Referral Widget */}
         <div id="referral-widget" className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 sm:p-8 scroll-mt-24">
