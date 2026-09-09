@@ -58,21 +58,29 @@ function timeAgo(dateStr) {
 }
 
 /* --- Countdown Component --- */
+function computeTimeLeft(date, time) {
+  const target = parseLocalDateTime(date, time || '00:00')
+  const diff = target - Date.now()
+  if (diff <= 0) return null
+  return {
+    d: Math.floor(diff / 86400000),
+    h: Math.floor((diff % 86400000) / 3600000),
+    m: Math.floor((diff % 3600000) / 60000),
+    s: Math.floor((diff % 60000) / 1000)
+  }
+}
+
 function Countdown({ date, time }) {
-  const [tl, setTl] = useState({ d: 0, h: 0, m: 0, s: 0 })
-  const [expired, setExpired] = useState(false)
+  const initial = computeTimeLeft(date, time)
+  const [tl, setTl] = useState(initial || { d: 0, h: 0, m: 0, s: 0 })
+  const [expired, setExpired] = useState(!initial)
 
   useEffect(() => {
-    const target = parseLocalDateTime(date, time || '00:00')
     const update = () => {
-      const diff = target - Date.now()
-      if (diff <= 0) { setExpired(true); return }
-      setTl({
-        d: Math.floor(diff / 86400000),
-        h: Math.floor((diff % 86400000) / 3600000),
-        m: Math.floor((diff % 3600000) / 60000),
-        s: Math.floor((diff % 60000) / 1000)
-      })
+      const next = computeTimeLeft(date, time)
+      if (!next) { setExpired(true); return }
+      setExpired(false)
+      setTl(next)
     }
     update()
     const timer = setInterval(update, 1000)
