@@ -23,8 +23,8 @@ const RECURRENCE_OPTIONS = [
   { value: 'monthly', label: 'Monthly' },
 ]
 
-const STEP_LABELS = ['Details', 'When & Where', 'Tickets', 'Extras', 'Review']
-const TOTAL_STEPS = 5
+const STEP_LABELS = ['Details', 'When & Where', 'Tickets', 'Extras', 'Account', 'Review']
+const TOTAL_STEPS = 6
 
 export default function CreateEvent() {
   const navigate = useNavigate()
@@ -33,6 +33,14 @@ export default function CreateEvent() {
   const [submitting, setSubmitting] = useState(false)
   const [hasPayoutProfile, setHasPayoutProfile] = useState(null)
   const [checkingPayout, setCheckingPayout] = useState(false)
+  const [banks, setBanks] = useState([])
+  const [payoutForm, setPayoutForm] = useState({ bank_code: '', bank_name: '', account_number: '' })
+  const [resolvedAccount, setResolvedAccount] = useState(null)
+  const [resolvingAccount, setResolvingAccount] = useState(false)
+  const [savingPayout, setSavingPayout] = useState(false)
+  const [nin, setNin] = useState('')
+  const [bvn, setBvn] = useState('')
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false)
   const [imageMode, setImageMode] = useState('upload')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
@@ -173,19 +181,86 @@ export default function CreateEvent() {
   const isPaidEvent = form.pricing_type === 'paid' || form.pricing_type === 'mixed' || form.tiers.some(t => Number(t.price) > 0)
 
   useEffect(() => {
-    if (step === 5 && isPaidEvent && user) {
-      setCheckingPayout(true)
-      PayoutService.getProfile(user.id)
-        .then(profile => setHasPayoutProfile(!!profile && !!profile.subaccount_code))
-        .catch(() => setHasPayoutProfile(false))
-        .finally(() => setCheckingPayout(false))
+    if (!isPaidEvent || !user) return
+    if (step !== 5 && step !== 6) return
+    let cancelled = false
+    setCheckingPayout(true)
+    Promise.all([
+      PayoutService.getProfile(user.id),
+      banks.length ? Promise.resolve(banks) : PayoutService.listBanks().catch(() => [])
+    ]).then(([payoutProfile, bankList]) => {
+      if (cancelled) return
+      setHasPayoutProfile(!!payoutProfile && !!payoutProfile.subaccount_code)
+      if (bankList?.length) setBanks(bankList)
+      if (payoutProfile) {
+        setPayoutForm({
+          bank_code: payoutProfile.bank_code || '',
+          bank_name: payoutProfile.bank_name || '',
+          account_number: payoutProfile.account_number || ''
+        })
+        if (payoutProfile.account_name) setResolvedAccount({ account_name: payoutProfile.account_name })
+        if (payoutProfile.nin) setNin(payoutProfile.nin)
+        if (payoutProfile.bvn) setBvn(payoutProfile.bvn)
+        if (payoutProfile.disclaimer_accepted) setDisclaimerAccepted(true)
+      }
+    }).catch(() => { if (!cancelled) setHasPayoutProfile(false) })
+      .finally(() => { if (!cancelled) setCheckingPayout(false) })
+    return () => { cancelled = true }
+  }, [step, isPaidEvent, user])
+
+  async function handleResolveAccount() {
+    if (payoutForm.account_number.length < 10 || !payoutForm.bank_code) {
+      toast.error('Enter a 10-digit account number and select a bank')
+      return
     }
-  }, [step])
+    setResolvingAccount(true)
+    setResolvedAccount(null)
+    try {
+      const result = await PayoutService.resolveAccount(payoutForm.account_number, payoutForm.bank_code)
+      setResolvedAccount(result)
+      toast.success(`Account: ${result.account_name}`)
+    } catch (e) { toast.error(e.message || 'Could not verify account') }
+    finally { setResolvingAccount(false) }
+  }
+
+  async function savePayoutAndContinue() {
+    if (!user) { toast.error('Please log in first'); saveDraftAndRedirect(); return }
+    if (!resolvedAccount?.account_name) { toast.error('Verify the account number first'); return }
+    if (nin.length !== 11 || bvn.length !== 11) { toast.error('NIN and BVN must be 11 digits'); return }
+    if (!disclaimerAccepted) { toast.error('Accept the organizer agreement to continue'); return }
+    setSavingPayout(true)
+    try {
+      await PayoutService.createSubaccount({
+        userId: user.id,
+        businessName: profile?.full_name || resolvedAccount.account_name,
+        bankCode: payoutForm.bank_code,
+        bankName: payoutForm.bank_name,
+        accountNumber: payoutForm.account_number,
+        accountName: resolvedAccount.account_name,
+        nin: nin.trim(),
+        bvn: bvn.trim(),
+        disclaimerAccepted
+      })
+      setHasPayoutProfile(true)
+      toast.success('Payout account saved')
+      setStep(6)
+    } catch (e) { toast.error(e.message || 'Could not save payout account') }
+    finally { setSavingPayout(false) }
+  }
 
   function goNext() {
     if (step === 1 && !validateStep1()) return
     if (step === 2 && !validateStep2()) return
     if (step === 3 && !validateStep3()) return
+    if (step === 4) {
+      setStep(isPaidEvent ? 5 : 6)
+      return
+    }
+    if (step === 5) {
+      if (!hasPayoutProfile) { toast.error('Add your payout account before review'); return }
+      setStep(6)
+      return
+    }
     setStep(s => Math.min(s + 1, TOTAL_STEPS))
   }
 
@@ -193,6 +268,11 @@ export default function CreateEvent() {
     if (!user) { toast.error('Please log in to publish your event'); saveDraftAndRedirect(); return }
     if (!form.title) { toast.error('Event title is required'); return }
     if (status === 'published' && !form.date) { toast.error('Start date is required'); return }
+    if (status === 'published' && isPaidEvent && !hasPayoutProfile) {
+      toast.error('Add your payout account before publishing a paid event')
+      setStep(5)
+      return
+    }
     setSubmitting(true)
     try {
       // No stock fallback: an empty image makes the app render a branded,
@@ -329,6 +409,8 @@ export default function CreateEvent() {
         <div className="flex items-center justify-center gap-2 mb-10">
           {STEP_LABELS.map((label, idx) => {
             const s = idx + 1
+            if (!isPaidEvent && s === 5) return null
+            const display = !isPaidEvent && s === 6 ? 5 : s
             return (
               <React.Fragment key={s}>
                 <div className="flex flex-col items-center gap-1.5">
@@ -343,7 +425,7 @@ export default function CreateEvent() {
                       'bg-white/5 text-gray-600'
                     }`}
                   >
-                    {step > s ? <Check className="w-5 h-5" /> : s}
+                    {step > s ? <Check className="w-5 h-5" /> : display}
                   </button>
                   <span className={`text-[10px] font-medium ${step >= s ? 'text-gray-300' : 'text-gray-600'}`}>{label}</span>
                 </div>
@@ -1076,14 +1158,104 @@ export default function CreateEvent() {
                 </button>
                 <button onClick={goNext}
                   className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
-                  Review <Eye className="w-5 h-5" />
+                  {isPaidEvent ? 'Payout account' : 'Review'} <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
             </div>
           )}
 
-          {/* ═══════════════ STEP 5: REVIEW & PUBLISH ═══════════════ */}
-          {step === 5 && (
+          {/* ═══════════════ STEP 5: PAYOUT ACCOUNT (paid events only) ═══════════════ */}
+          {step === 5 && isPaidEvent && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2"><DollarSign className="w-5 h-5 text-pink-400" /> Payout account</h2>
+              <p className="text-gray-400 text-sm">Paid events need a bank account so ticket money can reach you. You keep 95%. Tixo takes 5%.</p>
+
+              {checkingPayout ? (
+                <div className="flex justify-center py-10">
+                  <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <>
+                  {hasPayoutProfile && (
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 text-sm text-green-300">
+                      Payout account is already set up{resolvedAccount?.account_name ? ` for ${resolvedAccount.account_name}` : ''}. You can continue, or update it below.
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-sm text-gray-300 mb-1 block">Bank</label>
+                    <select
+                      value={payoutForm.bank_code}
+                      onChange={e => {
+                        const bank = banks.find(b => b.code === e.target.value)
+                        setPayoutForm(f => ({ ...f, bank_code: e.target.value, bank_name: bank?.name || '' }))
+                        setResolvedAccount(null)
+                      }}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20"
+                    >
+                      <option value="">Select bank</option>
+                      {banks.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-300 mb-1 block">Account number</label>
+                    <div className="flex gap-2">
+                      <input
+                        value={payoutForm.account_number}
+                        onChange={e => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+                          setPayoutForm(f => ({ ...f, account_number: val }))
+                          setResolvedAccount(null)
+                        }}
+                        inputMode="numeric"
+                        placeholder="10-digit account number"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20"
+                      />
+                      <button type="button" onClick={handleResolveAccount} disabled={resolvingAccount || payoutForm.account_number.length < 10 || !payoutForm.bank_code}
+                        className="px-4 rounded-xl bg-white/10 text-white text-sm font-semibold disabled:opacity-40">
+                        {resolvingAccount ? '...' : 'Verify'}
+                      </button>
+                    </div>
+                    {resolvedAccount?.account_name && <p className="text-green-400 text-sm mt-2">{resolvedAccount.account_name}</p>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm text-gray-300 mb-1 block">NIN</label>
+                      <input value={nin} onChange={e => setNin(e.target.value.replace(/\D/g, '').slice(0, 11))} inputMode="numeric" placeholder="11 digits"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" />
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-300 mb-1 block">BVN</label>
+                      <input value={bvn} onChange={e => setBvn(e.target.value.replace(/\D/g, '').slice(0, 11))} inputMode="numeric" placeholder="11 digits"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/20" />
+                    </div>
+                  </div>
+                  <label className="flex items-start gap-3 text-sm text-gray-300">
+                    <input type="checkbox" checked={disclaimerAccepted} onChange={e => setDisclaimerAccepted(e.target.checked)} className="mt-1" />
+                    I accept the organizer agreement and confirm this bank account is mine.
+                  </label>
+                </>
+              )}
+
+              <div className="flex gap-3">
+                <button onClick={() => setStep(4)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
+                  <ArrowLeft className="w-5 h-5" /> Back
+                </button>
+                {hasPayoutProfile ? (
+                  <button onClick={() => setStep(6)} className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
+                    Review <Eye className="w-5 h-5" />
+                  </button>
+                ) : (
+                  <button onClick={savePayoutAndContinue} disabled={savingPayout || checkingPayout}
+                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
+                    {savingPayout ? 'Saving...' : 'Save account and continue'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════ STEP 6: REVIEW & PUBLISH ═══════════════ */}
+          {step === 6 && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Eye className="w-5 h-5 text-pink-400" /> Review & Publish</h2>
 
@@ -1177,14 +1349,14 @@ export default function CreateEvent() {
               </div>
 
               {/* Payout account warning for paid events */}
-              {isPaidEvent && step === 5 && hasPayoutProfile === false && !checkingPayout && (
+              {isPaidEvent && hasPayoutProfile === false && !checkingPayout && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
                   <DollarSign className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-amber-300 font-semibold text-sm">Payout Account Required</p>
-                    <p className="text-gray-400 text-sm mt-1">You need to set up your bank account before publishing a paid event. This ensures you receive your earnings from ticket sales.</p>
-                    <button onClick={() => navigate('/dashboard?tab=payouts')} className="mt-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-lg text-sm">
-                      Set Up Payout Account
+                    <p className="text-amber-300 font-semibold text-sm">Payout account required</p>
+                    <p className="text-gray-400 text-sm mt-1">Add your bank account before publishing a paid event, so ticket money can reach you.</p>
+                    <button onClick={() => setStep(5)} className="mt-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-lg text-sm">
+                      Add payout account
                     </button>
                   </div>
                 </div>
@@ -1192,7 +1364,7 @@ export default function CreateEvent() {
 
               {/* Action buttons */}
               <div className="flex gap-3">
-                <button onClick={() => setStep(4)} className="bg-white/5 hover:bg-white/10 text-white font-semibold py-3 px-5 rounded-xl flex items-center justify-center gap-2">
+                <button onClick={() => setStep(isPaidEvent ? 5 : 4)} className="bg-white/5 hover:bg-white/10 text-white font-semibold py-3 px-5 rounded-xl flex items-center justify-center gap-2">
                   <ArrowLeft className="w-5 h-5" /> Back
                 </button>
                 <button onClick={() => handleSubmit('draft')} disabled={submitting}
