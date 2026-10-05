@@ -234,7 +234,7 @@ export default function EditEvent() {
         setUploading(false)
       }
 
-      // Regenerate slug when title changes, no slug exists, or slug has a random suffix
+      // Keep the public link unless the title itself changed.
       const titleChanged = form.title.trim().toLowerCase() !== originalTitle.trim().toLowerCase()
       const cleanBase = (form.title || 'event')
         .toLowerCase().trim()
@@ -242,11 +242,8 @@ export default function EditEvent() {
         .replace(/[\s_]+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '')
-      // Detect slugs with random 4-char suffix (e.g. comedy-brainbox-uqnz)
-      const hasRandomSuffix = existingSlug && existingSlug !== cleanBase && /^.+-[a-z0-9]{4}$/.test(existingSlug)
       let slug = existingSlug
-      if (!slug || titleChanged || hasRandomSuffix) {
-        // Check if the clean slug is already taken by another event
+      if (!slug || titleChanged) {
         const { count } = await supabase
           .from('events')
           .select('id', { count: 'exact', head: true })
@@ -284,15 +281,6 @@ export default function EditEvent() {
           max_per_purchase: Number(t.max_per_purchase) || 1,
         })),
         tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        registration_fields: [
-          ...form.registration_fields.filter(f => f.enabled).map(f => ({
-            id: f.id, label: f.label, type: f.type, required: f.required,
-            ...(f.options ? { options: f.options } : {})
-          })),
-          ...form.custom_fields.filter(f => f.label.trim()).map(f => ({
-            id: f.id, label: f.label.trim(), type: f.type, required: f.required
-          }))
-        ],
       }
       await EventService.update(id, updates)
       toast.success('✅ Event updated!')

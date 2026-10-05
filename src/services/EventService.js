@@ -157,9 +157,11 @@ const EventService = {
       .update(updates)
       .eq('id', id)
       .select()
-      .single()
     if (error) throw error
-    return data
+    if (!data?.length) {
+      throw new Error('Your changes were not saved. You can only edit events you organize.')
+    }
+    return data[0]
   },
 
   async delete(id) {
