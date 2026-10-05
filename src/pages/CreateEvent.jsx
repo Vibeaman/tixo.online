@@ -324,7 +324,8 @@ export default function CreateEvent() {
             ...(f.options ? { options: f.options } : {})
           })),
           ...form.custom_fields.filter(f => f.label.trim()).map(f => ({
-            id: f.id, label: f.label.trim(), type: f.type, required: f.required
+            id: f.id, label: f.label.trim(), type: f.type, required: f.required,
+            ...(f.type === 'select' && f.options?.length ? { options: f.options } : {})
           }))
         ],
         watchers: 0, demand: 0,

@@ -117,7 +117,8 @@ export default function EditEvent() {
             const savedFields = ev.registration_fields || []
             const presetIds = ['phone', 'gender', 'age', 'organization', 'address']
             return savedFields.filter(f => !presetIds.includes(f.id)).map(f => ({
-              id: f.id, label: f.label, type: f.type, enabled: true, required: f.required || false
+              id: f.id, label: f.label, type: f.type, enabled: true, required: f.required || false,
+              ...(f.options ? { options: f.options } : {})
             }))
           })(),
         })
@@ -226,7 +227,7 @@ export default function EditEvent() {
         form.end_time = ev.end_time || ev.time
       }
 
-      let finalImage = form.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800'
+      let finalImage = form.image || ''
       if (imageFile) {
         setUploading(true)
         try { finalImage = await uploadEventImage(imageFile) }
@@ -234,7 +235,7 @@ export default function EditEvent() {
         setUploading(false)
       }
 
-      // Keep the public link unless the title itself changed.
+      // Regenerate slug when title changes, no slug exists, or slug has a random suffix
       const titleChanged = form.title.trim().toLowerCase() !== originalTitle.trim().toLowerCase()
       const cleanBase = (form.title || 'event')
         .toLowerCase().trim()
@@ -242,8 +243,10 @@ export default function EditEvent() {
         .replace(/[\s_]+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '')
+      // Detect slugs with random 4-char suffix (e.g. comedy-brainbox-uqnz)
+      const hasRandomSuffix = existingSlug && existingSlug !== cleanBase && /^.+-[a-z0-9]{4}$/.test(existingSlug)
       let slug = existingSlug
-      if (!slug || titleChanged) {
+      if (!slug || titleChanged || hasRandomSuffix) {
         const { count } = await supabase
           .from('events')
           .select('id', { count: 'exact', head: true })
@@ -281,6 +284,16 @@ export default function EditEvent() {
           max_per_purchase: Number(t.max_per_purchase) || 1,
         })),
         tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        registration_fields: [
+          ...form.registration_fields.filter(f => f.enabled).map(f => ({
+            id: f.id, label: f.label, type: f.type, required: f.required,
+            ...(f.options ? { options: f.options } : {})
+          })),
+          ...form.custom_fields.filter(f => f.label.trim()).map(f => ({
+            id: f.id, label: f.label.trim(), type: f.type, required: f.required,
+            ...(f.type === 'select' && f.options?.length ? { options: f.options } : {})
+          }))
+        ],
       }
       await EventService.update(id, updates)
       toast.success('✅ Event updated!')
@@ -757,7 +770,7 @@ export default function EditEvent() {
               <div>
                 <label className="text-sm text-gray-300 mb-2 block">Cover Image</label>
                 <div className="flex gap-2 mb-3">
-                  <button onClick={() => { setImageMode('upload'); setForm(f => ({ ...f, image: '' })) }}
+                  <button onClick={() => setImageMode('upload')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${imageMode === 'upload' ? 'bg-white/15 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
                     <Upload className="w-4 h-4" /> Upload
                   </button>

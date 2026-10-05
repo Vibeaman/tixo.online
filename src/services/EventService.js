@@ -159,7 +159,7 @@ const EventService = {
       .select()
     if (error) throw error
     if (!data?.length) {
-      throw new Error('Your changes were not saved. You can only edit events you organize.')
+      throw new Error('Your changes were not saved. Please log in again and retry. If it keeps happening, this account may not be the organizer of this event.')
     }
     return data[0]
   },
