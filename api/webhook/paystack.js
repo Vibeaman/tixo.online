@@ -37,6 +37,52 @@ function getMetadata(data) {
   return data.metadata
 }
 
+async function sendRecoveryEmail({ data, metadata, reference, tickets }) {
+  const recipient = metadata.guest_email || data.customer?.email
+  if (!recipient || !tickets?.length) return
+
+  const { data: event } = await supabase
+    .from('events')
+    .select('date, time, location, event_type, virtual_link, image, slug')
+    .eq('id', metadata.event_id)
+    .limit(1)
+    .single()
+
+  const siteUrl = process.env.PUBLIC_SITE_URL || 'https://tixo.online'
+  const response = await fetch(`${siteUrl}/api/send-ticket-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      to: recipient,
+      buyerName: metadata.guest_name || data.customer?.first_name || '',
+      eventTitle: metadata.event_title || 'Your Tixo event',
+      eventDate: event?.date,
+      eventTime: event?.time,
+      eventLocation: event?.location,
+      eventType: event?.event_type,
+      virtualLink: event?.virtual_link,
+      eventImage: event?.image || '',
+      eventSlug: event?.slug || metadata.event_id,
+      tickets: tickets.map(ticket => ({
+        tierName: ticket.tier_name,
+        quantity: ticket.quantity || 1,
+        totalPrice: ticket.total_price || 0,
+        checkInCode: ticket.check_in_code,
+        attendeeName: ticket.attendee_name
+      })),
+      totalAmount: amountForEmail(tickets),
+      paymentReference: reference,
+      paymentDate: data.paid_at || new Date().toISOString()
+    })
+  })
+
+  if (!response.ok) console.error('Webhook recovery email failed:', response.status)
+}
+
+function amountForEmail(tickets) {
+  return tickets.reduce((total, ticket) => total + Number(ticket.total_price || 0), 0)
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
@@ -115,7 +161,7 @@ export default async function handler(req, res) {
         is_rsvp: false
       }))
 
-      const { error } = await supabase.from('tickets').insert(inserts)
+      const { data: createdTickets, error } = await supabase.from('tickets').insert(inserts).select()
       if (error) {
         // A concurrent frontend/webhook insert can win the race. Re-check the
         // reference before reporting a real failure to Paystack.
@@ -131,6 +177,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ message: 'Already processed concurrently' })
       }
       console.log(`Webhook: Created ${inserts.length} tickets for ref ${reference}`)
+      try {
+        await sendRecoveryEmail({ data, metadata, reference, tickets: createdTickets })
+      } catch (emailError) {
+        console.error('Webhook recovery email error:', emailError.message)
+      }
     } catch (err) {
       console.error('Webhook processing error:', err.message)
       return res.status(500).json({ error: 'Webhook processing failed' })
