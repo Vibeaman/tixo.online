@@ -11,8 +11,8 @@ export default async function handler(req, res) {
 
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) {
-    console.warn('RESEND_API_KEY not configured — skipping email')
-    return res.status(200).json({ sent: false, reason: 'Email service not configured' })
+    console.error('RESEND_API_KEY not configured; ticket email was not sent')
+    return res.status(503).json({ sent: false, reason: 'Email service not configured' })
   }
 
   const {
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       const pad = (n) => String(n).padStart(2, '0')
       endDt = `${endDate.getFullYear()}${pad(endDate.getMonth() + 1)}${pad(endDate.getDate())}T${pad(endDate.getHours())}${pad(endDate.getMinutes())}00`
     }
-    let details = `Event page: https://tixo.online/event/${slug || ''}`
+    let details = `Event page: https://tixo.online/events/${slug || ''}`
     if (virtualLink) details += `\nJoin link: ${virtualLink}`
     const loc = location || virtualLink || ''
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDt}/${endDt}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(loc)}`
@@ -72,11 +72,11 @@ export default async function handler(req, res) {
 
   const isFree = !totalAmount || Number(totalAmount) === 0
   const ticketCount = (tickets || []).length
-  const eventUrl = `https://tixo.online/event/${eventSlug || ''}`
+  const eventUrl = `https://tixo.online/events/${eventSlug || ''}`
 
   const subject = isFree
-    ? `You're In! RSVP Confirmed for ${eventTitle}`
-    : `🎫 Your Ticket${ticketCount > 1 ? 's' : ''} for ${eventTitle} — Confirmed!`
+    ? `${eventTitle} — RSVP Confirmed`
+    : `${eventTitle} — Your Ticket${ticketCount > 1 ? 's' : ''} Confirmed`
 
   const calendarUrl = buildCalendarUrl({ title: eventTitle, dateStr: eventDate, timeStr: eventTime, location: eventLocation, virtualLink, slug: eventSlug })
 
@@ -156,6 +156,7 @@ export default async function handler(req, res) {
         Hello <strong style="color:#fff">${buyerName || 'there'}</strong>, we're glad to have you on board. Your booking was successful and your ticket${ticketCount > 1 ? 's' : ''} for
         <a href="${eventUrl}" style="color:#ec4899;text-decoration:none;font-weight:700">${eventTitle}</a> ${ticketCount > 1 ? 'are' : 'is'} ready.
       </p>
+      <p style="margin:14px 0 0;color:#fbbf24;font-size:13px;line-height:1.5"><strong>This is your Tixo ticket.</strong> The Paystack email is only a payment receipt.</p>
     </div>
 
     ${eventImage ? `
@@ -288,13 +289,13 @@ export default async function handler(req, res) {
     const result = await response.json()
 
     if (!response.ok) {
-      console.error('Resend error:', result)
-      return res.status(200).json({ sent: false, reason: result.message || 'Email send failed' })
+      console.error('Resend error for payment reference', paymentReference, result)
+      return res.status(502).json({ sent: false, reason: result.message || 'Email send failed' })
     }
 
     return res.status(200).json({ sent: true, id: result.id })
   } catch (err) {
-    console.error('Email send error:', err)
-    return res.status(200).json({ sent: false, reason: 'Server error' })
+    console.error('Email send error for payment reference', paymentReference, err)
+    return res.status(502).json({ sent: false, reason: 'Server error' })
   }
 }

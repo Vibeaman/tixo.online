@@ -12,6 +12,7 @@ import UserService from '../services/UserService'
 import ReferralService from '../services/ReferralService'
 import NotificationService from '../services/NotificationService'
 import PayoutService from '../services/PayoutService'
+import { supabase } from '../lib/supabase'
 
 const BASE_TABS = [
   { id: 'tickets', label: 'My Tickets', icon: Ticket },
@@ -454,6 +455,21 @@ export default function Dashboard() {
     if (!user) return
     async function load() {
       try {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.access_token) {
+            const response = await fetch('/api/reconcile-my-payments', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${session.access_token}` }
+            })
+            if (response.ok) {
+              const recovery = await response.json()
+              if (recovery.recovered > 0) toast.success(`${recovery.recovered} paid ticket${recovery.recovered === 1 ? '' : 's'} recovered`)
+            }
+          }
+        } catch (recoveryError) {
+          console.warn('Payment reconciliation skipped:', recoveryError.message)
+        }
         const [t, e] = await Promise.all([
           TicketService.getByUser(user.id),
           EventService.getByOrganizer(user.id)

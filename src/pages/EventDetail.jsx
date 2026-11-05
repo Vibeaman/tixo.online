@@ -300,6 +300,18 @@ export default function EventDetail() {
       try {
         const ev = await EventService.getById(id)
         setEvent(ev)
+        const pendingReference = localStorage.getItem(`pending_payment_${id}`)
+        if (pendingReference) {
+          try {
+            const recovered = await PaystackService.confirmPayment(pendingReference)
+            if (recovered.status === 'success') {
+              localStorage.removeItem(`pending_payment_${id}`)
+              toast.success('Your payment and ticket have been recovered')
+            }
+          } catch (recoveryError) {
+            console.warn('Pending payment recovery deferred:', recoveryError.message)
+          }
+        }
         if (ev?.organizer_id) { try { const subCode = await PayoutService.getSubaccountCode(ev.organizer_id); if (subCode) setOrganizerSubaccount(subCode) } catch (e) { console.warn('Could not fetch payout profile:', e) } }
       } catch { toast.error('Event not found'); navigate('/events') }
       finally { setLoading(false) }
@@ -539,6 +551,7 @@ export default function EventDetail() {
       let paymentChannel = null
       let paidAmount = 0
       let txpRedemption = null
+      let serverTickets = null
       const useTxp = paymentMethod === 'txp' && !!user?.id && !!txpCalc
 
       if (cartTotal > 0) {
@@ -563,8 +576,8 @@ export default function EventDetail() {
           const buyerEmail = user?.email || effectiveGuestInfo?.email
           const buyerNameForPayment = profile?.full_name || user?.user_metadata?.full_name || effectiveGuestInfo?.name || ''
           try {
-            const result = await PaystackService.pay({ onPending: () => setPaymentPending(true), email: buyerEmail, amount: txpCalc.remainingToPay, name: buyerNameForPayment, subaccount: organizerSubaccount || undefined, metadata: { event_id: event.id, event_title: event.title, user_id: user?.id || null, guest_name: effectiveGuestInfo?.name || null, guest_email: effectiveGuestInfo?.email || null, attendance_mode: mode, registration_data: effectiveGuestInfo?.registrationData || registrationData, referral_code: refCode || null, txp_redemption: true, tickets: purchaseItems.map(item => ({ tier_name: item.tierName, quantity: item.quantity, total_price: item.totalPrice, attendee_name: item.attendeeName, attendee_email: item.attendeeEmail })) } })
-            paymentReference = result.reference; paymentStatus = 'verified'; paymentChannel = 'paystack+txp'; paidAmount = result.amount; setPaymentPending(false)
+            const result = await PaystackService.pay({ eventId: event.id, onPending: () => setPaymentPending(true), email: buyerEmail, amount: txpCalc.remainingToPay, name: buyerNameForPayment, subaccount: organizerSubaccount || undefined, metadata: { event_id: event.id, event_title: event.title, user_id: user?.id || null, guest_name: effectiveGuestInfo?.name || null, guest_email: effectiveGuestInfo?.email || null, attendance_mode: mode, registration_data: effectiveGuestInfo?.registrationData || registrationData, referral_code: refCode || null, txp_redemption: true, tickets: purchaseItems.map(item => ({ tier_name: item.tierName, quantity: item.quantity, total_price: item.totalPrice, attendee_name: item.attendeeName, attendee_email: item.attendeeEmail })) } })
+            paymentReference = result.reference; paymentStatus = 'verified'; paymentChannel = 'paystack+txp'; paidAmount = result.tickets?.reduce((sum, t) => sum + Number(t.paid_amount || 0), 0) || result.amount; serverTickets = result.tickets; setPaymentPending(false)
           } catch (payErr) {
             setPaymentProcessing(false); setPaymentPending(false); setBuying(false)
             if (payErr.message === 'Payment cancelled') return
@@ -588,8 +601,8 @@ export default function EventDetail() {
           const buyerEmail = user?.email || effectiveGuestInfo?.email
           const buyerNameForPayment = profile?.full_name || user?.user_metadata?.full_name || effectiveGuestInfo?.name || ''
           try {
-            const result = await PaystackService.pay({ onPending: () => setPaymentPending(true), email: buyerEmail, amount: cartTotal, name: buyerNameForPayment, subaccount: organizerSubaccount || undefined, metadata: { event_id: event.id, event_title: event.title, user_id: user?.id || null, guest_name: effectiveGuestInfo?.name || null, guest_email: effectiveGuestInfo?.email || null, attendance_mode: mode, registration_data: effectiveGuestInfo?.registrationData || registrationData, referral_code: refCode || null, tickets: purchaseItems.map(item => ({ tier_name: item.tierName, quantity: item.quantity, total_price: item.totalPrice, attendee_name: item.attendeeName, attendee_email: item.attendeeEmail })) } })
-            paymentReference = result.reference; paymentStatus = 'verified'; paymentChannel = result.channel; paidAmount = result.amount; setPaymentPending(false)
+            const result = await PaystackService.pay({ eventId: event.id, onPending: () => setPaymentPending(true), email: buyerEmail, amount: cartTotal, name: buyerNameForPayment, subaccount: organizerSubaccount || undefined, metadata: { event_id: event.id, event_title: event.title, user_id: user?.id || null, guest_name: effectiveGuestInfo?.name || null, guest_email: effectiveGuestInfo?.email || null, attendance_mode: mode, registration_data: effectiveGuestInfo?.registrationData || registrationData, referral_code: refCode || null, tickets: purchaseItems.map(item => ({ tier_name: item.tierName, quantity: item.quantity, total_price: item.totalPrice, attendee_name: item.attendeeName, attendee_email: item.attendeeEmail })) } })
+            paymentReference = result.reference; paymentStatus = 'verified'; paymentChannel = result.tickets?.[0]?.payment_channel || 'paystack'; paidAmount = result.tickets?.reduce((sum, t) => sum + Number(t.paid_amount || 0), 0) || result.amount; serverTickets = result.tickets; setPaymentPending(false)
           } catch (payErr) {
             setPaymentProcessing(false); setPaymentPending(false); setBuying(false)
             if (payErr.message === 'Payment cancelled') return
@@ -599,7 +612,7 @@ export default function EventDetail() {
         }
       }
 
-      const tickets = await TicketService.purchaseMultiple({ eventId: event.id, eventTitle: event.title, items: purchaseItems, userId: user?.id || null, guestName: effectiveGuestInfo?.name || null, guestEmail: effectiveGuestInfo?.email || null, referralCode: refCode || null, attendanceMode: mode, isRsvp: false, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData: effectiveGuestInfo?.registrationData || registrationData })
+      const tickets = serverTickets || await TicketService.purchaseMultiple({ eventId: event.id, eventTitle: event.title, items: purchaseItems, userId: user?.id || null, guestName: effectiveGuestInfo?.name || null, guestEmail: effectiveGuestInfo?.email || null, referralCode: refCode || null, attendanceMode: mode, isRsvp: false, paymentReference, paymentStatus, paymentChannel, paidAmount, registrationData: effectiveGuestInfo?.registrationData || registrationData })
       // Attach the created ticket IDs to the TXP redemption record for audit/refund purposes
       if (txpRedemption?.id) { TxpService.attachRedemptionTickets(txpRedemption.id, tickets.map(t => t.id)).catch(err => console.error('Failed to attach ticket ids to redemption:', err)) }
       // Refresh wallet balance display after redeeming
@@ -635,7 +648,7 @@ export default function EventDetail() {
       // Send individual ticket emails to each attendee
       const buyerEmailAddr = user?.email || effectiveGuestInfo?.email
       const sentTicketIds = new Set()
-      tickets.forEach((ticket, i) => {
+      if (!serverTickets) tickets.forEach((ticket, i) => {
         const attendeeEmail = ticket.attendee_email || purchaseItems[i]?.attendeeEmail || ''
         const recipientEmail = attendeeEmail || buyerEmailAddr
         if (!recipientEmail) return
@@ -644,7 +657,7 @@ export default function EventDetail() {
         fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: recipientEmail, buyerName: ticket.attendee_name || purchaseItems[i]?.attendeeName || buyerName, eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: [{ tierName: ticket.tier_name, quantity: 1, totalPrice: ticket.total_price, checkInCode: ticket.check_in_code, attendeeName: ticket.attendee_name }], totalAmount: ticket.total_price || 0, paymentReference, paymentDate: new Date().toISOString() }) }).catch(err => console.warn('Email notification failed:', err))
       })
       // Summary email to buyer if multiple tickets
-      if (buyerEmailAddr && tickets.length > 1) {
+      if (!serverTickets && buyerEmailAddr && tickets.length > 1) {
         fetch('/api/send-ticket-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: buyerEmailAddr, buyerName: profile?.full_name || user?.user_metadata?.full_name || effectiveGuestInfo?.name || '', eventTitle: event.title, eventDate: event.date, eventTime: event.time, eventLocation: event.location, eventType: event.event_type, virtualLink: event.virtual_link, eventImage: event.image || '', eventSlug: event.slug || event.id, tickets: tickets.map(t => ({ tierName: t.tier_name, quantity: 1, totalPrice: t.total_price, checkInCode: t.check_in_code, attendeeName: t.attendee_name })), totalAmount: paidAmount || 0, paymentReference, paymentDate: new Date().toISOString() }) }).catch(err => console.warn('Buyer summary email failed:', err))
       }
     } catch (e) { toast.error(e.message || 'Purchase failed') } finally { setBuying(false); setPaymentProcessing(false); setPaymentPending(false) }
