@@ -458,9 +458,10 @@ export default function Dashboard() {
         try {
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.access_token) {
-            const response = await fetch('/api/reconcile-my-payments', {
+            const response = await fetch('/api/confirm-payment', {
               method: 'POST',
-              headers: { Authorization: `Bearer ${session.access_token}` }
+              headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reconcile: true })
             })
             if (response.ok) {
               const recovery = await response.json()
